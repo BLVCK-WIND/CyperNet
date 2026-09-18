@@ -64,9 +64,47 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 - Trước khi code bất cứ gì, phải hiểu rõ 100% nghiệp vụ. Nhảy vào code ngay = sửa đi sửa lại.
 - Entity design là nền móng — sai ở đây thì tất cả layer phía trên đều sai theo.
 - `BigDecimal` cho tiền, `LocalDateTime` cho thời gian — đây là quy tắc bất di bất dịch.
-- Table name "orders" thay vì "order" vì "order" là từ khóa SQL.
 
 ---
+
+### 2026-09-11 — Phase 0 hoàn thành: Entity layer
+
+**Phase**: Phase 0
+**Thời gian**: ~2 giờ (2 buổi: 10/09 + 11/09)
+**Việc đã làm**:
+- Sửa Account.java: +passwordHash, +role (Enum), +remainingMinutes
+- Sửa Computer.java: +zone (Enum), +pricePerHour (BigDecimal), +ipAddress
+- Sửa Session.java: +endedAt (nullable)
+- Sửa Item.java: +available (boolean)
+- Refactor Order.java: xoá item/quantity/price, +totalAmount, +confirmedAt, +@OneToMany → OrderItem
+- Tạo mới OrderItem.java: @ManyToOne → Order + Item, quantity, unitPrice, subtotal
+- Tạo mới TimePurchase.java: lịch sử mua giờ, paymentMethod, status, confirmedByStaff
+- Git init + first commit
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| @OneToMany + mappedBy | Order → OrderItem | 🔴 Tier 1 |
+| @ManyToOne + @JoinColumn | OrderItem → Order, Session → Computer | 🔴 Tier 1 |
+| cascade + orphanRemoval | Order → OrderItem | 🔴 Tier 1 |
+| FetchType.LAZY | Tất cả @ManyToOne | 🔴 Tier 1 |
+| Long vs int | id = Long, remainingMinutes = int | 🔴 Tier 1 |
+| @CreationTimestamp + updatable=false | createdAt | 🔴 Tier 1 |
+| BigDecimal cho tiền | pricePerHour, totalAmount, unitPrice | 🔴 Tier 1 |
+
+**Lỗi gặp phải & cách fix**:
+- TimePurchase: long id → Long id (JPA cần wrapper vì id chưa có trước khi save)
+- TimePurchase: confirmedAt gán nhầm @CreationTimestamp (field này gán khi NV xác nhận, không phải lúc tạo)
+- TimePurchase: quên field confirmedByStaff
+- OrderItem: quên @ManyToOne → Item
+
+**Ghi chú / Bài học rút ra**:
+- mappedBy = bên này không phải chủ, nhìn vào field bên kia
+- cascade = lan truyền thao tác cha → con. orphanRemoval = xoá khỏi list → xoá trong DB
+- @CreationTimestamp chỉ cho field gán 1 lần lúc INSERT
+- Luôn tự hỏi: field có thể null không? → primitive vs wrapper
+
+
 
 <!-- 
 === TEMPLATE CHO NGÀY MỚI ===
