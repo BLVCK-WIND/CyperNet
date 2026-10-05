@@ -35,6 +35,21 @@ Cú pháp	                    Đơn giản	                 Dài hơn
 - Cần độ chính xác tuyệt đối
 - Số có nhiều chữ số sau dấu phẩy
 Question 3: enum có nên để trong entity không? 
+
+Trả lời:
+Cả 2 cách đều được hỗ trợ trong Java, nhưng dùng cách nào phụ thuộc vào phạm vi sử dụng (Scope):
+
+1. Nên để bên trong Entity (Inner Enum):
+- Khi enum đó CHỈ gắn liền duy nhất với Entity này, không có class/entity nào khác cần dùng đến.
+- Ví dụ: `Account.Role` (CUSTOMER, STAFF, ADMIN) nếu chỉ dùng để phân quyền cho Account.
+- Ưu điểm: Đóng gói gọn gàng, người đọc mở file Entity là thấy ngay toàn bộ định nghĩa.
+
+2. Nên tách ra file riêng (Standalone Enum - Khuyên dùng trong dự án thực tế):
+- Khi enum đó được dùng ở NHIỀU NƠI khác nhau: DTO Request, DTO Response, Service, Controller, hoặc Entity khác.
+- Ví dụ: `OrderStatus`, `PaymentMethod` (Order dùng, DTO dùng, Controller query param cũng dùng). Nếu để lồng trong Entity thì ngoài DTO phải import kiểu `Order.Status` hoặc `TimePurchase.PaymentMethod` -> dễ bị phụ thuộc chéo vào Entity.
+- Ưu điểm: Tách biệt rõ ràng (Decoupling), DTO không cần phụ thuộc vào Entity để lấy Enum.
+
+=> Quy tắc thực tế: Nếu chỉ dùng nội bộ trong 1 Entity -> để bên trong. Nếu DTO, Service, Controller cần dùng chung -> nên tách file riêng (thường nằm ở package `entity`, `model`, hoặc `common/enums`).
 Câu hỏi phỏng vấn — Ôn tập Phase 0:
 1. Tại sao dùng FetchType.LAZY thay vì EAGER? Nếu dùng EAGER thì chuyện gì sẽ xảy ra khi query 100 Order?
     → Dùng EAGER → Khi query 100 Order → JPA sẽ JOIN với Account, Session, OrderItem → 100 Order x 3 table = 300 queries trong memory.
@@ -59,3 +74,59 @@ Câu hỏi phỏng vấn — Ôn tập Phase 0:
 4. Tại sao createdAt có updatable = false nhưng confirmedAt thì không?
 =>  Vì confirmAt là lúc nào chúng ta nhận được tiền của khách thì chúng ta mới bắt đầu cập nhật trường này. -> updatable = true thì mới cho phép cập nhật trường này sau khi insert trước đó ( null)
 => @CreationTimestamp chỉ gán 1 lần lúc INSERT
+
+---
+
+### Câu hỏi phỏng vấn — Ôn tập Phase 1 (Kiến trúc 3 lớp, DTO, Transaction):
+
+5. Tại sao trong DB đã có `@Column(unique = true)` cho số điện thoại rồi, mà trong Service vẫn phải kiểm tra `existsByPhone`?
+=> 
+- Nếu không check bằng Java, khi DB nhận trùng lặp sẽ văng ra ngoại lệ `DataIntegrityViolationException` (mã lỗi 500 Internal Server Error). Khi đó, Client/Frontend chỉ nhận được thông báo lỗi chung chung là server bị lỗi.
+- Khi ta chủ động check `existsByPhone` ở tầng Service: ta có thể quăng ra `IllegalArgumentException` kèm lời nhắn rõ ràng: "Số điện thoại này đã được đăng ký!" -> Controller chuyển thành mã 400 Bad Request, giúp trải nghiệm người dùng thân thiện và chuyên nghiệp hơn (Defense in Depth).
+
+6. Tại sao không được trả thẳng Entity ra ngoài Controller mà phải map qua Response DTO?
+=>
+- Bảo mật (Security): Tránh làm lộ dữ liệu nhạy cảm như `passwordHash`.
+- Ngăn ngừa Infinite Recursion (lặp vô tận): Khi 2 Entity quan hệ hai chiều (ví dụ: Session <-> Account), thư viện Jackson biến Entity thành JSON sẽ chạy đệ quy vòng lặp vô tận gây tràn bộ nhớ (StackOverflowError).
+- Tránh LazyInitializationException: DTO chỉ lấy những trường cần thiết khi Session JPA còn mở.
+- Độc lập kiến trúc: Khi Database đổi tên cột, tách bảng thì giao diện API (DTO) trả cho Frontend/Mobile không bị vỡ.
+
+7. Tại sao lại dùng `@RestControllerAdvice` thay vì viết `try-catch` ở từng Controller?
+=>
+- Tuân thủ nguyên lý DRY (Don't Repeat Yourself): Tránh lặp lại code try-catch ở hàng chục controller khác nhau.
+- Tách bạch trách nhiệm (Separation of Concerns): Controller chỉ tập trung điều hướng nghiệp vụ luồng thành công; còn bắt lỗi, định dạng mã lỗi HTTP (400, 404, 500) được gom về một mối duy nhất quản lý tập trung.
+
+8. Tại sao method `confirmTimePurchase` (xác nhận nạp giờ) bắt buộc phải có annotation `@Transactional`?
+=>
+- Vì method này thực hiện 2 thao tác ghi vào DB: (1) Cập nhật trạng thái `TimePurchase` thành `CONFIRMED` và (2) Cộng `remainingMinutes` vào tài khoản `Account` của khách hàng.
+- `@Transactional` đảm bảo tính nguyên tử (Atomicity trong ACID): Cả 2 thao tác này hoặc cùng thành công 100%, hoặc nếu 1 trong 2 gặp lỗi (ví dụ lỗi mạng, crash), toàn bộ dữ liệu sẽ tự động ROLLBACK về trạng thái ban đầu. Tránh trường hợp khách bị trừ tiền nhưng tài khoản không được cộng giờ!
+
+9. Khái niệm Snapshot (Lưu vết lịch sử) trong thiết kế hệ thống là gì? Ví dụ?
+=>
+- Khái niệm: Lưu cứng giá trị tại thời điểm giao dịch xảy ra, không tính nhẩm động dựa trên bảng giá hiện tại.
+- Ví dụ: Bảng `TimePurchase` lưu cả `minutes` (60p) và `amount` (10.000đ). Nếu sau này quán tăng giá lên 15.000đ/60p, báo cáo doanh thu của các tháng cũ vẫn chính xác 10.000đ, không bị tính sai lệch theo giá mới.
+
+10. Phân biệt 4 loại Exception thường dùng nhất trong Spring Boot:
+=>
+- `IllegalArgumentException` (400 Bad Request): Dữ liệu đầu vào sai cú pháp / vô lý. (VD: phút nạp <= 0, tiền <= 0, SĐT sai định dạng).
+- `IllegalStateException` (400 Bad Request): Trạng thái đối tượng không cho phép thực hiện. (VD: đơn đã CANCELLED mà bấm duyệt, máy đang IN_USE mà bấm mở tiếp).
+- `ResourceNotFoundException` (404 Not Found): Không tìm thấy bản ghi trong DB theo ID. (VD: tìm Account id = 999 không thấy).
+- `Exception` chung (500 Internal Server Error): Lỗi hệ thống bất ngờ (đứt cáp mạng, DB crash, Out of Memory).
+
+11. `save()` khác `saveAndFlush()` như thế nào?
+=>
+- `save()`: Đưa Entity vào bộ nhớ đệm (Persistence Context), gom lại chờ kết thúc method hoặc trước khi commit transaction mới ghi xuống DB (tối ưu hiệu năng, khuyên dùng 95%).
+- `saveAndFlush()`: Lưu và ép Hibernate bắn ngay lập tức câu lệnh SQL INSERT/UPDATE xuống DB tại dòng code đó (nhưng vẫn nằm trong transaction chưa commit). Dùng khi dòng code tiếp theo cần dữ liệu trong DB ngay lập tức.
+
+12. Tại sao hàm trong Repository (VD: `findByCategoryId`) không hề ghi chữ "Item" hay tên bảng mà Spring vẫn biết query bảng `items`?
+=>
+- Do Spring nhìn vào khai báo Generic Type `<T, ID>` của interface Repository: `ItemRepository extends JpaRepository<Item, Long>`.
+- Khai báo `<Item, Long>` chỉ định rõ repository này quản lý Entity `Item` (được map với bảng `items` qua `@Table(name = "items")`). Bất kỳ hàm nào viết bên trong nó đều tự động target vào bảng `items`.
+
+13. Làm sao giải quyết lỗi Khóa ngoại (Foreign Key Constraint) và tránh mất dữ liệu kế toán khi Delete?
+=>
+- Dùng Xóa mềm (Soft Delete - Khuyên dùng 90% khi đi làm): Thêm trường `boolean isDeleted = false;` vào Entity. Khi xóa, chỉ chuyển `isDeleted = true` (thực chất là câu lệnh UPDATE).
+  + Không bao giờ bị lỗi Foreign Key Constraint vì bản ghi cha vẫn tồn tại trong DB, các bảng con trỏ vào không bị đứt gãy.
+  + Không mất dữ liệu kế toán/kiểm toán (Audit), lịch sử hoá đơn nạp tiền của khách vẫn còn nguyên vẹn.
+- Ngoài ra: Có thể chủ động kiểm tra ở Service (chặn xóa nếu đã phát sinh giao dịch) hoặc dùng `CascadeType.REMOVE` đối với quan hệ cha con ruột thịt (VD: Order -> OrderItem).
+
