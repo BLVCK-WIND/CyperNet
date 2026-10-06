@@ -129,4 +129,15 @@ Câu hỏi phỏng vấn — Ôn tập Phase 0:
   + Không bao giờ bị lỗi Foreign Key Constraint vì bản ghi cha vẫn tồn tại trong DB, các bảng con trỏ vào không bị đứt gãy.
   + Không mất dữ liệu kế toán/kiểm toán (Audit), lịch sử hoá đơn nạp tiền của khách vẫn còn nguyên vẹn.
 - Ngoài ra: Có thể chủ động kiểm tra ở Service (chặn xóa nếu đã phát sinh giao dịch) hoặc dùng `CascadeType.REMOVE` đối với quan hệ cha con ruột thịt (VD: Order -> OrderItem).
+
+14. Tại sao trong hàm startSession và endSession bắt buộc phải có @Transactional?
+=>
+- Vì cả 2 hàm đều cập nhật đồng thời 2 bảng: `sessions` và `computers` (và cả `accounts` khi tính lại giờ dư).
+- `@Transactional` đảm bảo tính nguyên tử (Atomicity): Tránh tình trạng phiên đã tạo thành công nhưng máy tính vẫn ở trạng thái `AVAILABLE` (dẫn đến khách khác nhảy vào ngồi đè), hoặc khi kết thúc phiên mà máy không được mở khóa.
+
+15. Trong `SessionResponse`, tại sao ta tính toán động `playedMinutes` và `remainingMinutesUntilExpiry` mà không lưu cứng 2 cột này vào bảng `sessions`?
+=>
+- Vì đây là dữ liệu thay đổi liên tục theo từng giây từng phút trôi qua của thời gian thực.
+- Nếu lưu vào DB, ta sẽ phải liên tục chạy vòng lặp cập nhật DB mỗi giây (gây nghẽn cổ chai và chết database). Thay vào đó, trong DB chỉ cần lưu mốc mỏ neo cố định: `startedAt` và `expiresAt`. Khi nào Client cần xem thì tính nhẩm động bằng `Duration.between(...)` ngay lúc chuyển sang DTO, vừa chính xác 100% theo thời gian thực vừa không tốn tài nguyên DB.
+
 

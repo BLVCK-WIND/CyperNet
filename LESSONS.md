@@ -77,8 +77,18 @@
 - **Generic Type `<Item, Long>`**: Giúp Spring biết chính xác cần sinh câu lệnh truy vấn tới bảng `items`.
 - **`save()` vs `saveAndFlush()`**: `save()` đưa vào bộ nhớ đệm gom lệnh ghi cuối cùng (tối ưu hiệu năng, dùng 95%); `saveAndFlush()` ép ghi câu SQL xuống DB ngay tại dòng code đó.
 
+#### G. Quản lý Phiên chơi & Đồng bộ trạng thái hai chiều (`Session` & `Computer`)
+- **Đồng bộ trạng thái bắt buộc bằng `@Transactional`**:
+  + Mở phiên: `Session.ACTIVE` ➔ Khóa máy `Computer.IN_USE`.
+  + Kết thúc phiên: `Session.ENDED` ➔ Trả máy `Computer.AVAILABLE`.
+  + Không bao giờ để lệch trạng thái: Máy đang dùng mà hệ thống tưởng rảnh, hoặc máy đã tắt mà hệ thống tưởng bận.
+- **Tư duy lưu trữ thời gian thực (Time Anchors vs Calculated Fields)**:
+  + Trong Database: Chỉ lưu mốc cố định `startedAt`, `expiresAt`, `endedAt`.
+  + Không bao giờ tạo cột `playedMinutes` hay `remainingMinutes` lưu trong bảng `sessions` để cập nhật mỗi giây (sẽ làm chết Database). Thay vào đó, tính động trong Response DTO bằng `Duration.between(...)`.
+- **Hoàn trả giờ dư (Refund Logic)**:
+  + Khi khách về sớm, tính toán chính xác số phút thực tế đã chơi và cập nhật lại `Account.remainingMinutes` để bảo toàn quyền lợi cho khách.
+
 ---
 
-## ⏳ BƯỚC TIẾP THEO: HOÀN THIỆN `Session` & `Order` TRONG PHASE 1
-- **`Session`**: Quản lý phiên chơi (khách ngồi máy, mở phiên, đếm giờ, kết thúc phiên, đồng bộ trạng thái `Computer.IN_USE` $\leftrightarrow$ `AVAILABLE`).
-- **`Order` + `OrderItem`**: Quét QR gọi món, tạo giỏ hàng, nhân viên duyệt món, trừ kho và cộng giờ nếu gọi gói playtime.
+## ⏳ BƯỚC TIẾP THEO: HOÀN THIỆN `Order` + `OrderItem` (CHỐT HẠ PHASE 1)
+- **`Order` + `OrderItem`**: Quét QR gọi món, tạo giỏ hàng nhiều món, nhân viên duyệt món, trừ kho và cộng giờ nếu đơn có chứa item loại PLAYTIME.

@@ -140,6 +140,38 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 - Tách bạch DTO và Entity là bắt buộc để bảo mật (không lộ passwordHash) và tránh crash đệ quy JSON.
 - Mọi logic thay đổi nhiều bảng liên quan đến tiền bạc/giờ chơi (TimePurchase + Account) bắt buộc phải bọc `@Transactional`.
 
+---
+
+### 2026-10-06 — Phase 1: Hoàn thành Module Session (Quản lý phiên chơi & Đồng bộ máy tính)
+
+**Phase**: Phase 1 (Kiến trúc 3 lớp & DTO)
+**Thời gian**: ~2 giờ
+**Việc đã làm**:
+- Xây dựng hoàn chỉnh module **Session**:
+  + Tạo `SessionRepository` với các query lọc session `ACTIVE` theo computerId, computerCode, accountId.
+  + Tạo `StartSessionRequest`, `ExtendSessionRequest`, `SessionResponse` (tính toán động thời gian thực đã chơi và số phút còn lại).
+  + Tạo `SessionService`: Xử lý mở máy (`startSession` - kiểm tra giờ dư, khoá máy `IN_USE`), đóng máy (`endSession` - mở máy `AVAILABLE`, hoàn lại số phút dư cho khách), gia hạn giờ (`extendSession`), tra cứu phiên cho QR code.
+  + Tạo `SessionController`: Cung cấp các endpoint REST (`POST /start`, `PATCH /end`, `PATCH /extend`, `GET`).
+- Biên dịch thành công 38 file (`mvn compile` BUILD SUCCESS).
+- Cập nhật đầy đủ [interviewX.md](interviewX.md) và [LESSONS.md](LESSONS.md).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Đồng bộ trạng thái Entity | SessionService: Session `ACTIVE` ↔ Computer `IN_USE` | 🔴 Tier 1 |
+| Transaction Management | `@Transactional` đảm bảo tính nguyên tử khi mở/đóng phiên | 🔴 Tier 1 |
+| Thời gian thực (java.time) | `Duration.between(...)`, `LocalDateTime.now().plusMinutes(...)` | 🔴 Tier 1 |
+| Multi-relation DTO Flattening | `SessionResponse`: bóc tách cả thông tin Computer và Account | 🔴 Tier 1 |
+| Dynamic Calculated Fields | Tính `playedMinutes` và `remainingMinutesUntilExpiry` động trong DTO | 🔴 Tier 1 |
+| Defensive Programming | Kiểm tra 5 lớp trước khi mở máy (khách hết giờ, khách đang chơi máy khác, máy đang bận) | 🔴 Tier 1 |
+
+**Lỗi gặp phải & cách fix**:
+- Nguy cơ tính sai giờ khi khách về sớm: Nếu không trừ phút thực tế đã chơi thì khách bị mất toàn bộ số phút còn lại ➔ Fix: Dùng `Duration.between` lấy số phút thực tế, lấy `remainingMinutes` ban đầu trừ đi để hoàn số phút dư vào `Account`.
+
+**Ghi chú / Bài học rút ra**:
+- Tuyệt đối không lưu các trường biến động theo từng giây (như phút đã chơi) vào Database. Chỉ lưu mốc cố định (`startedAt`, `expiresAt`) rồi tính động trong DTO.
+- Bắt buộc dùng `@Transactional` khi thao tác trên nhiều bảng (Session + Computer + Account).
+
 <!-- 
 === TEMPLATE CHO NGÀY MỚI ===
 Copy block bên dưới, paste vào đây, điền thông tin:
