@@ -90,7 +90,28 @@
 - **Hoàn trả giờ dư (Refund Logic)**:
   + Khi khách về sớm, tính toán chính xác số phút thực tế đã chơi và cập nhật lại `Account.remainingMinutes` để bảo toàn quyền lợi cho khách.
 
+#### H. Quản lý Đơn hàng Giỏ hàng (`Order` & `OrderItem`) — Quan hệ Cha Con 1-N & Cascade
+- **Sức mạnh của `CascadeType.ALL`**:
+  + Khi lưu một đơn hàng phức tạp (Order cha + 10 OrderItem con), ta chỉ cần gọi `orderRepository.save(order)`. Hibernate tự động lan truyền và sinh hàng loạt lệnh `INSERT` cho cả cha lẫn con trong 1 lần duy nhất, không cần viết vòng lặp gọi repository con thủ công.
+- **Snapshot Giá bán & Thành tiền (Subtotal)**:
+  + Mọi hệ thống bán hàng chuẩn đều phải lưu cứng `unitPrice` và `subtotal` tại thời điểm đặt hàng. Nếu menu đổi giá, hóa đơn và lịch sử doanh thu của các đơn cũ vẫn được bảo toàn nguyên vẹn 100%.
+- **Xử lý món đa năng (Type PLAYTIME)**:
+  + Khi duyệt đơn hàng có món loại `PLAYTIME`, hệ thống tự động nhận diện và chuyển đổi sang thời gian chơi, gia hạn trực tiếp vào `Session.expiresAt` và cộng vào `Account.remainingMinutes` mà không cần khách thao tác tay.
+
 ---
 
-## ⏳ BƯỚC TIẾP THEO: HOÀN THIỆN `Order` + `OrderItem` (CHỐT HẠ PHASE 1)
-- **`Order` + `OrderItem`**: Quét QR gọi món, tạo giỏ hàng nhiều món, nhân viên duyệt món, trừ kho và cộng giờ nếu đơn có chứa item loại PLAYTIME.
+## 🏆 KẾT QUẢ: PHASE 1 ĐÃ HOÀN THÀNH 100%!
+Toàn bộ 6 module cốt lõi theo kiến trúc 3 lớp (Repository ➔ Service ➔ Controller ➔ DTO) đã hoạt động trơn tru:
+1. `Account` (Quản lý người dùng, mã hoá mật khẩu, phân quyền)
+2. `Computer` (Quản lý máy tính, phân khu VIP/Standard, trạng thái)
+3. `Item` (Danh mục món ăn, thức uống, gói giờ chơi)
+4. `TimePurchase` (Lịch sử nạp giờ tại quầy và QR)
+5. `Session` (Quản lý phiên chơi thời gian thực, đếm giờ, hoàn giờ dư)
+6. `Order` + `OrderItem` (Đặt món qua QR, giỏ hàng nhiều món, duyệt đơn, tự cộng giờ)
+
+---
+
+## ⏳ BƯỚC TIẾP THEO: PHASE 2 — BUSINESS LOGIC NÂNG CAO & CONCURRENCY
+- **Pessimistic Locking**: Khóa máy tính để giải quyết triệt để lỗi 2 khách cùng đăng nhập 1 máy cùng 1 tích tắc (*Race Condition*).
+- **Scheduled Tasks (`@Scheduled`)**: Tự động quét kiểm tra và đóng phiên chơi khi hết giờ mà khách quên đăng xuất.
+- **Chuyển máy (Transfer Computer)**: Chuyển toàn bộ phiên chơi, giờ dư và các đơn PENDING từ máy cũ sang máy mới.

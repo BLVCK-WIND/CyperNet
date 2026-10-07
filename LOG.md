@@ -172,6 +172,38 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 - Tuyệt đối không lưu các trường biến động theo từng giây (như phút đã chơi) vào Database. Chỉ lưu mốc cố định (`startedAt`, `expiresAt`) rồi tính động trong DTO.
 - Bắt buộc dùng `@Transactional` khi thao tác trên nhiều bảng (Session + Computer + Account).
 
+---
+
+### 2026-10-07 — Phase 1: Hoàn thành Module Order & OrderItem (Chốt hạ 100% Phase 1)
+
+**Phase**: Phase 1 (Kiến trúc 3 lớp & DTO)
+**Thời gian**: ~2 giờ
+**Việc đã làm**:
+- Xây dựng hoàn chỉnh module **Order** & **OrderItem**:
+  + Tạo `OrderRepository` & `OrderItemRepository`.
+  + Tạo `CreateOrderRequest`, `CreateOrderItemRequest`, `OrderResponse`, `OrderItemResponse`.
+  + Tạo `OrderService`: Xử lý tạo đơn giỏ hàng qua QR code, kiểm tra tính khả dụng của món, tự động tính snapshot giá bán (`subtotal`), duyệt đơn thanh toán (`confirmOrder` - tự động gia hạn giờ nếu có món loại `PLAYTIME`), huỷ đơn (`cancelOrder`), tra cứu.
+  + Tạo `OrderController`: Đầy đủ các endpoint REST (`POST /api/orders`, `PATCH /confirm`, `PATCH /cancel`, `GET`).
+- Biên dịch thành công 46 file source code (`mvn compile` BUILD SUCCESS).
+- Cập nhật [interviewX.md](interviewX.md) (Câu hỏi 18 & 19) và [LESSONS.md](LESSONS.md).
+- **CHÍNH THỨC HOÀN THÀNH 100% PHASE 1** của dự án CyberNet!
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Cascade Persistence | `@OneToMany(cascade = CascadeType.ALL)`: Lưu Order tự động lưu tất cả OrderItem | 🔴 Tier 1 |
+| Snapshot Pricing | `OrderItem.unitPrice`: Lưu cứng giá bán tại thời điểm đặt hàng | 🔴 Tier 1 |
+| Business Automation | Tự động cộng giờ chơi vào Session khi duyệt đơn có món loại PLAYTIME | 🔴 Tier 1 |
+| Transaction Management | `@Transactional` đảm bảo tính nguyên tử khi tạo và duyệt đơn | 🔴 Tier 1 |
+| Multi-level DTO Mapping | `OrderResponse` bọc danh sách `OrderItemResponse` | 🔴 Tier 1 |
+
+**Lỗi gặp phải & cách fix**:
+- Nguy cơ đặt món đã hết hàng: Nếu không kiểm tra cờ `available` thì khách vẫn đặt được món đã hết trong kho ➔ Fix: Kiểm tra `!item.isAvailable()` ở Service ném ra `IllegalStateException`.
+
+**Ghi chú / Bài học rút ra**:
+- Nhờ `cascade = CascadeType.ALL`, việc lưu cấu trúc Cha - Con phức tạp trở nên cực kỳ gọn gàng.
+- Luôn lưu cứng đơn giá và thành tiền lịch sử để bảo vệ dữ liệu kế toán.
+
 <!-- 
 === TEMPLATE CHO NGÀY MỚI ===
 Copy block bên dưới, paste vào đây, điền thông tin:

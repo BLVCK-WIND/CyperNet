@@ -161,5 +161,18 @@ Câu hỏi phỏng vấn — Ôn tập Phase 0:
   + Dùng `JOIN FETCH` trong JPQL khi thực sự cần load đồng thời cả bảng cha và con trong 1 query.
   + Không lạm dụng `spring.jpa.open-in-view=true` trên production vì gây treo kết nối DB Connection Pool.
 
+18. Khi lưu Order gồm nhiều OrderItem, tại sao ta chỉ cần gọi `orderRepository.save(order)` mà không cần gọi `orderItemRepository.save()` từng item?
+=>
+- Nhờ cấu hình `cascade = CascadeType.ALL` trên quan hệ `@OneToMany` trong Entity `Order`.
+- Cascade (hiệu ứng thác nước) cho phép Hibernate tự động lan truyền thao tác lưu từ thực thể Cha (`Order`) xuống toàn bộ các thực thể Con (`OrderItem`). Hibernate sẽ tự động sinh các câu lệnh `INSERT INTO orders...` rồi tiếp tục `INSERT INTO order_items...` chỉ với 1 lệnh gọi `save(order)`.
+
+19. Tại sao trong bảng `order_items` ta phải lưu cả `unitPrice` và `subtotal` trong khi bảng `items` đã có cột `price` rồi?
+=>
+- Đây là nguyên tắc Snapshot (Lưu vết giá bán lịch sử) trong thương mại điện tử:
+  + Giá của món ăn trong menu (`items.price`) có thể tăng hoặc giảm theo thời gian (ví dụ mì tôm hôm nay 10k, tháng sau tăng lên 15k).
+  + Nếu không lưu cứng `unitPrice` tại thời điểm khách đặt hàng, khi quán tăng giá menu, doanh thu và hóa đơn của các đơn hàng trong quá khứ sẽ bị tính sai lệch theo giá mới!
+  + Lưu `subtotal` giúp hệ thống truy vấn và thống kê doanh thu cực nhanh mà không cần tính nhân lại trên từng dòng.
+
+
 
 
