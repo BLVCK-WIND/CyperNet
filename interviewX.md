@@ -140,4 +140,26 @@ Câu hỏi phỏng vấn — Ôn tập Phase 0:
 - Vì đây là dữ liệu thay đổi liên tục theo từng giây từng phút trôi qua của thời gian thực.
 - Nếu lưu vào DB, ta sẽ phải liên tục chạy vòng lặp cập nhật DB mỗi giây (gây nghẽn cổ chai và chết database). Thay vào đó, trong DB chỉ cần lưu mốc mỏ neo cố định: `startedAt` và `expiresAt`. Khi nào Client cần xem thì tính nhẩm động bằng `Duration.between(...)` ngay lúc chuyển sang DTO, vừa chính xác 100% theo thời gian thực vừa không tốn tài nguyên DB.
 
+16. Kỹ thuật "Làm phẳng dữ liệu" (Data Flattening) trong DTO là gì? Tại sao cần làm phẳng?
+=>
+- Là gì: Thay vì trả về cấu trúc JSON lồng nhau nhiều tầng (Nested JSON: `session.computer.code`, `session.account.name`), ta bóc tách các trường cần thiết đặt cùng trên 1 tầng duy nhất trong Response DTO (`SessionResponse.computerCode`, `SessionResponse.accountName`).
+- Tại sao cần làm phẳng:
+  + Cực tiện cho Frontend/Mobile: Dễ bóc dữ liệu hiển thị lên giao diện mà không cần chấm nhiều tầng.
+  + Bảo mật: Bỏ rơi các trường nhạy cảm phía sau (như `passwordHash` trong Account).
+  + Ngắt đệ quy lặp vô tận (Infinite Recursion): Ngăn lỗi tràn bộ nhớ `StackOverflowError` khi 2 Entity trỏ vòng tròn lẫn nhau.
+  + Chống lỗi `LazyInitializationException`: Ép nạp dữ liệu ngay trong Service khi Session Hibernate còn mở.
+
+17. `LazyInitializationException` là gì? Các trường hợp hay gặp và cách khắc phục chuẩn Enterprise?
+=>
+- Bản chất: Xảy ra khi cố truy cập dữ liệu của một trường/quan hệ được cấu hình `FetchType.LAZY` (lúc này Hibernate đang giữ Proxy ảo), nhưng Hibernate Session (Persistence Context) đã bị ĐÓNG (Closed).
+- 3 trường hợp hay gặp nhất:
+  + Case 1 (Kinh điển): Trả thẳng Entity ra ngoài Controller, khi thư viện Jackson biến Entity thành JSON và gọi getter của trường LAZY thì Session đã đóng -> BÙM! Văng lỗi `LazyInitializationException: could not initialize proxy - no Session`.
+  + Case 2: Truy cập quan hệ LAZY bên ngoài phạm vi `@Transactional` (ví dụ ở Controller, Helper, hoặc Filter).
+  + Case 3: Chạy tác vụ đa luồng bất đồng bộ (`@Async`, new Thread): Luồng mới không sở hữu Hibernate Session của luồng cũ.
+- Cách khắc phục chuẩn Enterprise:
+  + Dùng DTO & Map dữ liệu ngay bên trong tầng Service (nơi `@Transactional` và Hibernate Session còn đang mở).
+  + Dùng `JOIN FETCH` trong JPQL khi thực sự cần load đồng thời cả bảng cha và con trong 1 query.
+  + Không lạm dụng `spring.jpa.open-in-view=true` trên production vì gây treo kết nối DB Connection Pool.
+
+
 

@@ -46,10 +46,12 @@
 ### 2. Các bài học & kinh nghiệm đắt giá rút ra:
 
 #### A. Kiến trúc & Tư duy DTO (Data Transfer Object)
-- **Không bao giờ trả trực tiếp Entity ra ngoài API**:
-  - *Bảo mật*: Giấu các trường nhạy cảm như `passwordHash`.
-  - *Chống sập server*: Tránh vòng lặp đệ quy vô tận (*Infinite Recursion*) khi Jackson biến Entity quan hệ 2 chiều thành JSON gây tràn bộ nhớ (*StackOverflowError*).
-  - *Tính độc lập*: Database đổi tên cột hay cấu trúc bảng thì giao diện API (DTO) trả cho Mobile/Frontend vẫn giữ nguyên không bị vỡ.
+- **Kỹ thuật Làm phẳng dữ liệu (Data Flattening)**:
+  - Bóc tách các trường từ nhiều Entity quan hệ (`Session`, `Computer`, `Account`) đưa về cùng một tầng duy nhất trong DTO.
+  - *Lợi ích*: Cực kỳ gọn gàng cho Frontend/Mobile tiêu thụ API, giấu kín `passwordHash`, và chặn đứng nguy cơ vòng lặp đệ quy vô tận (*Infinite Recursion*).
+- **Ngăn chặn lỗi `LazyInitializationException`**:
+  - Khi quan hệ được đặt `FetchType.LAZY`, Hibernate dùng Proxy ảo. Nếu trả thẳng Entity ra Controller, khi hàm Service kết thúc thì Hibernate Session đã ĐÓNG, Jackson cố serialize trường LAZY sẽ làm sập API với lỗi `LazyInitializationException`.
+  - Giải pháp chuẩn: Bóc tách và map sang DTO ngay bên trong tầng Service khi Transaction/Session JPA còn đang mở.
 - **Null-safe khi Map dữ liệu**:
   - Khi bóc tách dữ liệu từ Entity sang DTO, phải luôn kiểm tra `null` đối với các quan hệ chưa hoàn tất (Ví dụ: Đơn `PENDING` thì `confirmedByStaff` là `null`, gọi thẳng `.getName()` sẽ dính `NullPointerException` làm chết API ngay lập tức).
 
