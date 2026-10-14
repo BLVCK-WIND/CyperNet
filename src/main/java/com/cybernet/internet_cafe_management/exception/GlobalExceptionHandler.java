@@ -27,6 +27,24 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockException(Exception ex) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Dữ liệu tài khoản đang được cập nhật bởi một giao dịch khác. Vui lòng thử lại!"
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler({org.springframework.dao.PessimisticLockingFailureException.class, org.springframework.dao.CannotAcquireLockException.class})
+    public ResponseEntity<ErrorResponse> handlePessimisticLockException(Exception ex) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Máy tính đang trong quá trình xử lý bởi người dùng khác. Vui lòng thử lại sau giây lát!"
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(

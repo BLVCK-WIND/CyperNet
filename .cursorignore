@@ -1,0 +1,15 @@
+# Build artifacts & dependencies
+target/
+.mvn/
+*.class
+*.jar
+
+# Logs
+*.log
+logs/
+
+# Cold Storage (Sổ tay cá nhân, nhật ký, phỏng vấn - AI không đọc để tiết kiệm token)
+docs/notes/
+
+# Git
+.git/

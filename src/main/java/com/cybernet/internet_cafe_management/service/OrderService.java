@@ -1,9 +1,11 @@
 package com.cybernet.internet_cafe_management.service;
 
+import com.cybernet.internet_cafe_management.dto.request.CreateDirectOrderRequest;
 import com.cybernet.internet_cafe_management.dto.request.CreateOrderItemRequest;
 import com.cybernet.internet_cafe_management.dto.request.CreateOrderRequest;
 import com.cybernet.internet_cafe_management.dto.response.OrderResponse;
 import com.cybernet.internet_cafe_management.entity.*;
+import com.cybernet.internet_cafe_management.entity.Order.PaymentMethod;
 import com.cybernet.internet_cafe_management.entity.Order.Status;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
@@ -213,5 +215,100 @@ public class OrderService {
                 .stream()
                 .map(OrderResponse::fromEntity)
                 .toList();
+    }
+
+    /**
+     * 7. NHÂN VIÊN TẠO ĐƠN TRỰC TIẾP TẠI QUẦY (createDirectOrder - UC-7)
+     * Khách gọi món / thêm giờ trả tiền mặt trực tiếp tại quầy thu ngân.
+     * Tạo Order, gán CONFIRMED ngay lập tức, tự động kích hoạt nạp giờ nếu có món PLAYTIME.
+     */
+    @Transactional
+    public OrderResponse createDirectOrder(CreateDirectOrderRequest request) {
+        if (request.getSessionId() == null) {
+            throw new IllegalArgumentException("Vui lòng cung cấp ID phiên chơi của khách!");
+        }
+        if (request.getStaffId() == null) {
+            throw new IllegalArgumentException("Vui lòng cung cấp ID nhân viên tạo đơn!");
+        }
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Giỏ hàng không được để trống!");
+        }
+
+        // 1. Kiểm tra nhân viên
+        Account staff = accountRepository.findById(request.getStaffId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản nhân viên với ID = " + request.getStaffId()));
+
+        if (staff.getRole() == Account.Role.CUSTOMER) {
+            throw new IllegalArgumentException("Tài khoản này là khách hàng, không có quyền tạo đơn trực tiếp tại quầy!");
+        }
+
+        // 2. Kiểm tra phiên chơi
+        Session session = sessionRepository.findById(request.getSessionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + request.getSessionId()));
+
+        if (session.getStatus() != Session.Status.ACTIVE) {
+            throw new IllegalStateException("Phiên chơi này đã kết thúc, không thể tạo đơn hàng!");
+        }
+
+        // 3. Khởi tạo Order với trạng thái CONFIRMED
+        LocalDateTime now = LocalDateTime.now();
+        Order order = new Order();
+        order.setSession(session);
+        order.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : PaymentMethod.CASH);
+        order.setStatus(Status.CONFIRMED);
+        order.setConfirmedByStaff(staff);
+        order.setConfirmedAt(now);
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        List<OrderItem> orderItemList = new ArrayList<>();
+        int extraMinutes = 0;
+
+        // 4. Xử lý từng món trong đơn
+        for (CreateOrderItemRequest itemReq : request.getItems()) {
+            if (itemReq.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Số lượng món phải lớn hơn 0!");
+            }
+
+            Item item = itemRepository.findById(itemReq.getItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy món với ID = " + itemReq.getItemId()));
+
+            if (!item.isAvailable()) {
+                throw new IllegalStateException("Món [" + item.getName() + "] hiện đã hết hàng!");
+            }
+
+            BigDecimal unitPrice = item.getPrice();
+            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity()));
+            totalAmount = totalAmount.add(subtotal);
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setItem(item);
+            orderItem.setQuantity(itemReq.getQuantity());
+            orderItem.setUnitPrice(unitPrice);
+            orderItem.setSubtotal(subtotal);
+
+            orderItemList.add(orderItem);
+
+            // Kiểm tra món loại PLAYTIME
+            if (item.getType() == Item.Type.PLAYTIME) {
+                extraMinutes += (60 * itemReq.getQuantity());
+            }
+        }
+
+        order.setTotalAmount(totalAmount);
+        order.setOrderItems(orderItemList);
+
+        // 5. Nếu có món loại PLAYTIME, tự động cộng giờ vào phiên và tài khoản
+        if (extraMinutes > 0 && session.getStatus() == Session.Status.ACTIVE) {
+            session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMinutes));
+            sessionRepository.save(session);
+
+            Account customer = session.getAccount();
+            customer.setRemainingMinutes(customer.getRemainingMinutes() + extraMinutes);
+            accountRepository.save(customer);
+        }
+
+        Order savedOrder = orderRepository.save(order);
+        return OrderResponse.fromEntity(savedOrder);
     }
 }

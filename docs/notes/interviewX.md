@@ -173,6 +173,35 @@ Câu hỏi phỏng vấn — Ôn tập Phase 0:
   + Nếu không lưu cứng `unitPrice` tại thời điểm khách đặt hàng, khi quán tăng giá menu, doanh thu và hóa đơn của các đơn hàng trong quá khứ sẽ bị tính sai lệch theo giá mới!
   + Lưu `subtotal` giúp hệ thống truy vấn và thống kê doanh thu cực nhanh mà không cần tính nhân lại trên từng dòng.
 
+20. Trong tác vụ tự động đóng phiên chơi hết giờ (`@Scheduled`), tại sao phải dùng `Propagation.REQUIRES_NEW` và sự khác nhau giữa `fixedDelay` với `fixedRate` là gì?
+=>
+- `Propagation.REQUIRES_NEW`:
+  + Khi Scheduler quét được danh sách 10 phiên hết giờ, nếu dùng transaction mặc định (`REQUIRED`), cả 10 phiên sẽ chạy chung 1 transaction lớn. Nếu phiên số 5 bị lỗi dữ liệu (ví dụ lock timeout), toàn bộ 10 phiên sẽ bị rollback, máy tính không được giải phóng!
+  + Dùng `REQUIRES_NEW` cho method xử lý từng phiên giúp mỗi phiên chạy trong một transaction độc lập: phiên nào thành công thì commit ngay, phiên nào lỗi thì catch log mà không ảnh hưởng tới các phiên khác.
+- `fixedDelay` vs `fixedRate`:
+  + `fixedRate`: Bắn tác vụ theo chu kỳ cố định (ví dụ đúng 30s một lần, bất kể lần trước chạy mất bao lâu). Nếu DB bị chậm hoặc nghẽn mạng mất 40s, lần chạy thứ 2 sẽ nổ ra chồng lấn lên lần 1 gây nghẽn kết nối DB.
+  + `fixedDelay`: Chỉ bắt đầu đếm 30s sau khi lần chạy trước ĐÃ HOÀN TẤT. An toàn hơn rất nhiều cho các tác vụ quét Database định kỳ.
+
+21. Phân biệt Pessimistic Locking và Optimistic Locking? Trong hệ thống quán net, tài nguyên nào áp dụng loại khóa nào và tại sao?
+=>
+- Pessimistic Locking (Khóa bi quan - `SELECT ... FOR UPDATE`):
+  + Cơ chế: Khóa dòng dữ liệu ngay từ tầng Database. Bất kỳ transaction nào khác muốn đọc/ghi vào dòng này đều bị ép đứng chờ (Block) cho đến khi transaction giữ khóa Commit/Rollback.
+  + Áp dụng: Máy tính trạm (`Computer`). Vì số máy có hạn (vài chục máy), tần suất 2 khách cùng bấm Login vào 1 máy cùng lúc có thể xảy ra và hậu quả là 2 phiên trùng trên 1 máy, nên cần khóa chặt tại DB.
+- Optimistic Locking (Khóa lạc quan - `@Version`):
+  + Cơ chế: Không khóa DB, cho phép nhiều luồng đọc ghi tự do. Khi cập nhật, Hibernate kiểm tra cột `version`: nếu version trong DB lớn hơn version mà luồng đang cầm (nghĩa là đã có luồng khác sửa trước), Hibernate ném `OptimisticLockingFailureException` và từ chối cập nhật.
+  + Áp dụng: Tài khoản khách (`Account.remainingMinutes`). Khách ít khi vừa hết giờ tự đóng lại vừa nạp tiền đúng tích tắc đó, nên dùng `@Version` giúp hệ thống chạy nhanh, không bị lock database mà vẫn chống được Lost Update.
+
+22. Tại sao khi chuyển máy (UC-6) giữa các khu vực có đơn giá khác nhau, ta phải dùng `BigDecimal` với `RoundingMode.FLOOR`?
+=>
+- Công thức quy đổi: $M_{mới} = M_{cũ} \times \frac{P_{cũ}}{P_{mới}}$.
+- Tuyệt đối không dùng kiểu `double` hay `float` vì số thực dấu phẩy động trong máy tính có sai số nhị phân (ví dụ $0.1 + 0.2 = 0.30000000000000004$). Trong tính toán tài chính và cước phí, phải dùng `BigDecimal` để đảm bảo độ chính xác tuyệt đối.
+- Dùng `RoundingMode.FLOOR` (làm tròn xuống): Khi chia số phút ra số lẻ (ví dụ 45.8 phút), làm tròn xuống 45 phút để bảo vệ doanh thu cho quán net, tránh việc làm tròn lên khiến khách được hưởng lợi phút chơi mà chưa thanh toán tiền.
+
+23. Làm thế nào để đảm bảo tính nguyên tử (Atomicity) khi chuyển máy cho khách (vừa đổi máy cũ, đổi máy mới, cập nhật phiên, quy đổi giờ)?
+=>
+- Bọc toàn bộ phương thức `transferComputer` bằng `@Transactional` (Spring Transaction Management).
+- Nếu bất kỳ bước nào thất bại (máy đích bị lỗi, mạng đứt, xung đột lock), Spring AOP sẽ tự động Rollback toàn bộ: máy cũ không bị nhả, máy mới không bị chiếm, và phiên chơi vẫn giữ nguyên trạng thái cũ. Hệ thống luôn ở trạng thái nhất quán 100%.
+
 
 
 

@@ -50,6 +50,11 @@ public class Account {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    // Quản lý phiên bản để thực hiện Khóa lạc quan (Optimistic Locking)
+    // Ngăn chặn ghi đè số phút (Lost Update) khi 2 giao dịch cập nhật đồng thời
+    @Version
+    private Long version;
+
     // === ENUM ĐỊNH NGHĨA NGAY TRONG ENTITY ===
     // Đặt trong entity vì Role chỉ thuộc về Account, không dùng ở chỗ khác
     public enum Role {

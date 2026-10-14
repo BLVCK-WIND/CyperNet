@@ -1,5 +1,6 @@
 package com.cybernet.internet_cafe_management.controller;
 
+import com.cybernet.internet_cafe_management.dto.request.CreateDirectOrderRequest;
 import com.cybernet.internet_cafe_management.dto.request.CreateOrderRequest;
 import com.cybernet.internet_cafe_management.dto.response.OrderResponse;
 import com.cybernet.internet_cafe_management.entity.Order.Status;
@@ -27,6 +28,16 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@RequestBody CreateOrderRequest request) {
         OrderResponse response = orderService.createOrder(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    /**
+     * 1b. Nhân viên tạo đơn và thu tiền trực tiếp tại quầy (POST /api/orders/direct - UC-7)
+     * Trả về HTTP 201 CREATED kèm thông tin đơn CONFIRMED và tự động kích hoạt nạp giờ nếu có PLAYTIME.
+     */
+    @PostMapping("/direct")
+    public ResponseEntity<OrderResponse> createDirectOrder(@RequestBody CreateDirectOrderRequest request) {
+        OrderResponse response = orderService.createDirectOrder(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 

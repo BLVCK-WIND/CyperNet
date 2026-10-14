@@ -204,6 +204,101 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 - Nhờ `cascade = CascadeType.ALL`, việc lưu cấu trúc Cha - Con phức tạp trở nên cực kỳ gọn gàng.
 - Luôn lưu cứng đơn giá và thành tiền lịch sử để bảo vệ dữ liệu kế toán.
 
+### 2026-10-14 — Phase 2: Hoàn thành Micro-Step 1 (Task 2.1 — UC-5 Auto-Expire Session Scheduler)
+
+**Phase**: Phase 2 (Complex Business Logic)
+**Thời gian**: ~1 giờ
+**Việc đã làm**:
+- Bật `@EnableScheduling` trong `InternetCafeManagementApplication`.
+- Bổ sung derived query `findByStatusAndExpiresAtLessThanEqual` trong `SessionRepository`.
+- Viết method `autoEndExpiredSession(Long sessionId)` trong `SessionService` với `Propagation.REQUIRES_NEW`: tự động đóng phiên `ACTIVE` hết giờ, cập nhật `endedAt = expiresAt`, trả máy tính về `AVAILABLE`, và reset `remainingMinutes = 0`.
+- Tạo `SessionScheduler` chạy định kỳ 30 giây (`fixedDelay = 30000`) quét và đóng tự động các phiên hết hạn, kèm log SLF4J chi tiết và xử lý try-catch từng phiên.
+- Biên dịch thành công 47 file source code (`mvn compile` BUILD SUCCESS).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Background Automation (`@Scheduled`) | `SessionScheduler.scanAndCloseExpiredSessions` chạy ngầm mỗi 30s | 🔴 Tier 1 |
+| Transaction Propagation (`REQUIRES_NEW`) | `SessionService.autoEndExpiredSession`: cách ly transaction từng phiên | 🔴 Tier 1 |
+| Spring Data JPA Derived Query | `findByStatusAndExpiresAtLessThanEqual` | 🔴 Tier 1 |
+| Defensive Logging & Error Isolation | Bọc try-catch từng session trong vòng lặp batch của Scheduler | 🔴 Tier 1 |
+
+**Lỗi gặp phải & cách fix**:
+- Nguy cơ 1 phiên bị lỗi làm fail cả mẻ quét của Scheduler ➔ Fix: Tách transaction độc lập với `Propagation.REQUIRES_NEW` và bọc `try-catch` riêng cho từng session trong vòng lặp của Scheduler.
+
+**Ghi chú / Bài học rút ra**:
+- Tách riêng class `@Component` Scheduler với Service layer để tuân thủ Single Responsibility Principle.
+- Luôn dùng `Propagation.REQUIRES_NEW` khi xử lý batch ngầm để đảm bảo tính độc lập giữa các bản ghi.
+
+---
+
+### 2026-10-14 — Phase 2: Hoàn thành Micro-Step 2 (Task 2.2 — UC-2 Đăng nhập máy trạm mở phiên chơi)
+
+**Phase**: Phase 2 (Complex Business Logic)
+**Thời gian**: ~1 giờ
+**Việc đã làm**:
+- Tạo DTO `ComputerLoginRequest`: đóng gói `phone`, `password`, `computerCode`.
+- Viết method `loginAndStartSession(ComputerLoginRequest request)` trong `SessionService`:
+  + Kiểm tra chặt chẽ 6 lớp phòng thủ (tài khoản tồn tại, mật khẩu hợp lệ, role CUSTOMER, còn giờ chơi > 0, không chơi đa máy, máy tính AVAILABLE và không có session ACTIVE).
+  + Khởi tạo `Session`, chuyển máy tính sang `IN_USE` trong cùng `@Transactional`.
+- Bổ sung endpoint `POST /api/sessions/login` trong `SessionController` (trả về HTTP 201 Created).
+- Biên dịch thành công 48 file source code (`mvn compile` BUILD SUCCESS).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Defensive Validation (Phòng thủ đa tầng) | `SessionService.loginAndStartSession`: 6 bước kiểm tra trước khi cấp phát tài nguyên | 🔴 Tier 1 |
+| Transactional State Synchronization | Đồng bộ kích hoạt `Session` và khóa `Computer` sang `IN_USE` | 🔴 Tier 1 |
+| RESTful Convention | `POST /api/sessions/login` trả về 201 Created | 🔴 Tier 1 |
+
+**Lỗi gặp phải & cách fix**:
+- Nguy cơ tài khoản STAFF/ADMIN đăng nhập mở máy chơi game ➔ Fix: Chặn rõ ràng ở tầng Service chỉ cho phép `Role.CUSTOMER`.
+
+**Ghi chú / Bài học rút ra**:
+- Tách bạch giữa mở máy bởi nhân viên (`/start` nhận ID) và mở máy bởi khách (`/login` nhận Phone + Password) giúp API rõ nghĩa và an toàn.
+
+---
+
+### 2026-10-14 — Phase 2: Hoàn thành Micro-Step 3, 4, 5 — CHÍNH THỨC HOÀN TẤT 100% PHASE 2
+
+**Phase**: Phase 2 (Complex Business Logic)
+**Thời gian**: ~3 giờ
+**Việc đã làm**:
+- **Micro-Step 3 (UC-6 Chuyển máy & Dynamic Tariff):**
+  + Tạo `TransferComputerRequest`.
+  + Viết `transferComputer` trong `SessionService`: Tính đổi tỉ giá động 100% bằng `BigDecimal` và `RoundingMode.FLOOR` theo đơn giá của 2 máy trong DB ($M_{mới} = M_{cũ} \times \frac{P_{cũ}}{P_{mới}}$), giải phóng máy cũ (hoặc đưa vào MAINTENANCE), khoá máy mới `IN_USE`, giữ nguyên phiên chơi và các đơn hàng `PENDING_PAYMENT`.
+  + Tạo endpoint `PATCH /api/sessions/{id}/transfer`.
+- **Micro-Step 4 (UC-7 Đơn hàng nâng cao):**
+  + Tạo `CreateDirectOrderRequest`.
+  + Viết `createDirectOrder` trong `OrderService`: Nhân viên tạo đơn trực tiếp tại quầy thanh toán tiền mặt, tự động chốt `CONFIRMED` ngay, tự động cộng giờ chơi nếu có món loại `PLAYTIME`.
+  + Tạo endpoint `POST /api/orders/direct`.
+- **Micro-Step 5 (Concurrency & Locking):**
+  + Triển khai **Pessimistic Write Lock (`PESSIMISTIC_WRITE`)** trong `ComputerRepository` với `findByIdWithLock` và `findByCodeWithLock`: ngăn chặn triệt để 2 khách cùng mở/chuyển vào 1 máy trạm cùng lúc.
+  + Triển khai **Optimistic Lock (`@Version`)** trên entity `Account`: bảo vệ số phút `remainingMinutes` không bị Lost Update khi có 2 transaction cùng ghi đè.
+  + Bổ sung xử lý `ObjectOptimisticLockingFailureException`, `PessimisticLockingFailureException`, `CannotAcquireLockException` trong `GlobalExceptionHandler` trả về HTTP 409 Conflict.
+- Biên dịch thành công 50 file source code (`mvn clean compile` BUILD SUCCESS).
+- **CHÍNH THỨC HOÀN THÀNH 100% PHASE 2**!
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Dynamic Tariff Billing Calculation | `SessionService.transferComputer`: tính cước quy đổi giờ động theo giá máy | 🔴 Tier 1 |
+| Pessimistic Write Lock (`SELECT FOR UPDATE`) | `ComputerRepository`: khóa máy trạm chống Race Condition đăng nhập | 🔴 Tier 1 |
+| Optimistic Locking (`@Version`) | `Account.version`: chống Lost Update số phút chơi tài khoản | 🔴 Tier 1 |
+| Concurrency Exception Handling | `GlobalExceptionHandler`: bắt xung đột lock trả về HTTP 409 Conflict | 🔴 Tier 1 |
+| Immediate Confirmation Business Flow | `OrderService.createDirectOrder`: tạo và duyệt đơn quầy trong 1 transaction | 🔴 Tier 1 |
+
+**Lỗi gặp phải & cách fix**:
+- Xung đột Race Condition khi 2 khách cùng bấm Login 1 máy: Cả 2 cùng đọc DB thấy AVAILABLE ➔ Fix: Dùng `PESSIMISTIC_WRITE` khóa cứng dòng máy tính tại DB, luồng sau phải đợi luồng trước commit.
+- Xung đột Lost Update giờ chơi: Tác vụ tự đóng phiên ghi đè lên thao tác nạp giờ của thu ngân ➔ Fix: Thêm `@Version` vào `Account`, giao dịch ghi sau nếu cầm version cũ sẽ bị DB từ chối ngay.
+
+**Ghi chú / Bài học rút ra**:
+- Tài nguyên ít, tranh chấp trực tiếp (máy trạm) ➔ Dùng Pessimistic Lock.
+- Tài nguyên đọc nhiều, ít va chạm (số phút tài khoản) ➔ Dùng Optimistic Lock (`@Version`) để hệ thống chạy nhanh mà vẫn an toàn.
+- Thiết kế cước động 100% dựa vào `pricePerHour` của `Computer` giúp hệ thống không phụ thuộc vào giá cứng hay Zone cứng.
+
+---
+
 <!-- 
 === TEMPLATE CHO NGÀY MỚI ===
 Copy block bên dưới, paste vào đây, điền thông tin:

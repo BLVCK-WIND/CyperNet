@@ -1,7 +1,9 @@
 package com.cybernet.internet_cafe_management.service;
 
+import com.cybernet.internet_cafe_management.dto.request.ComputerLoginRequest;
 import com.cybernet.internet_cafe_management.dto.request.ExtendSessionRequest;
 import com.cybernet.internet_cafe_management.dto.request.StartSessionRequest;
+import com.cybernet.internet_cafe_management.dto.request.TransferComputerRequest;
 import com.cybernet.internet_cafe_management.dto.response.SessionResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.entity.Computer;
@@ -12,8 +14,11 @@ import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.ComputerRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -199,13 +204,203 @@ public class SessionService {
                 .toList();
     }
 
-    // --- HÀM PHỤ TRỢ (HELPER METHOD) TÌM MÁY THEO ID HOẶC THEO CODE ---
+    /**
+     * 8. TỰ ĐỘNG ĐÓNG PHIÊN HẾT GIỜ (Dành cho @Scheduled job)
+     * Sử dụng Propagation.REQUIRES_NEW để mỗi phiên chạy trong 1 transaction độc lập,
+     * tránh lỗi ở 1 phiên làm rollback cả mẻ quét của Scheduler.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void autoEndExpiredSession(Long sessionId) {
+        Session session = sessionRepository.findById(sessionId).orElse(null);
+        if (session == null || session.getStatus() != Status.ACTIVE) {
+            return; // Đã kết thúc hoặc không tồn tại
+        }
+
+        // 1. Cập nhật Session sang ENDED
+        session.setStatus(Status.ENDED);
+        // Gán thời điểm kết thúc thực tế là mốc hết hạn
+        session.setEndedAt(session.getExpiresAt());
+
+        // 2. Mở khoá máy tính trở lại AVAILABLE
+        Computer computer = session.getComputer();
+        if (computer != null) {
+            computer.setStatus(Computer.Status.AVAILABLE);
+            computerRepository.save(computer);
+        }
+
+        // 3. Khách đã chơi hết trọn vẹn số giờ dự kiến, cập nhật remainingMinutes = 0
+        Account account = session.getAccount();
+        if (account != null) {
+            account.setRemainingMinutes(0);
+            accountRepository.save(account);
+        }
+
+        sessionRepository.save(session);
+    }
+
+    /**
+     * 9. KHÁCH HÀNG ĐĂNG NHẬP MÁY TRẠM — MỞ PHIÊN CHƠI (UC-2)
+     * Xác thực thông tin khách bằng SĐT + Mật khẩu, kiểm tra máy trống và mở phiên chơi.
+     */
+    @Transactional
+    public SessionResponse loginAndStartSession(ComputerLoginRequest request) {
+        // 1. Validate đầu vào
+        if (request.getPhone() == null || request.getPhone().isBlank()) {
+            throw new IllegalArgumentException("Số điện thoại không được để trống!");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Mật khẩu không được để trống!");
+        }
+        if (request.getComputerCode() == null || request.getComputerCode().isBlank()) {
+            throw new IllegalArgumentException("Mã máy tính không được để trống!");
+        }
+
+        // 2. Validate tài khoản khách hàng
+        Account account = accountRepository.findByPhone(request.getPhone().trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với số điện thoại: " + request.getPhone()));
+
+        // Kiểm tra mật khẩu (so khớp tiền tố hashed_ đã tạo ở Phase 1)
+        String expectedPasswordHash = "hashed_" + request.getPassword();
+        if (!expectedPasswordHash.equals(account.getPasswordHash())) {
+            throw new IllegalArgumentException("Mật khẩu không chính xác!");
+        }
+
+        // Chỉ tài khoản khách hàng (CUSTOMER) mới được đăng nhập mở phiên chơi máy trạm
+        if (account.getRole() != Account.Role.CUSTOMER) {
+            throw new IllegalArgumentException("Chỉ tài khoản khách hàng mới có thể đăng nhập mở máy chơi game!");
+        }
+
+        // Kiểm tra số dư thời gian chơi
+        if (account.getRemainingMinutes() <= 0) {
+            throw new IllegalArgumentException("Tài khoản đã hết thời gian chơi! Vui lòng nạp thêm giờ trước khi mở máy.");
+        }
+
+        // Quy tắc: 1 khách chỉ được mở tối đa 1 phiên ACTIVE cùng thời điểm
+        if (sessionRepository.existsByAccountIdAndStatus(account.getId(), Status.ACTIVE)) {
+            throw new IllegalStateException("Tài khoản này đang có phiên chơi tại máy khác! Không thể chơi 2 máy cùng lúc.");
+        }
+
+        // 3. Validate máy tính (Dùng Pessimistic Lock để chống 2 khách cùng đăng nhập 1 máy cùng lúc)
+        Computer computer = computerRepository.findByCodeWithLock(request.getComputerCode().trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính với mã: " + request.getComputerCode()));
+
+        if (computer.getStatus() != Computer.Status.AVAILABLE) {
+            throw new IllegalStateException("Máy tính [" + computer.getCode() + "] hiện không khả dụng! Trạng thái: " + computer.getStatus());
+        }
+
+        if (sessionRepository.existsByComputerIdAndStatus(computer.getId(), Status.ACTIVE)) {
+            throw new IllegalStateException("Máy tính [" + computer.getCode() + "] đang có phiên chơi đang hoạt động!");
+        }
+
+        // 4. Khởi tạo và kích hoạt phiên chơi
+        LocalDateTime now = LocalDateTime.now();
+        Session session = new Session();
+        session.setAccount(account);
+        session.setComputer(computer);
+        session.setStartedAt(now);
+        session.setExpiresAt(now.plusMinutes(account.getRemainingMinutes()));
+        session.setStatus(Status.ACTIVE);
+
+        // Khóa máy tính sang IN_USE
+        computer.setStatus(Computer.Status.IN_USE);
+        computerRepository.save(computer);
+
+        Session savedSession = sessionRepository.save(session);
+        return SessionResponse.fromEntity(savedSession);
+    }
+
+    /**
+     * 10. CHUYỂN MÁY TÍNH CHO KHÁCH HÀNG (UC-6)
+     * Giữ nguyên phiên chơi và các đơn hàng PENDING.
+     * Quy đổi thời gian hết hạn mới theo tỉ lệ đơn giá giữa 2 máy (Dynamic Tariff).
+     */
+    @Transactional
+    public SessionResponse transferComputer(Long sessionId, TransferComputerRequest request) {
+        // 1. Kiểm tra phiên chơi
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + sessionId));
+
+        if (session.getStatus() != Status.ACTIVE) {
+            throw new IllegalStateException("Chỉ có thể chuyển máy cho phiên chơi đang hoạt động (ACTIVE)!");
+        }
+
+        Computer oldComputer = session.getComputer();
+
+        // 2. Tìm máy tính mới theo ID hoặc Code
+        Computer newComputer = findTargetComputer(request);
+
+        // Kiểm tra không chuyển sang chính máy đang ngồi
+        if (newComputer.getId().equals(oldComputer.getId())) {
+            throw new IllegalArgumentException("Máy tính mới phải khác máy tính đang sử dụng hiện tại!");
+        }
+
+        // Kiểm tra máy mới phải AVAILABLE
+        if (newComputer.getStatus() != Computer.Status.AVAILABLE) {
+            throw new IllegalStateException("Máy tính đích [" + newComputer.getCode() + "] hiện không khả dụng! Trạng thái: " + newComputer.getStatus());
+        }
+
+        // Đảm bảo máy mới không có phiên ACTIVE sót lại
+        if (sessionRepository.existsByComputerIdAndStatus(newComputer.getId(), Status.ACTIVE)) {
+            throw new IllegalStateException("Máy tính đích [" + newComputer.getCode() + "] đang có phiên chơi đang hoạt động!");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 3. THUẬT TOÁN QUY ĐỔI GIỜ ĐỘNG (Dynamic Tariff Calculation)
+        // Tính số phút còn lại thực tế của phiên máy cũ
+        long remainingMinutes = Math.max(0, Duration.between(now, session.getExpiresAt()).toMinutes());
+
+        BigDecimal oldPrice = oldComputer.getPricePerHour();
+        BigDecimal newPrice = newComputer.getPricePerHour();
+
+        if (oldPrice.compareTo(BigDecimal.ZERO) > 0 && newPrice.compareTo(BigDecimal.ZERO) > 0) {
+            // newMinutes = remainingMinutes * (oldPrice / newPrice)
+            long convertedMinutes = BigDecimal.valueOf(remainingMinutes)
+                    .multiply(oldPrice)
+                    .divide(newPrice, 0, RoundingMode.FLOOR)
+                    .longValue();
+
+            session.setExpiresAt(now.plusMinutes(convertedMinutes));
+        }
+
+        // 4. CẬP NHẬT TRẠNG THÁI MÁY CŨ VÀ MÁY MỚI
+        if (request.isMarkOldAsMaintenance()) {
+            oldComputer.setStatus(Computer.Status.MAINTENANCE);
+        } else {
+            oldComputer.setStatus(Computer.Status.AVAILABLE);
+        }
+        computerRepository.save(oldComputer);
+
+        newComputer.setStatus(Computer.Status.IN_USE);
+        computerRepository.save(newComputer);
+
+        // 5. GẮN MÁY MỚI VÀO PHIÊN HIỆN TẠI (Đơn hàng PENDING tự động đi theo phiên)
+        session.setComputer(newComputer);
+        Session savedSession = sessionRepository.save(session);
+
+        return SessionResponse.fromEntity(savedSession);
+    }
+
+    // Helper method tìm máy đích theo request (có Pessimistic Lock)
+    private Computer findTargetComputer(TransferComputerRequest request) {
+        if (request.getToComputerId() != null) {
+            return computerRepository.findByIdWithLock(request.getToComputerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính đích với ID = " + request.getToComputerId()));
+        } else if (request.getToComputerCode() != null && !request.getToComputerCode().isBlank()) {
+            return computerRepository.findByCodeWithLock(request.getToComputerCode().trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính đích với mã = " + request.getToComputerCode()));
+        } else {
+            throw new IllegalArgumentException("Vui lòng cung cấp toComputerId hoặc toComputerCode của máy đích!");
+        }
+    }
+
+    // --- HÀM PHỤ TRỢ (HELPER METHOD) TÌM MÁY THEO ID HOẶC THEO CODE (có Pessimistic Lock) ---
     private Computer findComputerFromRequest(StartSessionRequest request) {
         if (request.getComputerId() != null) {
-            return computerRepository.findById(request.getComputerId())
+            return computerRepository.findByIdWithLock(request.getComputerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính với ID = " + request.getComputerId()));
         } else if (request.getComputerCode() != null && !request.getComputerCode().isBlank()) {
-            return computerRepository.findByCode(request.getComputerCode())
+            return computerRepository.findByCodeWithLock(request.getComputerCode().trim())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính với mã = " + request.getComputerCode()));
         } else {
             throw new IllegalArgumentException("Vui lòng cung cấp computerId hoặc computerCode để mở máy!");

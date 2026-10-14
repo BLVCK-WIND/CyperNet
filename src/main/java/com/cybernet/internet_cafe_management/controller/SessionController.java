@@ -1,7 +1,9 @@
 package com.cybernet.internet_cafe_management.controller;
 
+import com.cybernet.internet_cafe_management.dto.request.ComputerLoginRequest;
 import com.cybernet.internet_cafe_management.dto.request.ExtendSessionRequest;
 import com.cybernet.internet_cafe_management.dto.request.StartSessionRequest;
+import com.cybernet.internet_cafe_management.dto.request.TransferComputerRequest;
 import com.cybernet.internet_cafe_management.dto.response.SessionResponse;
 import com.cybernet.internet_cafe_management.entity.Session.Status;
 import com.cybernet.internet_cafe_management.service.SessionService;
@@ -32,6 +34,16 @@ public class SessionController {
     }
 
     /**
+     * 1b. Khách hàng đăng nhập máy trạm mở phiên chơi (POST /api/sessions/login - UC-2)
+     * Trả về HTTP 201 CREATED kèm chi tiết phiên và chuyển máy sang IN_USE.
+     */
+    @PostMapping("/login")
+    public ResponseEntity<SessionResponse> loginAndStartSession(@RequestBody ComputerLoginRequest request) {
+        SessionResponse response = sessionService.loginAndStartSession(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    /**
      * 2. Kết thúc phiên chơi (PATCH /api/sessions/{id}/end)
      * Trả về HTTP 200 OK, trả máy về AVAILABLE và hoàn lại số phút dư cho khách.
      */
@@ -49,6 +61,18 @@ public class SessionController {
             @PathVariable Long id,
             @RequestBody ExtendSessionRequest request) {
         SessionResponse response = sessionService.extendSession(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 3b. Chuyển máy tính cho khách hàng (PATCH /api/sessions/{id}/transfer - UC-6)
+     * Quy đổi thời gian theo đơn giá động giữa 2 máy, giữ nguyên phiên chơi và đơn PENDING.
+     */
+    @PatchMapping("/{id}/transfer")
+    public ResponseEntity<SessionResponse> transferComputer(
+            @PathVariable Long id,
+            @RequestBody TransferComputerRequest request) {
+        SessionResponse response = sessionService.transferComputer(id, request);
         return ResponseEntity.ok(response);
     }
 

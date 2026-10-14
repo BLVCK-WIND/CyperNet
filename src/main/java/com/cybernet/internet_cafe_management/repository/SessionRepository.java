@@ -5,6 +5,7 @@ import com.cybernet.internet_cafe_management.entity.Session.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,4 +32,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     // Lấy lịch sử tất cả phiên chơi của 1 khách hàng (mới nhất lên đầu)
     List<Session> findByAccountIdOrderByStartedAtDesc(Long accountId);
+
+    // Tìm các phiên chơi có trạng thái chỉ định và thời điểm hết hạn nhỏ hơn hoặc bằng mốc thời gian (phục vụ Scheduler tự động đóng phiên hết giờ)
+    List<Session> findByStatusAndExpiresAtLessThanEqual(Status status, LocalDateTime dateTime);
 }
