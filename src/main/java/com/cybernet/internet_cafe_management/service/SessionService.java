@@ -13,6 +13,7 @@ import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.ComputerRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,14 +30,17 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final ComputerRepository computerRepository;
     private final AccountRepository accountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // Dependency Injection qua Constructor
     public SessionService(SessionRepository sessionRepository,
                           ComputerRepository computerRepository,
-                          AccountRepository accountRepository) {
+                          AccountRepository accountRepository,
+                          PasswordEncoder passwordEncoder) {
         this.sessionRepository = sessionRepository;
         this.computerRepository = computerRepository;
         this.accountRepository = accountRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -259,9 +263,8 @@ public class SessionService {
         Account account = accountRepository.findByPhone(request.getPhone().trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với số điện thoại: " + request.getPhone()));
 
-        // Kiểm tra mật khẩu (so khớp tiền tố hashed_ đã tạo ở Phase 1)
-        String expectedPasswordHash = "hashed_" + request.getPassword();
-        if (!expectedPasswordHash.equals(account.getPasswordHash())) {
+        // Kiểm tra mật khẩu bằng BCrypt
+        if (!passwordEncoder.matches(request.getPassword(), account.getPasswordHash())) {
             throw new IllegalArgumentException("Mật khẩu không chính xác!");
         }
 

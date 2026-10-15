@@ -6,6 +6,7 @@ import com.cybernet.internet_cafe_management.entity.TimePurchase.Status;
 import com.cybernet.internet_cafe_management.service.TimePurchaseService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class TimePurchaseController {
      * Trả về HTTP 201 CREATED kèm thông tin giao dịch PENDING.
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<TimePurchaseResponse> createTimePurchase(@RequestBody CreateTimePurchaseRequest request) {
         TimePurchaseResponse response = timePurchaseService.createTimePurchase(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -35,6 +37,7 @@ public class TimePurchaseController {
      * Dùng PATCH vì đây là thao tác cập nhật một phần trạng thái của tài nguyên.
      */
     @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<TimePurchaseResponse> confirmTimePurchase(
             @PathVariable Long id,
             @RequestParam Long staffId) {
@@ -46,6 +49,7 @@ public class TimePurchaseController {
      * 3. Huỷ giao dịch mua giờ (PATCH /api/time-purchases/{id}/cancel)
      */
     @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<TimePurchaseResponse> cancelTimePurchase(@PathVariable Long id) {
         TimePurchaseResponse response = timePurchaseService.cancelTimePurchase(id);
         return ResponseEntity.ok(response);
@@ -55,6 +59,7 @@ public class TimePurchaseController {
      * 4. Xem chi tiết 1 giao dịch (GET /api/time-purchases/{id})
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<TimePurchaseResponse> getTimePurchaseById(@PathVariable Long id) {
         TimePurchaseResponse response = timePurchaseService.getTimePurchaseById(id);
         return ResponseEntity.ok(response);
@@ -65,6 +70,7 @@ public class TimePurchaseController {
      * Thường dùng cho màn hình quầy thu ngân để theo dõi các đơn nạp giờ chờ duyệt.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<List<TimePurchaseResponse>> getAllTimePurchases(
             @RequestParam(required = false) Status status) {
         List<TimePurchaseResponse> responses = timePurchaseService.getAllTimePurchases(status);
@@ -75,6 +81,7 @@ public class TimePurchaseController {
      * 6. Lấy toàn bộ lịch sử mua giờ của 1 tài khoản (GET /api/time-purchases/account/{accountId})
      */
     @GetMapping("/account/{accountId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<List<TimePurchaseResponse>> getTimePurchasesByAccountId(@PathVariable Long accountId) {
         List<TimePurchaseResponse> responses = timePurchaseService.getTimePurchasesByAccountId(accountId);
         return ResponseEntity.ok(responses);

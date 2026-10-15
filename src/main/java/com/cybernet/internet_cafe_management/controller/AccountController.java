@@ -5,6 +5,7 @@ import com.cybernet.internet_cafe_management.dto.response.AccountResponse;
 import com.cybernet.internet_cafe_management.service.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class AccountController {
 
     // 1. Tạo mới tài khoản (POST /api/accounts) -> Trả về 201 CREATED
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<AccountResponse> createAccount(@RequestBody CreateAccountRequest request) {
         AccountResponse response = accountService.createAccount(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -29,6 +31,7 @@ public class AccountController {
 
     // 2. Lấy danh sách tài khoản (GET /api/accounts) -> Trả về 200 OK
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<List<AccountResponse>> getAllAccounts() {
         List<AccountResponse> responses = accountService.getAllAccounts();
         return ResponseEntity.ok(responses);
@@ -36,6 +39,7 @@ public class AccountController {
 
     // 3. Lấy chi tiết 1 tài khoản (GET /api/accounts/{id}) -> Trả về 200 OK
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<AccountResponse> getAccountById(@PathVariable Long id) {
         AccountResponse response = accountService.getAccountById(id);
         return ResponseEntity.ok(response);
@@ -43,6 +47,7 @@ public class AccountController {
 
     // 4. Xóa tài khoản (DELETE /api/accounts/{id}) -> Trả về 204 NO_CONTENT
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
         accountService.deleteAccount(id);
         return ResponseEntity.noContent().build();

@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +30,7 @@ public class ComputerController {
 
     // Tạo mới máy tính
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ComputerResponse> createComputer(@RequestBody CreateComputerRequest request) {
         ComputerResponse response = computerService.createComputer(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -36,6 +38,7 @@ public class ComputerController {
 
     // get all computers
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<List<ComputerResponse>> getAllComputers() {
         List<ComputerResponse> response = computerService.getAllComputers();
         return ResponseEntity.ok(response);
@@ -43,6 +46,7 @@ public class ComputerController {
 
     // get computer by id
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ComputerResponse> getComputerById(@PathVariable Long id) {
         ComputerResponse response = computerService.getComputerById(id);
         return ResponseEntity.ok(response);
@@ -50,6 +54,7 @@ public class ComputerController {
 
     // delete computer
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteComputerById(@PathVariable Long id) {
         computerService.deleteComputer(id);
         return ResponseEntity.noContent().build();
@@ -57,6 +62,7 @@ public class ComputerController {
 
     // update
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ComputerResponse> updateComputer(@PathVariable Long id,
             @RequestBody CreateComputerRequest request) {
         ComputerResponse response = computerService.updateComputer(id, request);

@@ -299,6 +299,61 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 
 ---
 
+### 2026-10-15 — Phase 3: Hoàn thành 100% Spring Security 6, JWT & Role-Based Access Control (RBAC)
+
+**Phase**: Phase 3 (Spring Security 6 & JWT)
+**Thời gian**: ~3 giờ
+**Việc đã làm**:
+- **Task 3.1: Tích hợp Spring Security 6 & BCrypt:**
+  + Thêm dependencies `spring-boot-starter-security`, `jjwt-api`, `jjwt-impl`, `jjwt-jackson`, `spring-boot-starter-security-test` vào `pom.xml`.
+  + Tạo `SecurityConfig` cấu hình Stateless, tắt CSRF, định nghĩa bean `BCryptPasswordEncoder`.
+  + Tích hợp BCrypt vào `AccountService` (mã hóa lúc tạo TK) và `SessionService` (so khớp mật khẩu khi khách đăng nhập máy trạm).
+  + Tạo Entity `RefreshToken` và `RefreshTokenRepository` lưu trữ token UUID trong MySQL để quản lý vòng đời và thu hồi (revocation).
+- **Task 3.2: Tầng JWT Service & Filter:**
+  + Cấu hình secret HMAC-256, thời hạn access token (30 phút) và refresh token (7 ngày) trong `application.properties`.
+  + Xây dựng `JwtService`: ký và validate JWT token với custom claim `role` và `sub` (SĐT).
+  + Xây dựng `CustomUserDetailsService`: load Account từ DB theo SĐT và ánh xạ Role thành `ROLE_ADMIN`, `ROLE_STAFF`, `ROLE_CUSTOMER`.
+  + Xây dựng `JwtAuthenticationFilter` (`OncePerRequestFilter`): phân tích header `Authorization: Bearer <token>`, xác thực và nạp `Authentication` vào `SecurityContextHolder`.
+- **Task 3.3: Module Authentication & DTOs:**
+  + Tạo các DTOs: `LoginRequest`, `RefreshTokenRequest`, `AuthResponse`.
+  + Xây dựng `AuthService`: xử lý `login` cho STAFF/ADMIN (chặn CUSTOMER đăng nhập API quản lý), `refreshToken` áp dụng cơ chế **Refresh Token Rotation** (hủy token cũ, sinh cặp token mới), `logout` (xóa token khỏi DB).
+  + Xây dựng `AuthController` với các endpoint: `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`.
+  + Xây dựng `CustomAuthenticationEntryPoint`: chặn các request không có JWT trả về JSON chuẩn HTTP 401 Unauthorized thay vì redirect sang HTML form.
+  + Bổ sung xử lý `AccessDeniedException` trong `GlobalExceptionHandler` trả về JSON chuẩn HTTP 403 Forbidden.
+- **Task 3.4: Phân quyền toàn diện (@PreAuthorize):**
+  + Hoàn thiện `SecurityConfig`: mở public `/api/auth/**` và `POST /api/sessions/login`, bảo vệ toàn bộ các endpoint còn lại bằng JWT filter.
+  + Gắn `@PreAuthorize` theo ma trận phân quyền trên cả 6 Controller: `AccountController`, `ComputerController`, `SessionController`, `OrderController`, `ItemController`, `TimePurchaseController`.
+- **Verification & Testing:**
+  + Cập nhật `Phase2IntegrationTest` dùng `PasswordEncoder` băm mật khẩu, test chạy pass 100%.
+  + Viết mới bộ kiểm thử `Phase3SecurityIntegrationTest` phủ kín 10 test case bảo mật (Login đúng/sai, Chặn Customer, Chặn 401, Quyền STAFF 200, Chặn STAFF 403, Quyền ADMIN 204, Refresh Token Rotation, Logout, Public UC-2 Login).
+  + Chạy `./mvnw test`: Toàn bộ **12/12 bài test** (Phase 2 + Phase 3 + App Context) đạt `BUILD SUCCESS` không lỗi.
+  + Cập nhật tài liệu: `STATUS.md`, `SCHEMA_SKELETON.md`, `walkthrough.md`.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Spring Security 6 Filter Chain | `SecurityConfig`, `SecurityFilterChain` | 🔴 Tier 1 |
+| BCrypt Password Hashing | `AccountService`, `SessionService`, `PasswordEncoder` | 🔴 Tier 1 |
+| Stateless JWT Authentication | `JwtService`, `JwtAuthenticationFilter`, HMAC-SHA256 | 🔴 Tier 1 |
+| Refresh Token Rotation (RTR) | `AuthService.refreshToken`, `RefreshToken` entity trong DB | 🔴 Tier 1 |
+| Method-Level Security | `@PreAuthorize("hasRole('ADMIN')")`, `@PreAuthorize("hasAnyRole(...)")` | 🔴 Tier 1 |
+| Custom AuthenticationEntryPoint | `CustomAuthenticationEntryPoint`: trả JSON 401 cho REST API | 🔴 Tier 1 |
+| Custom AccessDenied Handler | `GlobalExceptionHandler`: trả JSON 403 | 🔴 Tier 1 |
+| Integration Testing với Spring Security | `Phase3SecurityIntegrationTest` dùng `MockMvcBuilders` + `springSecurity()` | 🔴 Tier 1 |
+
+**Lỗi gặp phải & cách fix**:
+- Lỗi biên dịch `jakarta.validation` do project không import `spring-boot-starter-validation` ➔ Fix: Thay vì thêm dependency thừa, áp dụng Defensive Programming kiểm tra null/blank trực tiếp tại `AuthService` theo đúng CONVENTIONS.md.
+- Lỗi `NoClassDefFoundError: JavaTimeModule` khi dùng `ObjectMapper` trong test ➔ Fix: Chuyển sang dùng `com.jayway.jsonpath.JsonPath` có sẵn trong Spring Test để đọc JSON response cực kỳ gọn nhẹ và an toàn.
+- Lỗi khóa ngoại `Foreign Key Constraint Violation` khi dọn dẹp data test `Session` ➔ Fix: Xóa `orderRepository.deleteAll()` trước khi xóa `sessionRepository.deleteAll()`.
+- Lỗi test Phase 2 bị fail mật khẩu sau khi đổi sang BCrypt ➔ Fix: Inject `PasswordEncoder` và mã hóa mật khẩu trong `setUp()` của `Phase2IntegrationTest`.
+
+**Ghi chú / Bài học rút ra**:
+- REST API Stateless bắt buộc phải vô hiệu hóa CSRF (`csrf.disable()`) và cấu hình `SessionCreationPolicy.STATELESS`.
+- Cần phân biệt rõ: 401 Unauthorized (chưa xác thực/thiếu token) do `AuthenticationEntryPoint` xử lý; 403 Forbidden (đã đăng nhập nhưng không đủ quyền) do `AccessDeniedException` xử lý.
+- Cơ chế Refresh Token Rotation lưu DB là giải pháp dung hòa tuyệt vời: API kiểm tra JWT ở tầng RAM (nhanh, không query DB), trong khi việc cấp lại token hoặc logout vẫn kiểm soát được tính hợp lệ và thu hồi tức thì ở DB.
+
+---
+
 <!-- 
 === TEMPLATE CHO NGÀY MỚI ===
 Copy block bên dưới, paste vào đây, điền thông tin:

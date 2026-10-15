@@ -202,6 +202,81 @@ Câu hỏi phỏng vấn — Ôn tập Phase 0:
 - Bọc toàn bộ phương thức `transferComputer` bằng `@Transactional` (Spring Transaction Management).
 - Nếu bất kỳ bước nào thất bại (máy đích bị lỗi, mạng đứt, xung đột lock), Spring AOP sẽ tự động Rollback toàn bộ: máy cũ không bị nhả, máy mới không bị chiếm, và phiên chơi vẫn giữ nguyên trạng thái cũ. Hệ thống luôn ở trạng thái nhất quán 100%.
 
+---
+
+### Câu hỏi phỏng vấn — Ôn tập Phase 3 (Spring Security 6, JWT, BCrypt & RBAC):
+
+24. Tại sao REST API dùng JWT lại cấu hình `SessionCreationPolicy.STATELESS` và tắt CSRF (`csrf.disable()`)?
+=>
+- `STATELESS`:
+  + Khác với mô hình MVC truyền thống lưu `HttpSession` trên RAM server (chiếm bộ nhớ và khó scale), REST API Stateless không lưu trạng thái đăng nhập trên server.
+  + Mỗi request gửi lên đều độc lập và tự chứng minh danh tính qua header `Authorization: Bearer <token>`. Nhờ đó, ứng dụng có thể scale-out ra nhiều server/container đằng sau Load Balancer mà không cần cấu hình Sticky Session hay Redis Session cluster.
+- `csrf.disable()`:
+  + Tấn công CSRF (Cross-Site Request Forgery) xảy ra khi trình duyệt tự động đính kèm Cookie đăng nhập của nạn nhân khi họ bấm vào link độc hại từ trang web khác.
+  + Với REST API Stateless, JWT được lưu ở client (Local Storage / Memory) và gửi thủ công qua Header `Authorization` (không dùng Cookie tự động đính kèm), nên hacker không thể ép trình duyệt tự gửi JWT. Do đó, việc bật CSRF là dư thừa và tắt đi giúp tránh lỗi 403 trên các method POST/PUT/DELETE.
+
+25. BCrypt hoạt động như thế nào? Tại sao cùng 1 mật khẩu "123456" băm 2 lần lại ra 2 chuỗi khác nhau mà vẫn verify được? Tại sao không dùng MD5 hay SHA-256?
+=>
+- MD5 và SHA-256 là hàm băm nhanh (Fast Hash). Chúng được thiết kế để kiểm tra toàn vẹn file, nên hacker có thể dùng GPU/ASIC thử hàng tỷ mật khẩu mỗi giây bằng Rainbow Table (bảng băm tra cứu ngược).
+- BCrypt là thuật toán băm chậm (Slow Hash - KDF):
+  + Tự động sinh một chuỗi ngẫu nhiên gọi là Salt (16 bytes) và gắn liền vào kết quả băm.
+  + Cho phép chỉnh độ phức tạp (Work Factor, mặc định 10 tương đương $2^{10} = 1024$ vòng băm). Dù hacker có siêu máy tính cũng mất hàng chục năm để brute-force.
+- Cùng 1 mật khẩu ra hash khác nhau: Vì mỗi lần gọi `passwordEncoder.encode("123456")`, một chuỗi Salt ngẫu nhiên mới được sinh ra.
+- Cách verify: Chuỗi hash BCrypt có định dạng `$2a$10$[22 ký tự salt][31 ký tự hash]`. Khi gọi `passwordEncoder.matches(raw, hash)`, BCrypt bóc tách đúng chuỗi Salt đã lưu trong hash cũ, băm lại chuỗi `raw` với đúng Salt đó, rồi so sánh 2 chuỗi băm bằng thuật toán so sánh thời gian không đổi (*Constant-Time Comparison*) để chống Timing Attack.
+
+26. Refresh Token Rotation (RTR) là gì? Tại sao Access Token nên để ngắn hạn (30p) và lưu trong RAM/Header, còn Refresh Token lại lưu Database?
+=>
+- Vấn đề: JWT là Stateless (tự chứa thông tin và chữ ký số). Server không query DB để check JWT, nên một khi Access Token bị lộ, hacker có thể dùng token đó cho tới khi nó tự hết hạn mà server không thể thu hồi tức thì (Revocation).
+- Giải pháp kết hợp:
+  + **Access Token ngắn hạn (30 phút)**: Chứa ID, phone, role. Được verify bằng CPU/RAM ở Filter (độ trễ ~0ms, không chạm DB). Giảm thiểu rủi ro nếu token bị lộ vì thời gian sống rất ngắn.
+  + **Refresh Token dài hạn (7 ngày) lưu DB**: Lưu dạng UUID bảo mật, có cờ `revoked` và `expiresAt`. Dùng để xin cấp mới Access Token mà người dùng không cần gõ lại mật khẩu.
+  + **Refresh Token Rotation (RTR)**: Mỗi khi client gửi Refresh Token lên xin cấp mới (`POST /api/auth/refresh`), server kiểm tra tính hợp lệ trong DB, lập tức đánh dấu thu hồi (`revoked = true`) hoặc xóa token cũ, rồi sinh ra một Refresh Token MỚI kèm Access Token MỚI.
+  + *Lợi ích RTR*: Nếu kẻ gian trộm được Refresh Token cũ và cố tình tái sử dụng (Reuse Detection), server phát hiện token này đã bị revoke -> lập tức hủy toàn bộ token liên quan của người dùng đó để bảo vệ tài khoản.
+
+27. Trình bày vòng đời xử lý của một Request qua Spring Security Filter Chain trong dự án CyberNet?
+=>
+1. Request từ Client gửi tới (ví dụ: `GET /api/computers/VIP`).
+2. Đi qua danh sách các Filter trong `SecurityFilterChain`:
+   - `JwtAuthenticationFilter` (kế thừa `OncePerRequestFilter`) chặn lại:
+     + Đọc Header `Authorization`. Nếu không có hoặc không bắt đầu bằng `Bearer `, cho đi tiếp qua filter chain (chưa có danh tính).
+     + Nếu có: Cắt chuỗi lấy JWT raw -> gọi `jwtService.validateToken(token)`.
+     + Bóc tách username (SĐT) từ claim `subject` -> gọi `CustomUserDetailsService.loadUserByUsername(phone)` lấy `UserDetails`.
+     + Tạo đối tượng `UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities())`.
+     + Nạp vào luồng xử lý: `SecurityContextHolder.getContext().setAuthentication(auth)`.
+3. Đến `AuthorizationFilter`:
+   - Kiểm tra route: Nếu là public (`/api/auth/**`, `POST /api/sessions/login`) -> cho qua.
+   - Nếu là route khác: Kiểm tra `SecurityContextHolder`. Nếu chưa có Authentication -> chuyển sang `CustomAuthenticationEntryPoint` trả về HTTP 401 JSON.
+4. Vào Controller:
+   - Interceptor kiểm tra `@PreAuthorize` (ví dụ `@PreAuthorize("hasRole('ADMIN')")`).
+   - So sánh với danh sách `GrantedAuthority` trong Authentication. Nếu không đủ quyền -> ném `AccessDeniedException` -> `GlobalExceptionHandler` bắt và trả HTTP 403 JSON.
+   - Nếu đủ quyền -> Controller thực thi code nghiệp vụ bình thường và trả HTTP 200/201.
+
+28. Phân biệt HTTP 401 Unauthorized và HTTP 403 Forbidden? Trong Spring Security cấu hình xử lý 2 lỗi này trả về JSON như thế nào?
+=>
+- **HTTP 401 Unauthorized (Chưa xác thực - Unauthenticated)**:
+  + Ý nghĩa: "Bạn chưa cung cấp thông tin danh tính, hoặc token của bạn không hợp lệ/hết hạn".
+  + Xử lý: Triển khai interface `AuthenticationEntryPoint`. Trong `SecurityConfig`, cấu hình `.exceptionHandling(ex -> ex.authenticationEntryPoint(customEntryPoint))`. Bên trong entry point, ghi JSON `{"status": 401, "error": "Unauthorized", "message": "..."}` vào `HttpServletResponse`.
+- **HTTP 403 Forbidden (Không có quyền - Access Denied)**:
+  + Ý nghĩa: "Server biết bạn là ai (đã đăng nhập hợp lệ), nhưng vai trò của bạn không được phép thực hiện hành động này".
+  + Xử lý: Bắt `AccessDeniedException.class` trong `@RestControllerAdvice` (`GlobalExceptionHandler`) và trả về `ResponseEntity.status(HttpStatus.FORBIDDEN).body(...)` với mã 403 JSON.
+
+29. Phân biệt phân quyền URL-Level (`requestMatchers`) và Method-Level (`@PreAuthorize`)? Tại sao nên ưu tiên `@PreAuthorize`?
+=>
+- URL-Level (`SecurityFilterChain`):
+  + Khai báo tập trung bằng `authorizeHttpRequests(auth -> auth.requestMatchers("/api/admin/**").hasRole("ADMIN"))`.
+  + Nhược điểm: Dễ bị sót route khi hệ thống mở rộng, khó bảo trì khi các endpoint phức tạp nằm rải rác ở nhiều controller.
+- Method-Level (`@PreAuthorize`):
+  + Kích hoạt bằng `@EnableMethodSecurity`.
+  + Gắn annotation trực tiếp trên từng hàm trong Controller: `@PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")`.
+  + Ưu điểm vượt trội: Đặt ngay trên code xử lý nghiệp vụ, developer nhìn thấy ngay quyền hạn cần thiết của API đó mà không phải mở file config, hỗ trợ biểu thức SpEL (Spring Expression Language) mạnh mẽ, dễ dàng bảo trì và viết Unit/Integration test độc lập.
+
+30. Tại sao API mở máy trạm UC-2 (`POST /api/sessions/login`) lại không cần dùng JWT Bearer mà mở public?
+=>
+- Phân biệt bản chất nghiệp vụ của Khách hàng (PC Client) và Nhân viên (Staff Dashboard):
+  + Nhân viên đăng nhập vào hệ thống quản trị Web/POS cần giữ phiên đăng nhập để gọi hàng loạt API CRUD, duyệt nạp tiền, quản lý danh mục. Vì vậy, luồng nhân viên cần cấp Access Token và Refresh Token qua Header Bearer JWT.
+  + Khách hàng khi ngồi tại máy trạm chỉ cần mở khóa màn hình để chơi game. Máy trạm gửi SĐT + Mật khẩu lên `POST /api/sessions/login`. Hệ thống dùng BCrypt xác thực mật khẩu trực tiếp, kiểm tra số phút chơi còn lại, tạo `Session` và khóa máy `IN_USE`.
+  + Phiên chơi của khách được quản lý theo trạng thái máy trạm (Stateful qua bảng `sessions` và socket/heartbeat client trạm), không liên quan đến token quản trị. Do đó, mở public endpoint này giúp kiến trúc đơn giản, hiệu năng cao và phân tách rành mạch trách nhiệm giữa PC Gaming Client và Staff Web Dashboard.
+
 
 
 

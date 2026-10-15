@@ -111,17 +111,6 @@ Toàn bộ 6 module cốt lõi theo kiến trúc 3 lớp (Repository ➔ Service
 
 ---
 
-## 🏆 KẾT QUẢ: PHASE 1 ĐÃ HOÀN THÀNH 100%!
-Toàn bộ 6 module cốt lõi theo kiến trúc 3 lớp (Repository ➔ Service ➔ Controller ➔ DTO) đã hoạt động trơn tru:
-1. `Account` (Quản lý người dùng, mã hoá mật khẩu, phân quyền)
-2. `Computer` (Quản lý máy tính, phân khu VIP/Standard, trạng thái)
-3. `Item` (Danh mục món ăn, thức uống, gói giờ chơi)
-4. `TimePurchase` (Lịch sử nạp giờ tại quầy và QR)
-5. `Session` (Quản lý phiên chơi thời gian thực, đếm giờ, hoàn giờ dư)
-6. `Order` + `OrderItem` (Đặt món qua QR, giỏ hàng nhiều món, duyệt đơn, tự cộng giờ)
-
----
-
 ## 📍 PHASE 2 — COMPLEX BUSINESS LOGIC & CONCURRENCY CONTROL (HOÀN THÀNH 100%)
 
 ### 1. Cột mốc đã đạt được:
@@ -166,8 +155,105 @@ Biên dịch thành công 50 files source code (`mvn clean compile` BUILD SUCCES
 
 ---
 
-## ⏳ BƯỚC TIẾP THEO: PHASE 3 — SPRING SECURITY 6, JWT & ROLE-BASED ACCESS CONTROL
-- Tích hợp Spring Security 6 + `BCryptPasswordEncoder` thay thế cho chuỗi hash thô.
-- Cấp phát Access Token và Refresh Token qua JWT.
-- Phân quyền chi tiết trên từng API endpoint bằng `@PreAuthorize` (`CUSTOMER`, `STAFF`, `ADMIN`).
+## 📍 PHASE 3 — SPRING SECURITY 6, JWT & ROLE-BASED ACCESS CONTROL (RBAC) (HOÀN THÀNH 100%)
+
+### 1. Cột mốc đã đạt được:
+- Xây dựng hệ thống bảo mật & phân quyền chuẩn Enterprise hoàn chỉnh qua 4 micro-steps:
+  1. **Task 3.1: Hạ tầng Spring Security 6 & BCrypt**:
+     - Tích hợp `spring-boot-starter-security` và bộ thư viện JJWT 0.12.6 (`jjwt-api`, `jjwt-impl`, `jjwt-jackson`).
+     - Chuẩn hóa mã hóa mật khẩu 1 chiều với `BCryptPasswordEncoder` (thay thế hoàn toàn tiền tố giả lập `hashed_`).
+     - Cấu hình `SecurityFilterChain`: Vô hiệu hóa CSRF, thiết lập `SessionCreationPolicy.STATELESS`, mở public route `/api/auth/**` và `POST /api/sessions/login`.
+  2. **Task 3.2: Dịch vụ JWT & Entity RefreshToken lưu Database**:
+     - Thiết kế `JwtService`: Ký và giải mã HMAC-SHA256, sinh Access Token (30 phút, chứa Phone và Role claim), validate chữ ký & thời hạn.
+     - Thiết kế Entity `RefreshToken` & `RefreshTokenRepository` liên kết FK với `Account`: Token UUID bảo mật, thời hạn 7 ngày, quản lý trạng thái thu hồi `revoked`.
+  3. **Task 3.3: Luồng Xác thực, Xoay vòng Token (Rotation) & Xử lý lỗi chuẩn REST**:
+     - Triển khai `CustomUserDetailsService`: Nạp thông tin tài khoản qua SĐT, map Role sang Spring Security `SimpleGrantedAuthority("ROLE_" + role)`.
+     - Xây dựng `AuthService` & `AuthController`:
+       + `POST /api/auth/login`: Xác thực STAFF / ADMIN bằng BCrypt, cấp cặp Access Token + Refresh Token (chặn đứng CUSTOMER đăng nhập API quản trị).
+       + `POST /api/auth/refresh`: Triển khai **Refresh Token Rotation (RTR)** — kiểm tra hạn dùng, thu hồi token cũ ngay lập tức và cấp cặp token mới.
+       + `POST /api/auth/logout`: Thu hồi token (`revoked = true`) để chặn tái sử dụng.
+     - Xây dựng `CustomAuthenticationEntryPoint`: Chặn unauthenticated request trả về JSON chuẩn HTTP 401 Unauthorized thay vì redirect HTML login form mặc định.
+     - Xử lý `AccessDeniedException` trong `GlobalExceptionHandler`: Trả về JSON chuẩn HTTP 403 Forbidden.
+  4. **Task 3.4: Bộ lọc bảo mật & Phân quyền Method-Level (@PreAuthorize)**:
+     - Tạo `JwtAuthenticationFilter` kế thừa `OncePerRequestFilter`: Bóc tách Bearer token từ header `Authorization`, xác thực và nạp `UsernamePasswordAuthenticationToken` vào `SecurityContextHolder`.
+     - Kích hoạt `@EnableMethodSecurity` và gắn `@PreAuthorize` theo đúng ma trận phân quyền trên cả 6 Controller (`AccountController`, `ComputerController`, `SessionController`, `OrderController`, `ItemController`, `TimePurchaseController`).
+  5. **Verification & Testing (100% Pass)**:
+     - Cập nhật `Phase2IntegrationTest` dùng `PasswordEncoder` cho test data.
+     - Viết mới `Phase3SecurityIntegrationTest` với 10 test case chuyên sâu: Xác thực đúng/sai, chặn khách hàng, 401 khi thiếu JWT, STAFF truy cập hợp lệ 200, STAFF bị chặn 403 khi xóa máy, ADMIN xóa máy 204, Refresh Token Rotation, Logout thu hồi token, UC-2 public login.
+     - Kết quả: **12/12 test cases PASS tuyệt đối (`BUILD SUCCESS`)**.
+
+---
+
+### 2. Các bài học & kinh nghiệm đắt giá rút ra:
+
+#### A. Kiến trúc Stateless API & Quản lý Phiên với JWT
+- **Bản chất Stateless (Phi trạng thái)**:
+  + Cấu hình `SessionCreationPolicy.STATELESS` yêu cầu Spring Security không tạo `HttpSession` trên server. Mỗi request từ Client gửi lên phải độc lập và tự chứng minh danh tính qua Header `Authorization: Bearer <token>`.
+  + *Lợi ích*: Giúp hệ thống dễ dàng mở rộng quy mô ngang (Horizontal Scaling) qua nhiều instance đằng sau Load Balancer mà không cần dùng Session Clustered (như Redis Session).
+- **Vô hiệu hóa CSRF (`csrf.disable()`)**:
+  + Tấn công CSRF (Cross-Site Request Forgery) lợi dụng cơ chế trình duyệt tự động đính kèm Cookie của nạn nhân.
+  + Vì REST API Stateless dùng JWT lưu ở Authorization Header (không dựa vào Cookie tự gửi của trình duyệt), việc tắt CSRF là hoàn toàn chuẩn mực và tránh được các lỗi 403 vô cớ.
+
+#### B. Cơ chế mã hóa một chiều BCrypt (Salt ngẫu nhiên & Chống Brute Force)
+- **Tại sao không dùng MD5, SHA-256 hay giải mã đối xứng?**:
+  + MD5 và SHA-256 là hàm băm nhanh, cực kỳ dễ bị tin tặc dùng Bảng cầu vồng (Rainbow Table) hoặc Card màn hình GPU dò quét hàng tỷ mật khẩu mỗi giây.
+  + BCrypt là thuật toán Key Derivation Function (KDF) có độ phức tạp điều chỉnh được (Work Factor / Cost). Nó tự động sinh chuỗi Salt ngẫu nhiên (16 bytes) nối vào mật khẩu trước khi băm nhiều vòng.
+- **Hiện tượng "Cùng 1 mật khẩu băm ra chuỗi khác nhau"**:
+  + Mỗi lần gọi `passwordEncoder.encode("123456")`, BCrypt sinh ra một chuỗi Salt mới, cho ra hash hoàn toàn khác.
+  + Khi kiểm tra đăng nhập, hàm `passwordEncoder.matches(raw, hash)` sẽ tự bóc tách Salt nhúng sẵn trong chuỗi hash cũ để băm lại mật khẩu nhập vào rồi so sánh an toàn bằng thuật toán so sánh thời gian không đổi (*Constant-Time Comparison*), chống tấn công Timing Attack.
+
+#### C. Chiến lược Refresh Token Rotation (RTR) & Thu hồi Token trong Database
+- **Vấn đề của JWT tự thân (Self-contained JWT)**:
+  + Access Token không thể thu hồi tức thì trước khi hết hạn nếu chỉ dựa vào chữ ký.
+  + Nếu đặt thời hạn quá dài (vài ngày): Rủi ro nếu token bị lộ.
+  + Nếu đặt thời hạn quá ngắn (5 phút): Người dùng bị văng ra liên tục, trải nghiệm rất tệ.
+- **Giải pháp dung hòa chuẩn Enterprise**:
+  + **Access Token ngắn hạn (30 phút)**: Chứa thông tin tài khoản + role. Mọi request API nghiệp vụ chỉ giải mã JWT trên RAM máy chủ, **không cần query Database**, đảm bảo độ trễ (latency) cực thấp.
+  + **Refresh Token dài hạn (7 ngày) lưu Database**: Dùng để xin cấp mới Access Token mà không bắt người dùng nhập lại mật khẩu.
+  + **Refresh Token Rotation (RTR)**: Mỗi khi Refresh Token được dùng để đổi token mới, token cũ bị thu hồi (`revoked = true`) ngay lập tức và sinh token mới thay thế. Nếu kẻ gian dùng lại Refresh Token cũ đã bị thu hồi, hệ thống có thể phát hiện và khóa toàn bộ phiên nghi vấn.
+
+#### D. Luồng thực thi Filter Chain & `SecurityContextHolder`
+- `OncePerRequestFilter`: Đảm bảo `JwtAuthenticationFilter` chỉ được chạy đúng 1 lần cho mỗi HTTP Request, tránh chạy trùng lặp khi có forward hoặc include request nội bộ.
+- Bóc tách Token chuẩn RFC 6750: Kiểm tra Header `Authorization` bắt đầu bằng `Bearer `, cắt chuỗi 7 ký tự đầu để lấy JWT.
+- Nạp Authentication: Sau khi `jwtService.validateToken` thành công, tạo `UsernamePasswordAuthenticationToken` kèm danh sách quyền hạn `GrantedAuthority` và đưa vào `SecurityContextHolder.getContext().setAuthentication(auth)`.
+- Các filter phía sau và các annotation `@PreAuthorize` ở Controller sẽ lấy quyền từ `SecurityContextHolder` để ra quyết định Cho phép (200) hoặc Từ chối (403).
+
+#### E. Phân biệt rõ rệt HTTP 401 Unauthorized và HTTP 403 Forbidden
+- **401 Unauthorized (Chưa xác thực)**:
+  + Ý nghĩa: "Bạn là ai? Tôi chưa biết danh tính của bạn". Xảy ra khi Request không gửi JWT, token hết hạn, hoặc chữ ký sai.
+  + Thành phần xử lý: `AuthenticationEntryPoint`. Cần viết `CustomAuthenticationEntryPoint` ghi trực tiếp JSON báo lỗi vào `HttpServletResponse` thay vì để Spring Boot redirect về trang login HTML.
+- **403 Forbidden (Đã xác thực nhưng không đủ quyền)**:
+  + Ý nghĩa: "Tôi biết bạn là ai (ví dụ STAFF), nhưng bạn không có quyền xóa máy tính trạm (chỉ dành cho ADMIN)".
+  + Thành phần xử lý: `AccessDeniedHandler` hoặc bắt `AccessDeniedException` trong `@RestControllerAdvice` (`GlobalExceptionHandler`).
+
+#### F. Tách biệt kiến trúc giữa Khách hàng (PC Client) và Nhân viên (Staff/Admin)
+- **Khách hàng mở máy trạm (UC-2 PC Login Flow)**:
+  + Khách ngồi tại máy, nhập SĐT + Mật khẩu. Xác thực bằng `passwordEncoder.matches()` trực tiếp trong `SessionService`.
+  + Trả về `SessionResponseDTO` để phần mềm trạm giữ trạng thái phiên chơi. Endpoint này mở public (`POST /api/sessions/login`), không cần mang Bearer JWT.
+- **Nhân viên / Quản lý (Web Dashboard & POS)**:
+  + Đăng nhập qua `POST /api/auth/login`. Kiểm tra vai trò: nếu là `CUSTOMER` thì từ chối ngay lập tức.
+  + Chỉ cấp Access Token & Refresh Token cho `STAFF` và `ADMIN` để gọi các API quản trị nhạy cảm.
+
+#### G. Kinh nghiệm viết Integration Test với Spring Security MockMvc
+- **Khởi tạo MockMvc bảo mật**:
+  + Bắt buộc cấu hình `.apply(springSecurity())` trong `MockMvcBuilders.webAppContextSetup(context)` để Spring Security Filter Chain được nạp đầy đủ trong môi trường Test.
+- **Dữ liệu mẫu mã hóa**:
+  + Trong hàm setup dữ liệu test (`@BeforeEach`), mật khẩu mẫu phải được băm qua `passwordEncoder.encode("123456")`. Tuyệt đối không dùng chuỗi thô kẻo hàm `matches()` trả về false.
+- **Xử lý ràng buộc khóa ngoại (Foreign Key Constraints)**:
+  + Khi dọn dẹp DB trước mỗi test case: Xóa các bảng con trước (`orderRepository.deleteAll()`, `refreshTokenRepository.deleteAll()`) rồi mới xóa bảng cha (`sessionRepository.deleteAll()`, `accountRepository.deleteAll()`), tránh lỗi `SQLIntegrityConstraintViolationException`.
+- **Đọc JSON response an toàn với JsonPath**:
+  + Thay vì dùng `ObjectMapper` có thể bị lỗi classloader với `JavaTimeModule`, sử dụng `com.jayway.jsonpath.JsonPath.read(res, "$.accessToken")` giúp trích xuất token trong test cực kỳ nhanh, nhẹ và ổn định.
+
+---
+
+## 🏆 KẾT QUẢ: PHASE 3 ĐÃ HOÀN THÀNH 100%!
+Biên dịch thành công 62 files source code (`mvn clean test` BUILD SUCCESS). 12/12 bài kiểm thử tự động (Phase 2 + Phase 3) vượt qua hoàn hảo. Hệ thống quán net CyberNet đã được bảo vệ toàn diện với Spring Security 6, JWT, BCrypt và RBAC.
+
+---
+
+## ⏳ BƯỚC TIẾP THEO: PHASE 4 — BÁO CÁO & THỐNG KÊ DOANH THU (REPORTING & REVENUE ANALYTICS)
+- Thiết kế các Aggregation Queries bằng JPQL / Native Query (Doanh thu theo ngày, tuần, tháng; Món bán chạy nhất; Khách hàng thân thiết).
+- Xây dựng DTO Projection tối ưu hiệu năng thống kê, tránh tải toàn bộ Entity lên bộ nhớ.
+- Phân quyền nghiêm ngặt: Chỉ `ADMIN` mới được phép truy cập module báo cáo tài chính.
+
 

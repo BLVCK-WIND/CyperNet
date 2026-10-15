@@ -50,6 +50,9 @@ public class Phase2IntegrationTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     private Account customer;
     private Account staff;
     private Computer standardPc;
@@ -67,12 +70,11 @@ public class Phase2IntegrationTest {
             Account acc = new Account();
             acc.setPhone("0988888888");
             acc.setName("Nguyễn Văn Khách");
-            acc.setPasswordHash("hashed_123456");
             acc.setRole(Account.Role.CUSTOMER);
-            acc.setRemainingMinutes(60); // Nạp trước 60 phút
-            return accountRepository.save(acc);
+            return acc;
         });
-        customer.setRemainingMinutes(60);
+        customer.setPasswordHash(passwordEncoder.encode("123456"));
+        customer.setRemainingMinutes(60); // Nạp trước 60 phút
         accountRepository.save(customer);
 
         // 2. Tạo Account Nhân viên
@@ -80,10 +82,11 @@ public class Phase2IntegrationTest {
             Account acc = new Account();
             acc.setPhone("0977777777");
             acc.setName("Trần Thu Ngân");
-            acc.setPasswordHash("hashed_staff123");
             acc.setRole(Account.Role.STAFF);
-            return accountRepository.save(acc);
+            return acc;
         });
+        staff.setPasswordHash(passwordEncoder.encode("staff123"));
+        accountRepository.save(staff);
 
         // 3. Tạo Máy tính Standard (10.000đ/h)
         standardPc = computerRepository.findByCode("TEST-PC-01").orElseGet(() -> {

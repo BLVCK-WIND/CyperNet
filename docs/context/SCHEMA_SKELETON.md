@@ -70,6 +70,13 @@
 * `confirmedAt`: `LocalDateTime` (Nullable)
 * `createdAt`: `LocalDateTime` (Auto, Immutable)
 
+### 8. `RefreshToken` (`refresh_tokens`)
+* `id`: `Long` (PK, Auto Increment)
+* `token`: `String` (Unique, Not Null) — UUID refresh token
+* `account`: `Account` (FK: `account_id`, `@ManyToOne(LAZY)`, Not Null)
+* `expiresAt`: `LocalDateTime` (Not Null)
+* `createdAt`: `LocalDateTime` (Auto, Immutable)
+
 ---
 
 ## 2. Relationships Diagram (Rút gọn)
@@ -78,6 +85,8 @@
 Account (1) ──── (N) Session (N) ──── (1) Computer
    │                     │
    │ (1)                 │ (1)
+   ├──── (N) RefreshToken
+   │
    ▼                     ▼
 TimePurchase (N)       Order (1) ──── (N) OrderItem (N) ──── (1) Item
 ```

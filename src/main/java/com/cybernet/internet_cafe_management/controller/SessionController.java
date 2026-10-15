@@ -9,6 +9,7 @@ import com.cybernet.internet_cafe_management.entity.Session.Status;
 import com.cybernet.internet_cafe_management.service.SessionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +29,7 @@ public class SessionController {
      * Trả về HTTP 201 CREATED kèm chi tiết phiên và trạng thái máy chuyển sang IN_USE.
      */
     @PostMapping("/start")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<SessionResponse> startSession(@RequestBody StartSessionRequest request) {
         SessionResponse response = sessionService.startSession(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -35,7 +37,7 @@ public class SessionController {
 
     /**
      * 1b. Khách hàng đăng nhập máy trạm mở phiên chơi (POST /api/sessions/login - UC-2)
-     * Trả về HTTP 201 CREATED kèm chi tiết phiên và chuyển máy sang IN_USE.
+     * Public endpoint: Khách tự đăng nhập tại máy trạm, SecurityConfig permitAll.
      */
     @PostMapping("/login")
     public ResponseEntity<SessionResponse> loginAndStartSession(@RequestBody ComputerLoginRequest request) {
@@ -48,6 +50,7 @@ public class SessionController {
      * Trả về HTTP 200 OK, trả máy về AVAILABLE và hoàn lại số phút dư cho khách.
      */
     @PatchMapping("/{id}/end")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<SessionResponse> endSession(@PathVariable Long id) {
         SessionResponse response = sessionService.endSession(id);
         return ResponseEntity.ok(response);
@@ -57,6 +60,7 @@ public class SessionController {
      * 3. Gia hạn thêm giờ chơi cho phiên đang chạy (PATCH /api/sessions/{id}/extend)
      */
     @PatchMapping("/{id}/extend")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<SessionResponse> extendSession(
             @PathVariable Long id,
             @RequestBody ExtendSessionRequest request) {
@@ -69,6 +73,7 @@ public class SessionController {
      * Quy đổi thời gian theo đơn giá động giữa 2 máy, giữ nguyên phiên chơi và đơn PENDING.
      */
     @PatchMapping("/{id}/transfer")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<SessionResponse> transferComputer(
             @PathVariable Long id,
             @RequestBody TransferComputerRequest request) {
@@ -80,6 +85,7 @@ public class SessionController {
      * 4. Xem chi tiết 1 phiên chơi theo ID (GET /api/sessions/{id})
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<SessionResponse> getSessionById(@PathVariable Long id) {
         SessionResponse response = sessionService.getSessionById(id);
         return ResponseEntity.ok(response);
@@ -90,6 +96,7 @@ public class SessionController {
      * Dùng cho màn hình quản lý quán net xem các máy nào đang có khách ngồi.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<List<SessionResponse>> getAllSessions(
             @RequestParam(required = false) Status status) {
         List<SessionResponse> responses = sessionService.getAllSessions(status);
@@ -101,6 +108,7 @@ public class SessionController {
      * API cực kỳ quan trọng: Phục vụ khách dùng điện thoại quét mã QR tại bàn ("PC-01").
      */
     @GetMapping("/active/computer/{computerCode}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
     public ResponseEntity<SessionResponse> getActiveSessionByComputerCode(@PathVariable String computerCode) {
         SessionResponse response = sessionService.getActiveSessionByComputerCode(computerCode);
         return ResponseEntity.ok(response);
@@ -110,6 +118,7 @@ public class SessionController {
      * 7. Lấy lịch sử tất cả phiên chơi của 1 khách hàng (GET /api/sessions/account/{accountId})
      */
     @GetMapping("/account/{accountId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<List<SessionResponse>> getSessionsByAccountId(@PathVariable Long accountId) {
         List<SessionResponse> responses = sessionService.getSessionsByAccountId(accountId);
         return ResponseEntity.ok(responses);

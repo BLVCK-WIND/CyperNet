@@ -5,6 +5,7 @@ import com.cybernet.internet_cafe_management.dto.response.AccountResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,10 +14,13 @@ import java.util.List;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // Dependency Injection qua Constructor (chuẩn của Spring Boot)
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(AccountRepository accountRepository,
+                          PasswordEncoder passwordEncoder) {
         this.accountRepository = accountRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 1. Tạo tài khoản mới
@@ -28,8 +32,8 @@ public class AccountService {
         Account account = new Account();
         account.setPhone(request.getPhone());
         account.setName(request.getName());
-        // Tạm thời gán chuỗi hash thô (ở Phase bảo mật chúng ta sẽ tích hợp BCryptPasswordEncoder)
-        account.setPasswordHash("hashed_" + request.getPassword());
+        // Mã hoá mật khẩu bằng BCrypt trước khi lưu vào database
+        account.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         if (request.getRole() != null) {
             account.setRole(request.getRole());
         }
