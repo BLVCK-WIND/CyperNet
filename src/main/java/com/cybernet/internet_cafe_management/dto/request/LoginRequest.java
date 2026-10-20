@@ -1,12 +1,17 @@
 package com.cybernet.internet_cafe_management.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+
 /**
  * Request DTO: Đăng nhập hệ thống quản lý (STAFF/ADMIN).
  * Client gửi số điện thoại + mật khẩu để nhận JWT tokens.
  */
 public class LoginRequest {
 
+    @NotBlank(message = "Số điện thoại không được để trống")
     private String phone;
+
+    @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
 
     public LoginRequest() {

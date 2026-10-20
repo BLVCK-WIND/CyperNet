@@ -50,17 +50,32 @@ public class JwtService {
         return extractAllClaims(token).get("role", String.class);
     }
 
+    public enum TokenStatus {
+        VALID,
+        EXPIRED,
+        INVALID
+    }
+
+    /**
+     * Xác thực trạng thái token (Hợp lệ / Hết hạn / Sai định dạng hoặc giả mạo)
+     */
+    public TokenStatus validateToken(String token) {
+        try {
+            extractAllClaims(token);
+            return TokenStatus.VALID;
+        } catch (ExpiredJwtException e) {
+            return TokenStatus.EXPIRED;
+        } catch (JwtException | IllegalArgumentException e) {
+            return TokenStatus.INVALID;
+        }
+    }
+
     /**
      * Kiểm tra token còn hạn và chữ ký hợp lệ
      * Trả về false nếu token bị sửa, hết hạn hoặc sai format
      */
     public boolean isTokenValid(String token) {
-        try {
-            extractAllClaims(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
+        return validateToken(token) == TokenStatus.VALID;
     }
 
     /** Lấy thời hạn refresh token (ms) — dùng cho AuthService */

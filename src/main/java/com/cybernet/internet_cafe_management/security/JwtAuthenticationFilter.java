@@ -52,7 +52,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7); // Cắt bỏ "Bearer "
 
         // 2. Validate token & extract phone
-        if (jwtService.isTokenValid(token)) {
+        JwtService.TokenStatus tokenStatus = jwtService.validateToken(token);
+        if (tokenStatus == JwtService.TokenStatus.VALID) {
             String phone = jwtService.extractPhone(token);
 
             // 3. Chỉ set Authentication nếu chưa có trong context (tránh ghi đè)
@@ -71,6 +72,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 4. Set vào SecurityContext → các @PreAuthorize sẽ kiểm tra từ đây
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+        } else if (tokenStatus == JwtService.TokenStatus.EXPIRED) {
+            request.setAttribute("JWT_ERROR", "TOKEN_EXPIRED");
+        } else {
+            request.setAttribute("JWT_ERROR", "UNAUTHORIZED");
         }
 
         // 5. Cho request đi tiếp

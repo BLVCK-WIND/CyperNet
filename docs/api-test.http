@@ -1,0 +1,465 @@
+### ==============================================================================
+### CYBERNET API INTEGRATION & RUNTIME AUDIT TEST COLLECTION
+### ==============================================================================
+@baseUrl = http://localhost:8080
+@customerPhone = 0903333333
+@customerPass = khach123
+@staffPhone = 0902222222
+@staffPass = staff123
+@adminPhone = 0901111111
+@adminPass = admin123
+
+### ------------------------------------------------------------------------------
+### 1. HEALTH CHECK & PUBLIC DISCOVERY
+### ------------------------------------------------------------------------------
+
+# @name HealthCheck
+GET {{baseUrl}}/actuator/health
+Accept: application/json
+
+###
+
+# @name PublicMenu
+GET {{baseUrl}}/api/items?page=0&size=10
+Accept: application/json
+
+###
+
+# @name PublicCheckPC01
+GET {{baseUrl}}/api/sessions/check/PC-01
+Accept: application/json
+
+###
+
+# @name PublicMenuByType
+GET {{baseUrl}}/api/items/type/FOOD?page=0&size=10
+Accept: application/json
+
+###
+
+# @name PublicItemDetail
+GET {{baseUrl}}/api/items/1
+Accept: application/json
+
+### ------------------------------------------------------------------------------
+### 2. CUSTOMER FLOW (Luồng Khách hàng)
+### ------------------------------------------------------------------------------
+
+# @name CustomerLoginAtPC
+POST {{baseUrl}}/api/sessions/login
+Content-Type: application/json
+
+{
+  "phone": "{{customerPhone}}",
+  "password": "{{customerPass}}",
+  "computerCode": "PC-01"
+}
+
+###
+
+# @name CustomerMobileSessionLogin
+POST {{baseUrl}}/api/auth/customer-session-login
+Content-Type: application/json
+
+{
+  "computerCode": "PC-01",
+  "phone": "{{customerPhone}}"
+}
+
+###
+
+# @name CustomerGetActiveSession
+GET {{baseUrl}}/api/sessions/active/computer/PC-01
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+###
+
+# @name CustomerCreateOrder
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+{
+  "sessionId": {{CustomerLoginAtPC.response.body.id}},
+  "paymentMethod": "CASH",
+  "items": [
+    {
+      "itemId": 515,
+      "quantity": 1
+    },
+    {
+      "itemId": 516,
+      "quantity": 2
+    }
+  ]
+}
+
+###
+
+# @name CustomerGetSessionOrders
+GET {{baseUrl}}/api/orders/session/{{CustomerLoginAtPC.response.body.id}}
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+###
+
+# @name CustomerGenerateVietQR
+GET {{baseUrl}}/api/files/vietqr?amount=60000&content=ORDER-CYBERNET&bankId=MBBank&accountNo=0901111111
+Accept: application/json
+
+### ------------------------------------------------------------------------------
+### 3. STAFF FLOW (Luồng Nhân viên)
+### ------------------------------------------------------------------------------
+
+# @name StaffLogin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "phone": "{{staffPhone}}",
+  "password": "{{staffPass}}"
+}
+
+###
+
+# @name StaffStartSession
+POST {{baseUrl}}/api/sessions/start
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{
+  "computerCode": "PC-02",
+  "accountId": 6,
+  "minutes": 60
+}
+
+###
+
+# @name StaffCreateTimePurchase
+POST {{baseUrl}}/api/time-purchases
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{
+  "accountId": 6,
+  "minutes": 60,
+  "amount": 10000,
+  "paymentMethod": "CASH"
+}
+
+###
+
+# @name StaffConfirmTimePurchase
+PATCH {{baseUrl}}/api/time-purchases/{{StaffCreateTimePurchase.response.body.id}}/confirm
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name StaffListPendingOrders
+GET {{baseUrl}}/api/orders?status=PENDING_PAYMENT
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name StaffConfirmOrder
+PATCH {{baseUrl}}/api/orders/{{CustomerCreateOrder.response.body.id}}/confirm
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name StaffTransferSession
+PATCH {{baseUrl}}/api/sessions/{{StaffStartSession.response.body.id}}/transfer
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{
+  "targetComputerCode": "SEC-PC-01"
+}
+
+###
+
+# @name StaffEndSession
+PATCH {{baseUrl}}/api/sessions/{{StaffStartSession.response.body.id}}/end
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name StaffCreateDirectOrder
+POST {{baseUrl}}/api/orders/direct
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{
+  "sessionId": {{StaffStartSession.response.body.id}},
+  "paymentMethod": "CASH",
+  "items": [
+    {
+      "itemId": 516,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+# @name StaffCancelOrder
+PATCH {{baseUrl}}/api/orders/{{CustomerCreateOrder.response.body.id}}/cancel
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name StaffCancelTimePurchase
+PATCH {{baseUrl}}/api/time-purchases/{{StaffCreateTimePurchase.response.body.id}}/cancel
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name StaffGetComputersList
+GET {{baseUrl}}/api/computers?page=0&size=10
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name StaffGetActiveSessions
+GET {{baseUrl}}/api/sessions?status=ACTIVE&page=0&size=10
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+### ------------------------------------------------------------------------------
+### 4. ADMIN FLOW (Luồng Quản trị viên)
+### ------------------------------------------------------------------------------
+
+# @name AdminLogin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "phone": "{{adminPhone}}",
+  "password": "{{adminPass}}"
+}
+
+###
+
+# @name AdminCreateComputer
+POST {{baseUrl}}/api/computers
+Content-Type: application/json
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+{
+  "code": "PC-AUDIT",
+  "name": "Audit Test Machine",
+  "zone": "STANDARD",
+  "pricePerHour": 10000,
+  "ipAddress": "192.168.1.199"
+}
+
+###
+
+# @name AdminGetComputer
+GET {{baseUrl}}/api/computers/{{AdminCreateComputer.response.body.id}}
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminDeleteComputer
+DELETE {{baseUrl}}/api/computers/{{AdminCreateComputer.response.body.id}}
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminCreateItem
+POST {{baseUrl}}/api/items
+Content-Type: application/json
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+{
+  "name": "Audit Test Snack",
+  "price": 12000,
+  "available": true,
+  "type": "FOOD"
+}
+
+###
+
+# @name AdminUpdateItem
+PUT {{baseUrl}}/api/items/{{AdminCreateItem.response.body.id}}
+Content-Type: application/json
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+{
+  "name": "Audit Test Snack Updated",
+  "price": 15000,
+  "available": true,
+  "type": "FOOD"
+}
+
+###
+
+# @name AdminDeleteItem
+DELETE {{baseUrl}}/api/items/{{AdminCreateItem.response.body.id}}
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminCreateAccount
+POST {{baseUrl}}/api/accounts
+Content-Type: application/json
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+{
+  "phone": "0909999999",
+  "name": "Audit Test Customer",
+  "password": "auditpassword123",
+  "role": "CUSTOMER"
+}
+
+###
+
+# @name AdminGetAccount
+GET {{baseUrl}}/api/accounts/{{AdminCreateAccount.response.body.id}}
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminGetAccountsList
+GET {{baseUrl}}/api/accounts?role=CUSTOMER&page=0&size=10
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AuthLogout
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{StaffLogin.response.body.refreshToken}}"
+}
+
+###
+
+# @name AdminDeleteAccount
+DELETE {{baseUrl}}/api/accounts/{{AdminCreateAccount.response.body.id}}
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminReportRevenueSummary
+GET {{baseUrl}}/api/reports/revenue/summary
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminReportDailyRevenue
+GET {{baseUrl}}/api/reports/revenue/daily
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminReportTopItems
+GET {{baseUrl}}/api/reports/items/top-selling?limit=5
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminReportTopCustomers
+GET {{baseUrl}}/api/reports/customers/top-spenders?limit=5
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminReportComputerUsage
+GET {{baseUrl}}/api/reports/computers/usage
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+###
+
+# @name AdminGetAuditLogs
+GET {{baseUrl}}/api/audit-logs?page=0&size=10
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+### ------------------------------------------------------------------------------
+### 5. NEGATIVE / ERROR TESTING (Tình huống lỗi)
+### ------------------------------------------------------------------------------
+
+# @name ErrNoToken
+GET {{baseUrl}}/api/reports/revenue/summary
+
+###
+
+# @name ErrInvalidToken
+GET {{baseUrl}}/api/reports/revenue/summary
+Authorization: Bearer malformed.or.expired.jwt.token
+
+###
+
+# @name ErrCustomerAccessAdminResource
+GET {{baseUrl}}/api/reports/revenue/summary
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+###
+
+# @name ErrStaffDeleteComputer
+DELETE {{baseUrl}}/api/computers/1
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name ErrValidationEmptyAccountBody
+POST {{baseUrl}}/api/accounts
+Content-Type: application/json
+Authorization: Bearer {{AdminLogin.response.body.accessToken}}
+
+{}
+
+###
+
+# @name ErrNotFoundComputerId
+GET {{baseUrl}}/api/computers/999999
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name ErrDuplicateConfirmOrder
+PATCH {{baseUrl}}/api/orders/{{CustomerCreateOrder.response.body.id}}/confirm
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name ErrStartSessionComputerInUse
+POST {{baseUrl}}/api/sessions/start
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{
+  "computerCode": "PC-01",
+  "accountId": 6,
+  "minutes": 30
+}
+
+### ------------------------------------------------------------------------------
+### 6. CORS VERIFICATION (Kiểm tra CORS)
+### ------------------------------------------------------------------------------
+
+# @name CorsPreflightLocalhost
+OPTIONS {{baseUrl}}/api/items
+Origin: http://localhost:5173
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Authorization,Content-Type
+
+###
+
+# @name CorsGetLocalhost
+GET {{baseUrl}}/api/items
+Origin: http://localhost:5173
+
+###
+
+# @name CorsPreflightLanIp
+OPTIONS {{baseUrl}}/api/items
+Origin: http://192.168.1.100:5173
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Authorization,Content-Type
+
+###
+
+# @name CorsGetLanIp
+GET {{baseUrl}}/api/items
+Origin: http://192.168.1.100:5173

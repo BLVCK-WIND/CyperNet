@@ -2,10 +2,13 @@ package com.cybernet.internet_cafe_management.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.cybernet.internet_cafe_management.dto.request.CreateItemRequest;
 import com.cybernet.internet_cafe_management.dto.response.ItemResponse;
+import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.entity.Item;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.ItemRepository;
@@ -33,6 +36,11 @@ public class ItemService {
         return itemRepository.findAll().stream().map(ItemResponse::fromEntity).toList();
     }
 
+    public PageResponse<ItemResponse> getAllItem(Pageable pageable) {
+        Page<Item> page = itemRepository.findAll(pageable);
+        return PageResponse.fromPage(page, ItemResponse::fromEntity);
+    }
+
     public ItemResponse getItemById(Long id) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy món ăn với id: " + id));
@@ -41,6 +49,11 @@ public class ItemService {
 
     public List<ItemResponse> getItemByType(Item.Type type) {
         return itemRepository.findByType(type).stream().map(ItemResponse::fromEntity).toList();
+    }
+
+    public PageResponse<ItemResponse> getItemByType(Item.Type type, Pageable pageable) {
+        Page<Item> page = itemRepository.findByType(type, pageable);
+        return PageResponse.fromPage(page, ItemResponse::fromEntity);
     }
 
     public ItemResponse updateItem(Long id, CreateItemRequest request) {

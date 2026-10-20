@@ -1,5 +1,7 @@
 package com.cybernet.internet_cafe_management.dto.request;
 
+import jakarta.validation.constraints.Size;
+
 /**
  * Request DTO: Yêu cầu chuyển máy tính cho khách hàng (UC-6).
  * Hỗ trợ chuyển theo toComputerId hoặc toComputerCode.
@@ -8,17 +10,20 @@ public class TransferComputerRequest {
 
     private Long toComputerId;
     private String toComputerCode;
+
+    @Size(max = 255, message = "Lý do chuyển máy tối đa 255 ký tự")
     private String reason;
-    private boolean markOldAsMaintenance;
+
+    private Boolean markOldAsMaintenance = false;
 
     public TransferComputerRequest() {
     }
 
-    public TransferComputerRequest(Long toComputerId, String toComputerCode, String reason, boolean markOldAsMaintenance) {
+    public TransferComputerRequest(Long toComputerId, String toComputerCode, String reason, Boolean markOldAsMaintenance) {
         this.toComputerId = toComputerId;
         this.toComputerCode = toComputerCode;
         this.reason = reason;
-        this.markOldAsMaintenance = markOldAsMaintenance;
+        this.markOldAsMaintenance = markOldAsMaintenance != null ? markOldAsMaintenance : false;
     }
 
     public Long getToComputerId() {
@@ -45,11 +50,15 @@ public class TransferComputerRequest {
         this.reason = reason;
     }
 
-    public boolean isMarkOldAsMaintenance() {
-        return markOldAsMaintenance;
+    public Boolean getMarkOldAsMaintenance() {
+        return markOldAsMaintenance != null ? markOldAsMaintenance : false;
     }
 
-    public void setMarkOldAsMaintenance(boolean markOldAsMaintenance) {
-        this.markOldAsMaintenance = markOldAsMaintenance;
+    public boolean isMarkOldAsMaintenance() {
+        return markOldAsMaintenance != null && markOldAsMaintenance;
+    }
+
+    public void setMarkOldAsMaintenance(Boolean markOldAsMaintenance) {
+        this.markOldAsMaintenance = markOldAsMaintenance != null ? markOldAsMaintenance : false;
     }
 }

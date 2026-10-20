@@ -1,10 +1,14 @@
 package com.cybernet.internet_cafe_management.service;
 
 import com.cybernet.internet_cafe_management.dto.request.CreateAccountRequest;
+import com.cybernet.internet_cafe_management.dto.request.UpdateAccountRequest;
 import com.cybernet.internet_cafe_management.dto.response.AccountResponse;
+import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +54,14 @@ public class AccountService {
                 .toList();
     }
 
+    // 2b. Lấy danh sách tài khoản có phân trang & sắp xếp (hỗ trợ lọc theo Role)
+    public PageResponse<AccountResponse> getAllAccounts(Account.Role role, Pageable pageable) {
+        Page<Account> page = (role != null)
+                ? accountRepository.findByRole(role, pageable)
+                : accountRepository.findAll(pageable);
+        return PageResponse.fromPage(page, AccountResponse::fromEntity);
+    }
+
     // 3. Lấy chi tiết 1 tài khoản theo ID
     public AccountResponse getAccountById(Long id) {
         Account account = accountRepository.findById(id)
@@ -63,5 +75,22 @@ public class AccountService {
             throw new ResourceNotFoundException("Không tìm thấy Account với id = " + id);
         }
         accountRepository.deleteById(id);
+    }
+
+    // 5. Cập nhật thông tin tài khoản
+    public AccountResponse updateAccount(Long id, UpdateAccountRequest request) {
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Account với id = " + id));
+
+        account.setName(request.getName().trim());
+        if (request.getRole() != null) {
+            account.setRole(request.getRole());
+        }
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            account.setPasswordHash(passwordEncoder.encode(request.getPassword().trim()));
+        }
+
+        Account saved = accountRepository.save(account);
+        return AccountResponse.fromEntity(saved);
     }
 }

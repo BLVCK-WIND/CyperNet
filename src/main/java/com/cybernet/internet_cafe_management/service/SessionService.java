@@ -4,6 +4,8 @@ import com.cybernet.internet_cafe_management.dto.request.ComputerLoginRequest;
 import com.cybernet.internet_cafe_management.dto.request.ExtendSessionRequest;
 import com.cybernet.internet_cafe_management.dto.request.StartSessionRequest;
 import com.cybernet.internet_cafe_management.dto.request.TransferComputerRequest;
+import com.cybernet.internet_cafe_management.dto.response.PageResponse;
+import com.cybernet.internet_cafe_management.dto.response.SessionCheckResponse;
 import com.cybernet.internet_cafe_management.dto.response.SessionResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.entity.Computer;
@@ -12,8 +14,12 @@ import com.cybernet.internet_cafe_management.entity.Session.Status;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.ComputerRepository;
+import com.cybernet.internet_cafe_management.repository.RefreshTokenRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,23 +30,33 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 public class SessionService {
 
     private final SessionRepository sessionRepository;
     private final ComputerRepository computerRepository;
     private final AccountRepository accountRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RealtimeNotificationService realtimeNotificationService;
+    private final AuditLogService auditLogService;
 
     // Dependency Injection qua Constructor
     public SessionService(SessionRepository sessionRepository,
                           ComputerRepository computerRepository,
                           AccountRepository accountRepository,
-                          PasswordEncoder passwordEncoder) {
+                          RefreshTokenRepository refreshTokenRepository,
+                          PasswordEncoder passwordEncoder,
+                          RealtimeNotificationService realtimeNotificationService,
+                          AuditLogService auditLogService) {
         this.sessionRepository = sessionRepository;
         this.computerRepository = computerRepository;
         this.accountRepository = accountRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.realtimeNotificationService = realtimeNotificationService;
+        this.auditLogService = auditLogService;
     }
 
     /**
@@ -91,6 +107,9 @@ public class SessionService {
         computerRepository.save(computer);
 
         Session savedSession = sessionRepository.save(session);
+        realtimeNotificationService.broadcastComputerStatus(computer);
+        auditLogService.log("START_SESSION", "Session", savedSession.getId(),
+                "Mở máy " + computer.getCode() + " cho khách " + account.getPhone());
         return SessionResponse.fromEntity(savedSession);
     }
 
@@ -126,7 +145,13 @@ public class SessionService {
         account.setRemainingMinutes(newRemainingMinutes);
         accountRepository.save(account);
 
+        // 4. Thu hồi Refresh Token của khách hàng khi phiên kết thúc (B3)
+        refreshTokenRepository.deleteByAccountId(account.getId());
+
         Session updatedSession = sessionRepository.save(session);
+        realtimeNotificationService.broadcastComputerStatus(computer);
+        auditLogService.log("END_SESSION", "Session", sessionId,
+                "Kết thúc phiên máy " + computer.getCode() + " cho khách " + account.getPhone() + ", số phút còn lại: " + newRemainingMinutes);
         return SessionResponse.fromEntity(updatedSession);
     }
 
@@ -170,6 +195,29 @@ public class SessionService {
     }
 
     /**
+     * 4b. KIỂM TRA TRẠNG THÁI MÁY TRẠM CÔNG KHAI (Phục vụ quét mã QR)
+     * Trả về thông tin cơ bản của máy và cờ hasActiveSession, không chứa dữ liệu cá nhân.
+     */
+    @Transactional(readOnly = true)
+    public SessionCheckResponse checkComputerSession(String computerCode) {
+        if (computerCode == null || computerCode.isBlank()) {
+            throw new IllegalArgumentException("Mã máy tính không được để trống!");
+        }
+        Computer computer = computerRepository.findByCode(computerCode.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính với mã = " + computerCode.trim()));
+
+        boolean hasActive = sessionRepository.findByComputerCodeAndStatus(computer.getCode(), Status.ACTIVE).isPresent();
+
+        return new SessionCheckResponse(
+                computer.getCode(),
+                computer.getZone(),
+                computer.getPricePerHour(),
+                computer.getStatus(),
+                hasActive
+        );
+    }
+
+    /**
      * 5. LẤY CHI TIẾT 1 PHIÊN THEO ID
      */
     @Transactional(readOnly = true)
@@ -194,6 +242,18 @@ public class SessionService {
     }
 
     /**
+     * 6b. LẤY DANH SÁCH TẤT CẢ PHIÊN CÓ PHÂN TRANG & SẮP XẾP
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<SessionResponse> getAllSessions(Status status, Pageable pageable) {
+        Page<Session> sessionPage = (status != null)
+                ? sessionRepository.findByStatus(status, pageable)
+                : sessionRepository.findAll(pageable);
+
+        return PageResponse.fromPage(sessionPage, SessionResponse::fromEntity);
+    }
+
+    /**
      * 7. LẤY LỊCH SỬ CHƠI CỦA 1 KHÁCH HÀNG
      */
     @Transactional(readOnly = true)
@@ -206,6 +266,32 @@ public class SessionService {
                 .stream()
                 .map(SessionResponse::fromEntity)
                 .toList();
+    }
+
+    /**
+     * 7b. LẤY LỊCH SỬ CHƠI CỦA 1 KHÁCH HÀNG CÓ PHÂN TRANG
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<SessionResponse> getSessionsByAccountId(Long accountId, Pageable pageable) {
+        if (!accountRepository.existsById(accountId)) {
+            throw new ResourceNotFoundException("Không tìm thấy tài khoản khách hàng với ID = " + accountId);
+        }
+
+        Page<Session> sessionPage = sessionRepository.findByAccountId(accountId, pageable);
+        return PageResponse.fromPage(sessionPage, SessionResponse::fromEntity);
+    }
+
+    /**
+     * 7c. LẤY LỊCH SỬ PHIÊN CHƠI CỦA 1 MÁY TÍNH CÓ PHÂN TRANG
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<SessionResponse> getSessionsByComputerId(Long computerId, Pageable pageable) {
+        if (!computerRepository.existsById(computerId)) {
+            throw new ResourceNotFoundException("Không tìm thấy máy tính với ID = " + computerId);
+        }
+
+        Page<Session> sessionPage = sessionRepository.findByComputerId(computerId, pageable);
+        return PageResponse.fromPage(sessionPage, SessionResponse::fromEntity);
     }
 
     /**
@@ -237,9 +323,16 @@ public class SessionService {
         if (account != null) {
             account.setRemainingMinutes(0);
             accountRepository.save(account);
+            // 4. Thu hồi Refresh Token của khách hàng khi phiên hết hạn tự động (B3)
+            refreshTokenRepository.deleteByAccountId(account.getId());
         }
 
         sessionRepository.save(session);
+        if (computer != null) {
+            realtimeNotificationService.broadcastComputerStatus(computer);
+        }
+        log.info("UC-5 Scheduler: Tự động đóng phiên hết giờ [ID={}] trên máy [{}]",
+                session.getId(), (computer != null ? computer.getCode() : "N/A"));
     }
 
     /**
@@ -309,6 +402,11 @@ public class SessionService {
         computerRepository.save(computer);
 
         Session savedSession = sessionRepository.save(session);
+        realtimeNotificationService.broadcastComputerStatus(computer);
+        auditLogService.log(account.getPhone(), account.getRole().name(), "LOGIN_START_SESSION", "Session", savedSession.getId(),
+                "Khách hàng tự đăng nhập tại máy " + computer.getCode(), null);
+        log.info("UC-2 Login: Khách hàng [{}] đăng nhập mở máy [{}] thành công. Phiên: [ID={}], hạn: {}",
+                account.getPhone(), computer.getCode(), savedSession.getId(), savedSession.getExpiresAt());
         return SessionResponse.fromEntity(savedSession);
     }
 
@@ -356,9 +454,10 @@ public class SessionService {
         BigDecimal oldPrice = oldComputer.getPricePerHour();
         BigDecimal newPrice = newComputer.getPricePerHour();
 
+        long convertedMinutes = remainingMinutes;
         if (oldPrice.compareTo(BigDecimal.ZERO) > 0 && newPrice.compareTo(BigDecimal.ZERO) > 0) {
             // newMinutes = remainingMinutes * (oldPrice / newPrice)
-            long convertedMinutes = BigDecimal.valueOf(remainingMinutes)
+            convertedMinutes = BigDecimal.valueOf(remainingMinutes)
                     .multiply(oldPrice)
                     .divide(newPrice, 0, RoundingMode.FLOOR)
                     .longValue();
@@ -380,6 +479,12 @@ public class SessionService {
         // 5. GẮN MÁY MỚI VÀO PHIÊN HIỆN TẠI (Đơn hàng PENDING tự động đi theo phiên)
         session.setComputer(newComputer);
         Session savedSession = sessionRepository.save(session);
+        realtimeNotificationService.broadcastComputerStatus(oldComputer);
+        realtimeNotificationService.broadcastComputerStatus(newComputer);
+        auditLogService.log("TRANSFER_COMPUTER", "Session", sessionId,
+                "Chuyển phiên từ " + oldComputer.getCode() + " sang " + newComputer.getCode() + " (quy đổi: " + convertedMinutes + " phút, lý do: " + request.getReason() + ")");
+        log.info("UC-6 Transfer: Chuyển máy thành công cho phiên [ID={}]: từ máy [{}] sang máy [{}]. Thời lượng quy đổi: {} phút",
+                sessionId, oldComputer.getCode(), newComputer.getCode(), convertedMinutes);
 
         return SessionResponse.fromEntity(savedSession);
     }

@@ -3,12 +3,26 @@ package com.cybernet.internet_cafe_management.dto.request;
 import java.math.BigDecimal;
 import com.cybernet.internet_cafe_management.entity.Computer.Status;
 import com.cybernet.internet_cafe_management.entity.Computer.Zone;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 public class CreateComputerRequest {
+
+    @NotBlank(message = "Mã máy tính không được để trống")
+    @Size(max = 20, message = "Mã máy tính tối đa 20 ký tự")
     private String code;
+
+    @NotNull(message = "Giá mỗi giờ không được để trống")
+    @Positive(message = "Giá mỗi giờ phải lớn hơn 0")
     private BigDecimal pricePerHour;
+
     private Status status;
+
     private String ipAddress;
+
+    @NotNull(message = "Khu vực máy (Zone) không được để trống")
     private Zone zone;
 
     public CreateComputerRequest() {

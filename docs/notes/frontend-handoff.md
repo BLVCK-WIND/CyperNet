@@ -1,0 +1,79 @@
+# 🤝 CyberNet — Tài Liệu Bàn Giao Phát Triển Frontend (Frontend Handoff)
+
+> **Mục tiêu:** Cung cấp tài liệu bàn giao cô đọng (~1 trang) để lập trình viên Frontend hoặc phiên làm việc kế tiếp có thể bắt tay thực hiện ngay **MS-1.1** mà không cần đọc lại toàn bộ nhật ký trao đổi.  
+> **Thời điểm lập:** 21/10/2026.
+
+---
+
+## 1. Giới Thiệu Hệ Thống & Đối Tượng Sử Dụng
+- **CyberNet** là hệ thống quản lý phòng máy (tiệm net) hiện đại, kiến trúc Client-Server với Backend Spring Boot 3 và Frontend React 19.
+- Hệ thống quản lý toàn diện trạng thái máy trạm theo thời gian thực, tính tiền giờ chơi linh hoạt, bán dịch vụ ăn uống (F&B) và thống kê doanh thu.
+- **3 Loại người dùng chính:**
+  1. **Khách hàng (`CUSTOMER`):** Chơi tại máy trạm hoặc dùng điện thoại quét mã QR tại bàn để xem giờ chơi, lướt menu, tạo đơn gọi món và xem mã VietQR thanh toán.
+  2. **Nhân viên thu ngân (`STAFF`):** Sử dụng máy quầy POS để xem Floor Map sơ đồ máy, mở máy cho khách, chuyển máy, nạp giờ chơi và duyệt đơn F&B.
+  3. **Quản trị viên (`ADMIN`):** Quản lý cấu hình danh mục máy, thực đơn món, tài khoản nhân viên và theo dõi các biểu đồ báo cáo tài chính chuyên sâu.
+- **Các luồng chính:**
+  - *Luồng khách hàng:* Quét QR bàn $\rightarrow$ Kiểm tra máy $\rightarrow$ Đăng nhập phiên $\rightarrow$ Theo dõi thời gian $\rightarrow$ Đặt món F&B $\rightarrow$ Thanh toán QR/Tiền mặt.
+  - *Luồng thu ngân:* Xem Floor Map $\rightarrow$ Mở máy cho khách $\rightarrow$ Nhận đơn gọi món $\rightarrow$ Thu tiền & duyệt đơn $\rightarrow$ Nạp thêm giờ $\rightarrow$ Đóng phiên (tự hoàn giờ dư).
+  - *Luồng quản trị:* Dashboard tổng quan $\rightarrow$ Biểu đồ doanh thu 7 ngày $\rightarrow$ CRUD máy/món/tài khoản $\rightarrow$ Báo cáo hiệu suất máy.
+
+---
+
+## 2. Trạng Thái Hiện Tại Của Backend
+- **Đã sửa & sẵn sàng (16/20 mục kiểm toán + 3/3 CRUD endpoints mới):**
+  - Đã bổ sung đủ 3 API còn thiếu: `PUT /api/computers/{id}`, `PUT /api/accounts/{id}`, `GET /api/sessions/computer/{computerId}`.
+  - Sửa sai lệch URL (`/api/sessions/start`, `/api/reports/revenue/...`).
+  - Sửa lỗi giả mạo nhân viên: `staffId` tự động lấy từ JWT token, không nhận từ client.
+  - Sửa Rate Limit: phân biệt `user:<phone>` và `ip:<clientIp>`, không khóa nhầm IP mạng LAN.
+  - Sửa CORS: hỗ trợ đầy đủ truy cập từ mạng LAN nội bộ tiệm net (`192.168.*`, `10.*`, `172.*`).
+  - Sửa lỗi bảo mật IDOR: khách chỉ được tạo và xem đơn hàng thuộc phiên của chính mình.
+  - Sửa thu hồi Refresh Token: tự động xóa token của khách khi phiên kết thúc.
+  - Chuẩn hóa mã lỗi `errorCode` (20 mã lỗi Enum) và gom toàn bộ lỗi vào mảng `fieldErrors`.
+- **Đã hoãn (4 mục — có lý do kỹ thuật & giải pháp Frontend rõ ràng):**
+  1. *Tìm kiếm SĐT autocomplete:* Hoãn vì quy mô tiệm net MVP dưới 500 khách; Frontend dùng Ant Design `Select showSearch` lọc client-side trên `GET /api/accounts?role=CUSTOMER`.
+  2. *Bỏ tham số minutes khi mở máy (Chốt Phương án A):* Server tự động mở máy theo toàn bộ số dư thời gian của khách và tự động hoàn trả phút chưa dùng khi đóng phiên; Modal thu ngân không cần ô nhập số phút.
+  3. *Múi giờ Timezone Offset:* Toàn bộ tiệm chạy giờ Việt Nam; Frontend cấu hình `dayjs.tz.setDefault("Asia/Ho_Chi_Minh")`.
+  4. *Độ mịn countdown timer:* Server cung cấp mốc `expiresAt` ISO chuẩn xác; Frontend tự tính `dayjs(expiresAt).diff(now, 'second')` để chạy đồng hồ đếm ngược từng giây.
+- **Còn mở (Open):** **0 mục** (Không có vấn đề nào bị bỏ lửng).
+
+---
+
+## 3. Các Quyết Định Đã Chốt & Quyết Định Còn Mở
+- **Quyết định ĐÃ CHỐT:**
+  1. **Real-time MVP dùng Polling:** TanStack Query polling (`refetchInterval: 10000ms` cho Floor Map, `5000ms` cho Order Queue). Backend đã có STOMP broker nhưng hoãn WebSocket sang giai đoạn sau MVP để tối ưu tốc độ bàn giao.
+  2. **Bảo mật danh tính Staff:** Mọi thao tác thu ngân (`confirmOrder`, `confirmTimePurchase`, `directOrder`) đều lấy `staffId` tự động từ claims JWT qua Spring Security `Authentication.getName()`.
+  3. **Lấy `sessionId` của khách:** Trích xuất từ `session.id` trong phản hồi của `POST /api/auth/customer-session-login` và lưu vào Zustand Store (`authStore.sessionId`).
+  4. **Quy ước lỗi thống nhất:** Bắt lỗi theo `errorCode` máy đọc được thay vì kiểm tra chuỗi text `message`.
+  5. **Mở máy quầy (Phương án A):** Mở theo toàn bộ số dư khả dụng, hoàn trả tự động khi `endSession`.
+- **Quyết định CÒN MỞ:**
+  - Ngưỡng cảnh báo tải mạng LAN khi số máy vượt quá 80 máy trạm (sẽ đánh giá lại khi chạy thực tế tại quán).
+
+---
+
+## 4. Thứ Tự Tài Liệu Cần Đọc
+Lập trình viên khi tiếp nhận cần đọc theo đúng thứ tự sau:
+1. 📖 **[`docs/notes/frontend-handoff.md`](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/docs/notes/frontend-handoff.md)** *(File này)*: Nắm tổng quan, quyết định kiến trúc và trạng thái backend.
+2. 🗺️ **[`docs/notes/frontend-plan.md`](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/docs/notes/frontend-plan.md)**: Chi tiết thiết kế giao diện "CyberLux", bảng màu, cấu trúc thư mục và lộ trình 43 micro-steps.
+3. 📜 **[`docs/notes/api-contract.md`](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/docs/notes/api-contract.md)**: Tra cứu chi tiết từng URL, headers, payload JSON thực tế, mã lỗi và role phân quyền cho mỗi endpoint.
+
+---
+
+## 5. Lưu Ý Kỹ Thuật Đặc Biệt Cho MS-1.1
+- **Tailwind CSS 4:** Cấu hình trực tiếp bằng CSS directives (`@theme { --color-midnight: #10232A; ... }`) trong `src/styles/index.css`, **không** dùng file `tailwind.config.js` truyền thống của Tailwind v3.
+- **Ant Design 5 + React 19:** React 19 thay đổi cơ chế `ref` và fiber hooks. Cần cài đặt gói tương thích chính thức:
+  ```bash
+  npm i @ant-design/v5-patch-for-react-19
+  ```
+  Và import ngay dòng đầu tiên của file `src/main.tsx`:
+  ```typescript
+  import '@ant-design/v5-patch-for-react-19';
+  ```
+
+---
+
+## 6. Việc Cần Làm Kế Tiếp
+👉 **Tiến hành thực hiện [MS-1.1 — Scaffold Project & Theme Setup](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/docs/notes/frontend-plan.md#L233):**
+- Khởi tạo dự án Vite + React 19 + TypeScript tại thư mục `/frontend`.
+- Cài đặt dependencies: `@ant-design/v5-patch-for-react-19`, `antd`, `@tailwindcss/vite`, `tailwindcss`, `framer-motion`, `axios`, `zustand`, `@tanstack/react-query`, `react-router-dom`, `lucide-react`, `dayjs`.
+- Cấu hình Theme tokens CyberLux trong `src/styles/antd-theme.ts` và biến màu trong `src/styles/index.css`.
+- Xác minh chạy thành công giao diện đen sang trọng (`#10232A`) với text màu cát (`#D3C3B9`).

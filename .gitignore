@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Application Logs ###
+logs/
+*.log
+
+### Uploads & Local Env ###
+uploads/
+.env

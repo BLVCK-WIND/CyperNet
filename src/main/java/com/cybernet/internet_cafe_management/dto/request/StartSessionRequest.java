@@ -1,5 +1,7 @@
 package com.cybernet.internet_cafe_management.dto.request;
 
+import jakarta.validation.constraints.NotNull;
+
 /**
  * Request DTO: Yêu cầu mở phiên chơi mới.
  * Hỗ trợ truyền theo computerId HOẶC computerCode (VD: "PC-01") để linh hoạt cho cả máy tính quầy và khách quét QR.
@@ -8,6 +10,8 @@ public class StartSessionRequest {
 
     private Long computerId;
     private String computerCode;
+
+    @NotNull(message = "Mã tài khoản (accountId) không được để trống")
     private Long accountId;
 
     public StartSessionRequest() {

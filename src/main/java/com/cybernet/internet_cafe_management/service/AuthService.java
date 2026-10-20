@@ -1,13 +1,19 @@
 package com.cybernet.internet_cafe_management.service;
 
+import com.cybernet.internet_cafe_management.dto.request.CustomerSessionLoginRequest;
 import com.cybernet.internet_cafe_management.dto.request.LoginRequest;
 import com.cybernet.internet_cafe_management.dto.request.RefreshTokenRequest;
 import com.cybernet.internet_cafe_management.dto.response.AccountResponse;
 import com.cybernet.internet_cafe_management.dto.response.AuthResponse;
+import com.cybernet.internet_cafe_management.dto.response.CustomerAuthResponse;
+import com.cybernet.internet_cafe_management.dto.response.SessionResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.entity.RefreshToken;
+import com.cybernet.internet_cafe_management.entity.Session;
+import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.RefreshTokenRepository;
+import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,15 +27,18 @@ public class AuthService {
 
     private final AccountRepository accountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final SessionRepository sessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(AccountRepository accountRepository,
                        RefreshTokenRepository refreshTokenRepository,
+                       SessionRepository sessionRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService) {
         this.accountRepository = accountRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.sessionRepository = sessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -116,6 +125,46 @@ public class AuthService {
     public void logout(String refreshToken) {
         refreshTokenRepository.findByToken(refreshToken)
                 .ifPresent(refreshTokenRepository::delete);
+    }
+
+    /**
+     * 4. CUSTOMER SESSION LOGIN — Xác thực khách hàng quét mã QR tại máy trạm
+     *    Kiểm tra mã máy có phiên ACTIVE và SĐT khớp với phiên chơi
+     *    → Cấp JWT Access Token (ROLE_CUSTOMER) + Refresh Token + SessionResponse
+     */
+    @Transactional
+    public CustomerAuthResponse customerSessionLogin(CustomerSessionLoginRequest request) {
+        if (request == null || request.getComputerCode() == null || request.getComputerCode().isBlank()) {
+            throw new IllegalArgumentException("Mã máy tính không được để trống!");
+        }
+        if (request.getPhone() == null || request.getPhone().isBlank()) {
+            throw new IllegalArgumentException("Số điện thoại không được để trống!");
+        }
+
+        String pcCode = request.getComputerCode().trim();
+        String phone = request.getPhone().trim();
+
+        // 1. Tìm phiên đang ACTIVE tại máy
+        Session session = sessionRepository.findByComputerCodeAndStatus(pcCode, Session.Status.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Máy [" + pcCode + "] hiện không có phiên chơi nào đang hoạt động!"));
+
+        // 2. Đối chiếu số điện thoại với tài khoản phiên
+        Account account = session.getAccount();
+        if (!account.getPhone().equals(phone)) {
+            throw new IllegalArgumentException("Số điện thoại không khớp với người đang chơi tại máy " + pcCode + "!");
+        }
+
+        // 3. Sinh token với quyền ROLE_CUSTOMER
+        String accessToken = jwtService.generateAccessToken(account);
+        String refreshTokenStr = createRefreshToken(account);
+
+        return new CustomerAuthResponse(
+                accessToken,
+                refreshTokenStr,
+                jwtService.getAccessTokenExpirationMs(),
+                AccountResponse.fromEntity(account),
+                SessionResponse.fromEntity(session)
+        );
     }
 
     // === PRIVATE HELPER ===

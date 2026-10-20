@@ -1,6 +1,8 @@
 package com.cybernet.internet_cafe_management.repository;
 
 import com.cybernet.internet_cafe_management.entity.Account;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +16,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     // Kiểm tra xem SĐT đã có người đăng ký chưa (tránh trùng tài khoản)
     boolean existsByPhone(String phone);
+
+    // Phân trang danh sách tài khoản theo vai trò
+    Page<Account> findByRole(Account.Role role, Pageable pageable);
 }

@@ -4,6 +4,7 @@ import com.cybernet.internet_cafe_management.dto.request.CreateDirectOrderReques
 import com.cybernet.internet_cafe_management.dto.request.CreateOrderItemRequest;
 import com.cybernet.internet_cafe_management.dto.request.CreateOrderRequest;
 import com.cybernet.internet_cafe_management.dto.response.OrderResponse;
+import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.entity.*;
 import com.cybernet.internet_cafe_management.entity.Order.PaymentMethod;
 import com.cybernet.internet_cafe_management.entity.Order.Status;
@@ -12,6 +13,11 @@ import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.ItemRepository;
 import com.cybernet.internet_cafe_management.repository.OrderRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
+import com.cybernet.internet_cafe_management.repository.specification.OrderSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 public class OrderService {
 
@@ -27,16 +34,22 @@ public class OrderService {
     private final SessionRepository sessionRepository;
     private final ItemRepository itemRepository;
     private final AccountRepository accountRepository;
+    private final RealtimeNotificationService realtimeNotificationService;
+    private final AuditLogService auditLogService;
 
     // Dependency Injection qua Constructor
     public OrderService(OrderRepository orderRepository,
                         SessionRepository sessionRepository,
                         ItemRepository itemRepository,
-                        AccountRepository accountRepository) {
+                        AccountRepository accountRepository,
+                        RealtimeNotificationService realtimeNotificationService,
+                        AuditLogService auditLogService) {
         this.orderRepository = orderRepository;
         this.sessionRepository = sessionRepository;
         this.itemRepository = itemRepository;
         this.accountRepository = accountRepository;
+        this.realtimeNotificationService = realtimeNotificationService;
+        this.auditLogService = auditLogService;
     }
 
     /**
@@ -46,6 +59,11 @@ public class OrderService {
      */
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
+        return createOrder(request, null);
+    }
+
+    @Transactional
+    public OrderResponse createOrder(CreateOrderRequest request, String currentUserPhone) {
         // Validate giỏ hàng
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new IllegalArgumentException("Giỏ hàng không được để trống!");
@@ -60,6 +78,16 @@ public class OrderService {
 
         if (session.getStatus() != Session.Status.ACTIVE) {
             throw new IllegalStateException("Phiên chơi này đã kết thúc, không thể đặt món!");
+        }
+
+        // Kiểm tra quyền sở hữu phiên: Nếu là khách hàng, chỉ được đặt món cho chính phiên của mình (B4)
+        if (currentUserPhone != null && session.getAccount() != null) {
+            Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
+            if (user != null && user.getRole() == Account.Role.CUSTOMER) {
+                if (!session.getAccount().getPhone().equals(currentUserPhone)) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn chỉ có thể đặt món cho chính phiên chơi của mình!");
+                }
+            }
         }
 
         // Khởi tạo Order cha
@@ -105,6 +133,9 @@ public class OrderService {
 
         // Do có cascade = ALL, hàm save dưới đây sẽ tự động INSERT cả bảng orders và order_items
         Order savedOrder = orderRepository.save(order);
+        realtimeNotificationService.broadcastOrderEvent(savedOrder, "CREATED", "Khách gọi món mới tại máy " + (session.getComputer() != null ? session.getComputer().getCode() : "N/A"));
+        log.info("Order: Tạo đơn hàng mới [ID={}] cho phiên [ID={}], tổng tiền: {} VND, phương thức: {}",
+                savedOrder.getId(), session.getId(), savedOrder.getTotalAmount(), savedOrder.getPaymentMethod());
         return OrderResponse.fromEntity(savedOrder);
     }
 
@@ -157,6 +188,10 @@ public class OrderService {
         }
 
         Order updatedOrder = orderRepository.save(order);
+        realtimeNotificationService.broadcastOrderEvent(updatedOrder, "CONFIRMED", "Đã xác nhận thanh toán đơn #" + updatedOrder.getId());
+        auditLogService.log("CONFIRM_ORDER", "Order", orderId, "Xác nhận đơn #" + orderId + " bởi staffId=" + staffId + " (cộng giờ: " + extraMinutes + " phút)");
+        log.info("Order Confirm: Nhân viên [ID={}] xác nhận đơn hàng [ID={}]. Cộng thêm: {} phút",
+                staffId, orderId, extraMinutes);
         return OrderResponse.fromEntity(updatedOrder);
     }
 
@@ -175,6 +210,9 @@ public class OrderService {
 
         order.setStatus(Status.CANCELLED);
         Order updated = orderRepository.save(order);
+        realtimeNotificationService.broadcastOrderEvent(updated, "CANCELLED", "Đơn hàng #" + updated.getId() + " đã bị hủy");
+        auditLogService.log("CANCEL_ORDER", "Order", orderId, "Hủy đơn hàng #" + orderId);
+        log.warn("Order Cancel: Đã huỷ đơn hàng [ID={}]", orderId);
         return OrderResponse.fromEntity(updated);
     }
 
@@ -203,6 +241,40 @@ public class OrderService {
     }
 
     /**
+     * 5b. LẤY TẤT CẢ ĐƠN HÀNG CÓ PHÂN TRANG & SẮP XẾP
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getAllOrders(Status status, Pageable pageable) {
+        Page<Order> orderPage = (status != null)
+                ? orderRepository.findByStatus(status, pageable)
+                : orderRepository.findAll(pageable);
+
+        return PageResponse.fromPage(orderPage, OrderResponse::fromEntity);
+    }
+
+    /**
+     * 5c. TÌM KIẾM & LỌC ĐƠN HÀNG NÂNG CAO (JPA Specification Pattern)
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> searchOrders(
+            Status status,
+            PaymentMethod paymentMethod,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            String computerCode,
+            String customerPhone,
+            Pageable pageable) {
+
+        Specification<Order> spec = OrderSpecification.filter(
+                status, paymentMethod, fromDate, toDate, minAmount, maxAmount, computerCode, customerPhone);
+
+        Page<Order> page = orderRepository.findAll(spec, pageable);
+        return PageResponse.fromPage(page, OrderResponse::fromEntity);
+    }
+
+    /**
      * 6. LẤY DANH SÁCH ĐƠN HÀNG CỦA 1 PHIÊN CHƠI
      */
     @Transactional(readOnly = true)
@@ -215,6 +287,33 @@ public class OrderService {
                 .stream()
                 .map(OrderResponse::fromEntity)
                 .toList();
+    }
+
+    /**
+     * 6b. LẤY DANH SÁCH ĐƠN HÀNG CỦA 1 PHIÊN CHƠI CÓ PHÂN TRANG
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getOrdersBySessionId(Long sessionId, Pageable pageable) {
+        return getOrdersBySessionId(sessionId, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getOrdersBySessionId(Long sessionId, String currentUserPhone, Pageable pageable) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + sessionId));
+
+        // Kiểm tra quyền sở hữu phiên: Nếu là khách hàng, chỉ được xem đơn hàng của chính phiên mình (B4)
+        if (currentUserPhone != null && session.getAccount() != null) {
+            Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
+            if (user != null && user.getRole() == Account.Role.CUSTOMER) {
+                if (!session.getAccount().getPhone().equals(currentUserPhone)) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem đơn hàng của phiên chơi khác!");
+                }
+            }
+        }
+
+        Page<Order> orderPage = orderRepository.findBySessionId(sessionId, pageable);
+        return PageResponse.fromPage(orderPage, OrderResponse::fromEntity);
     }
 
     /**
@@ -309,6 +408,11 @@ public class OrderService {
         }
 
         Order savedOrder = orderRepository.save(order);
+        realtimeNotificationService.broadcastOrderEvent(savedOrder, "CREATED_DIRECT", "Tạo và thanh toán đơn trực tiếp tại quầy #" + savedOrder.getId());
+        auditLogService.log("CREATE_DIRECT_ORDER", "Order", savedOrder.getId(),
+                "Tạo và thu tiền trực tiếp đơn #" + savedOrder.getId() + " cho phiên #" + session.getId() + ", tổng: " + savedOrder.getTotalAmount() + " VND");
+        log.info("UC-7 Direct Order: Nhân viên [ID={}] tạo đơn trực tiếp [ID={}] cho phiên [ID={}], tổng: {} VND, cộng giờ: {} phút",
+                staff.getId(), savedOrder.getId(), session.getId(), savedOrder.getTotalAmount(), extraMinutes);
         return OrderResponse.fromEntity(savedOrder);
     }
 }

@@ -1,6 +1,7 @@
 package com.cybernet.internet_cafe_management.service;
 
 import com.cybernet.internet_cafe_management.dto.request.CreateTimePurchaseRequest;
+import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.dto.response.TimePurchaseResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.entity.TimePurchase;
@@ -8,6 +9,9 @@ import com.cybernet.internet_cafe_management.entity.TimePurchase.Status;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.TimePurchaseRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,16 +19,21 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 public class TimePurchaseService {
 
     private final TimePurchaseRepository timePurchaseRepository;
     private final AccountRepository accountRepository;
+    private final AuditLogService auditLogService;
 
     // Dependency Injection qua Constructor
-    public TimePurchaseService(TimePurchaseRepository timePurchaseRepository, AccountRepository accountRepository) {
+    public TimePurchaseService(TimePurchaseRepository timePurchaseRepository,
+                               AccountRepository accountRepository,
+                               AuditLogService auditLogService) {
         this.timePurchaseRepository = timePurchaseRepository;
         this.accountRepository = accountRepository;
+        this.auditLogService = auditLogService;
     }
 
     /**
@@ -57,6 +66,8 @@ public class TimePurchaseService {
         timePurchase.setStatus(Status.PENDING_PAYMENT); // Mặc định là chờ thanh toán
 
         TimePurchase saved = timePurchaseRepository.save(timePurchase);
+        log.info("TimePurchase: Tạo yêu cầu nạp giờ [ID={}] cho tài khoản [{}], số phút: {}, số tiền: {} VND, phương thức: {}",
+                saved.getId(), customer.getPhone(), saved.getMinutes(), saved.getAmount(), saved.getPaymentMethod());
         return TimePurchaseResponse.fromEntity(saved);
     }
 
@@ -98,6 +109,10 @@ public class TimePurchaseService {
 
         // 3. Lưu giao dịch đã cập nhật
         TimePurchase updated = timePurchaseRepository.save(timePurchase);
+        auditLogService.log("CONFIRM_TIME_PURCHASE", "TimePurchase", timePurchaseId,
+                "Duyệt nạp " + timePurchase.getMinutes() + " phút cho khách " + customer.getPhone() + " bởi staffId=" + staffAccountId);
+        log.info("TimePurchase Confirm: Nhân viên [ID={}] duyệt nạp giờ [ID={}]. Cộng {} phút cho khách [{}]",
+                staffAccountId, timePurchaseId, timePurchase.getMinutes(), customer.getPhone());
         return TimePurchaseResponse.fromEntity(updated);
     }
 
@@ -116,6 +131,8 @@ public class TimePurchaseService {
 
         timePurchase.setStatus(Status.CANCELLED);
         TimePurchase updated = timePurchaseRepository.save(timePurchase);
+        auditLogService.log("CANCEL_TIME_PURCHASE", "TimePurchase", timePurchaseId, "Hủy yêu cầu nạp giờ #" + timePurchaseId);
+        log.warn("TimePurchase Cancel: Đã huỷ yêu cầu nạp giờ [ID={}]", timePurchaseId);
         return TimePurchaseResponse.fromEntity(updated);
     }
 
@@ -144,6 +161,18 @@ public class TimePurchaseService {
     }
 
     /**
+     * 5b. Lấy danh sách giao dịch có phân trang & sắp xếp
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<TimePurchaseResponse> getAllTimePurchases(Status status, Pageable pageable) {
+        Page<TimePurchase> page = (status != null)
+                ? timePurchaseRepository.findByStatus(status, pageable)
+                : timePurchaseRepository.findAll(pageable);
+
+        return PageResponse.fromPage(page, TimePurchaseResponse::fromEntity);
+    }
+
+    /**
      * 6. Lấy toàn bộ lịch sử nạp giờ của 1 tài khoản khách hàng cụ thể.
      */
     @Transactional(readOnly = true)
@@ -156,5 +185,18 @@ public class TimePurchaseService {
                 .stream()
                 .map(TimePurchaseResponse::fromEntity)
                 .toList();
+    }
+
+    /**
+     * 6b. Lấy toàn bộ lịch sử nạp giờ của 1 tài khoản có phân trang
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<TimePurchaseResponse> getTimePurchasesByAccountId(Long accountId, Pageable pageable) {
+        if (!accountRepository.existsById(accountId)) {
+            throw new ResourceNotFoundException("Không tìm thấy tài khoản khách hàng với ID = " + accountId);
+        }
+
+        Page<TimePurchase> page = timePurchaseRepository.findByAccountId(accountId, pageable);
+        return PageResponse.fromPage(page, TimePurchaseResponse::fromEntity);
     }
 }

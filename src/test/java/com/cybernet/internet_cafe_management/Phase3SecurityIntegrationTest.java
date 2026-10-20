@@ -194,7 +194,7 @@ public class Phase3SecurityIntegrationTest {
         mockMvc.perform(get("/api/accounts")
                         .header("Authorization", "Bearer " + staffToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
@@ -212,6 +212,8 @@ public class Phase3SecurityIntegrationTest {
     @Test
     @DisplayName("TC-7: ADMIN gọi DELETE /api/accounts/{id} -> 204 No Content thành công")
     void testAdminDeleteAccount_Success_Returns204() throws Exception {
+        accountRepository.findByPhone("0999999999").ifPresent(accountRepository::delete);
+
         // Tạo 1 tài khoản tạm để xóa
         Account tempAccount = new Account();
         tempAccount.setPhone("0999999999");

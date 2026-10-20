@@ -23,8 +23,10 @@ public class SessionScheduler {
     }
 
     /**
-     * Tự động quét và kết thúc các phiên chơi đã hết hạn.
+     * Tự động quét và kết thúc các phiên chơi đã hết hạn (UC-5).
      * Chạy định kỳ mỗi 30 giây (fixedDelay = 30000ms tính từ thời điểm lần chạy trước hoàn tất).
+     * Dùng JOIN FETCH eager loading để triệt tiêu hoàn toàn LazyInitializationException.
+     * Mỗi phiên được xử lý độc lập qua Propagation.REQUIRES_NEW của autoEndExpiredSession.
      */
     @Scheduled(fixedDelay = 30000)
     public void scanAndCloseExpiredSessions() {
@@ -38,14 +40,14 @@ public class SessionScheduler {
         log.info("Phát hiện {} phiên chơi đã hết giờ cần đóng tự động.", expiredSessions.size());
 
         for (Session session : expiredSessions) {
+            String computerCode = (session.getComputer() != null) ? session.getComputer().getCode() : "N/A";
+            Long sessionId = session.getId();
             try {
-                sessionService.autoEndExpiredSession(session.getId());
+                sessionService.autoEndExpiredSession(sessionId);
                 log.info("Đã tự động kết thúc phiên chơi [ID: {}] của máy [{}] tại mốc thời gian {}",
-                        session.getId(),
-                        session.getComputer() != null ? session.getComputer().getCode() : "N/A",
-                        now);
+                        sessionId, computerCode, now);
             } catch (Exception e) {
-                log.error("Lỗi khi tự động kết thúc phiên chơi [ID: {}]: {}", session.getId(), e.getMessage(), e);
+                log.error("Lỗi khi tự động kết thúc phiên chơi [ID: {}]: {}", sessionId, e.getMessage(), e);
             }
         }
     }

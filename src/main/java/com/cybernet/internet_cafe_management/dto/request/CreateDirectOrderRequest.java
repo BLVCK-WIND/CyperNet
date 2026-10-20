@@ -1,6 +1,9 @@
 package com.cybernet.internet_cafe_management.dto.request;
 
 import com.cybernet.internet_cafe_management.entity.Order.PaymentMethod;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -10,15 +13,18 @@ import java.util.List;
 public class CreateDirectOrderRequest {
 
     // ID phiên chơi đang hoạt động tại máy của khách
+    @NotNull(message = "Mã phiên chơi (sessionId) không được để trống")
     private Long sessionId;
 
-    // ID nhân viên tạo và thu tiền đơn hàng
+    // ID nhân viên tạo và thu tiền đơn hàng (được server tự gán từ JWT)
     private Long staffId;
 
     // Hình thức thanh toán (CASH hoặc QR, mặc định CASH)
     private PaymentMethod paymentMethod = PaymentMethod.CASH;
 
     // Danh sách các món gọi trực tiếp
+    @NotEmpty(message = "Danh sách món đặt không được để trống")
+    @Valid
     private List<CreateOrderItemRequest> items;
 
     public CreateDirectOrderRequest() {

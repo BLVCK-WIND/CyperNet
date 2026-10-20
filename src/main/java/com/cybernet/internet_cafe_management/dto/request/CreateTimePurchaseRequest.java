@@ -1,6 +1,9 @@
 package com.cybernet.internet_cafe_management.dto.request;
 
 import com.cybernet.internet_cafe_management.entity.TimePurchase.PaymentMethod;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 
@@ -11,15 +14,20 @@ import java.math.BigDecimal;
 public class CreateTimePurchaseRequest {
 
     // ID của tài khoản khách hàng được cộng giờ
+    @NotNull(message = "Mã tài khoản (accountId) không được để trống")
     private Long accountId;
 
     // Số phút muốn mua (VD: 60 = 1 tiếng, 120 = 2 tiếng)
+    @Min(value = 1, message = "Số phút mua phải ít nhất là 1 phút")
     private int minutes;
 
     // Số tiền khách phải thanh toán (VD: 10000.00)
+    @NotNull(message = "Số tiền thanh toán không được để trống")
+    @Positive(message = "Số tiền thanh toán phải lớn hơn 0")
     private BigDecimal amount;
 
     // Hình thức thanh toán: QR hoặc CASH
+    @NotNull(message = "Phương thức thanh toán không được để trống")
     private PaymentMethod paymentMethod;
 
     public CreateTimePurchaseRequest() {

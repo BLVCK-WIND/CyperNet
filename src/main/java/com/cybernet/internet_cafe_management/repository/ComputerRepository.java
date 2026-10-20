@@ -2,7 +2,10 @@ package com.cybernet.internet_cafe_management.repository;
 
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,10 +15,14 @@ import com.cybernet.internet_cafe_management.entity.Computer;
 import jakarta.persistence.LockModeType;
 
 @Repository
-public interface ComputerRepository extends JpaRepository<Computer, Long> {
+public interface ComputerRepository extends JpaRepository<Computer, Long>, JpaSpecificationExecutor<Computer> {
     boolean existsByCode(String code);
 
     Optional<Computer> findByCode(String code);
+
+    Page<Computer> findByStatus(Computer.Status status, Pageable pageable);
+
+    Page<Computer> findByZone(Computer.Zone zone, Pageable pageable);
 
     // Khóa bi quan (Pessimistic Lock) khi mở máy hoặc chuyển máy theo ID - Dùng nativeQuery tương thích mọi phiên bản MySQL/MariaDB
     @Query(value = "SELECT * FROM computers WHERE id = :id FOR UPDATE", nativeQuery = true)
