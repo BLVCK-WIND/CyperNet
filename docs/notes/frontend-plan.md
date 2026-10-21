@@ -249,18 +249,19 @@ flowchart TD
 - [ ] Tạo `features/auth/ProtectedRoute.tsx` — Redirect về login nếu chưa auth
 - [ ] Tạo `features/auth/RoleGuard.tsx` — Check role, redirect nếu sai role
 
-### MS-1.3 — Customer Login Page
+### MS-1.3 — Customer Login Page (QR Session Login)
 - [ ] **Layout:** Full-screen centered, nền gradient `midnight → obsidian`, hiệu ứng sparkle dots
 - [ ] **Logo/Brand:** "CYBERNET" text lớn với font Space Grotesk, màu `gold`, subtle glow animation
+- [ ] **Mã máy trạm:** Badge nổi bật hiển thị mã máy đọc từ URL query param `?code=PC-01`. Nếu URL không có mã máy, hiển thị cảnh báo yêu cầu quét lại QR tại bàn.
 - [ ] **Form Card:** GlassCard (glassmorphism), chứa:
-  - Input SĐT — icon Phone, placeholder "Nhập số điện thoại", validation 10 số
-  - Input Mật khẩu — icon Lock, show/hide toggle
-  - Checkbox "Ghi nhớ đăng nhập"
-  - Nút "ĐĂNG NHẬP" — full-width, nền `gold`, text `midnight`, hover glow effect
-- [ ] **Hiện mã máy:** Badge góc trên hiển thị code máy (từ URL param `?code=VIP-01`)
-- [ ] **Error handling:** Shake animation trên form khi sai thông tin, toast notification
+  - Input SĐT — icon Phone, placeholder "Nhập số điện thoại của bạn", validation định dạng 10 số
+  - *(Lưu ý: Không cần ô mật khẩu và không cần checkbox "Ghi nhớ đăng nhập" — Khách quét QR tại bàn chỉ cần nhập SĐT + mã máy trạm)*
+  - Nút "VÀO PHIÊN CHƠI" — full-width, nền `gold`, text `midnight`, hover glow effect
+- [ ] **API Endpoint:** Gọi `POST /api/auth/customer-session-login` với `{ computerCode, phone }`
+- [ ] **Xử lý phản hồi:** Lưu `accessToken`, `refreshToken`, `sessionId` (`res.session.id`) vào Zustand `authStore` và chuyển hướng tới `/customer/dashboard`
+- [ ] **Error handling:** Shake animation trên form khi sai thông tin hoặc máy chưa có phiên (`409 SESSION_NOT_ACTIVE`), toast notification
 - [ ] **Loading:** Button chuyển loading spinner khi đang xác thực
-- [ ] **Responsive:** Mobile — form full-width padding 16px, font-size tăng cho touch
+- [ ] **Responsive:** Mobile-first — form full-width padding 16px, font-size tối ưu cho màn hình cảm ứng điện thoại
 
 ### MS-1.4 — Session Dashboard (Trang chính)
 - [ ] **Top Bar:** Gradient `midnight` → transparent, hiện: avatar icon + tên khách, mã máy (badge gold), zone tag (VIP/Standard), nút Đăng xuất
@@ -711,4 +712,5 @@ Dưới đây là các điểm chuẩn hóa đã được kiểm tra và đồng
 | 16 | **Lịch sử phiên theo máy trạm** | Kế hoạch cũ chưa có endpoint | `GET /api/sessions/computer/{computerId}?page=0&size=5` | Đã bổ sung trên Backend, phục vụ Drawer chi tiết máy MS-2.4 |
 | 17 | **Logic mở phiên chơi quầy (Phương án A)** | Nhập số phút cần dùng hoặc "Dùng hết" | Modal mở máy không có ô nhập số phút. Server mở theo toàn bộ số dư khả dụng (`account.remainingMinutes`), tự động hoàn lại số phút dư khi kết thúc phiên | Đã phê duyệt chốt Phương án A, giữ logic Backend đơn giản và chính xác |
 | 18 | **Cập nhật dữ liệu thời gian thực (MVP)** | Đề xuất dùng WebSocket STOMP ngay | Dùng TanStack Query Polling (`refetchInterval: 10000ms` cho Floor Map, `5000ms` cho Order Queue). Hoãn WebSocket sang Phase sau | Giảm độ phức tạp hạ tầng kết nối phía client cho phiên bản MVP ban đầu |
+| 19 | **Đăng nhập khách quét QR (MS-1.3)** | Form có ô mật khẩu và checkbox "Ghi nhớ đăng nhập" | Bỏ ô mật khẩu và checkbox. Đăng nhập QR chỉ cần SĐT + mã máy trạm (`POST /api/auth/customer-session-login`) | Khớp thiết kế bảo mật: phiên gắn với máy vật lý, kết thúc phiên tự động thu hồi token |
 

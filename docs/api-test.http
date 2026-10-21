@@ -463,3 +463,131 @@ Access-Control-Request-Headers: Authorization,Content-Type
 # @name CorsGetLanIp
 GET {{baseUrl}}/api/items
 Origin: http://192.168.1.100:5173
+
+### ------------------------------------------------------------------------------
+### 7. NEGATIVE & SECURITY VERIFICATION (Kiểm thử lỗi & An toàn bảo mật)
+### ------------------------------------------------------------------------------
+
+# @name ErrIdorCustomerAccessOtherSessionOrders
+# Kỳ vọng: 403 FORBIDDEN - Khách hàng B cố xem lịch sử đơn của phiên khách hàng A
+GET {{baseUrl}}/api/orders/session/{{CustomerLoginAtPC.response.body.id}}
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+###
+
+# @name ErrIdorCustomerCreateOrderOnOtherSession
+# Kỳ vọng: 403 FORBIDDEN - Khách hàng B cố tạo đơn trên phiên của khách hàng A
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+{
+  "sessionId": 999999,
+  "paymentMethod": "CASH",
+  "items": [
+    {
+      "itemId": 726,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+# @name ErrExpiredAccessToken
+# Kỳ vọng: 401 UNAUTHORIZED + TOKEN_EXPIRED
+GET {{baseUrl}}/api/sessions/active/computer/PC-01
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIwOTg4MDAxMTIyIiwicm9sZSI6IkNVU1RPTUVSIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDE4MDB9.7Tsz1NJT7u_CoNf0m5lXp-GPYzJNjzaviDy-WK3gEa0BtRFZrXBCHlSFGJDaAPTkbDt2cHtEzLjeN6MyBG4OQw
+
+###
+
+# @name ErrDuplicateConfirmOrderSecondTime
+# Kỳ vọng: 400 BAD_REQUEST + ORDER_NOT_PENDING ("Đơn hàng không ở trạng thái chờ duyệt! Trạng thái hiện tại: CONFIRMED")
+PATCH {{baseUrl}}/api/orders/{{CustomerCreateOrder.response.body.id}}/confirm
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+###
+
+# @name ErrStartSessionComputerAlreadyBusy
+# Kỳ vọng: 400 BAD_REQUEST + COMPUTER_NOT_AVAILABLE ("Máy tính [PC-01] hiện không khả dụng! Trạng thái: IN_USE")
+POST {{baseUrl}}/api/sessions/start
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{
+  "computerId": 1,
+  "accountId": 6
+}
+
+###
+
+# @name ErrOrderOutOfStockItem
+# Kỳ vọng: 400 BAD_REQUEST + ORDER_OUT_OF_STOCK ("Món [...] hiện đã hết hàng!")
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+{
+  "sessionId": {{CustomerLoginAtPC.response.body.id}},
+  "paymentMethod": "CASH",
+  "items": [
+    {
+      "itemId": 734,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+# @name ErrMalformedJsonSyntax
+# Kỳ vọng: 400 BAD_REQUEST + MALFORMED_REQUEST ("Dữ liệu yêu cầu không đúng định dạng hoặc thiếu tham số bắt buộc!")
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{"sessionId": 123, "invalid_json
+
+###
+
+# @name ErrTransferComputerMissingTarget
+# Kỳ vọng: 400 BAD_REQUEST + MALFORMED_REQUEST ("Vui lòng cung cấp toComputerId hoặc toComputerCode của máy đích!")
+PATCH {{baseUrl}}/api/sessions/{{CustomerLoginAtPC.response.body.id}}/transfer
+Content-Type: application/json
+Authorization: Bearer {{StaffLogin.response.body.accessToken}}
+
+{
+  "reason": "Chuyển máy không truyền máy đích"
+}
+
+###
+
+# @name ErrOrderAfterSessionEnded
+# Kỳ vọng: 400 BAD_REQUEST + SESSION_NOT_ACTIVE ("Phiên chơi này đã kết thúc, không thể đặt món!")
+# (Chứng minh: Dù Access Token còn hạn 30 phút, nghiệp vụ tạo đơn trên phiên đã đóng bị từ chối triệt để)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{CustomerMobileSessionLogin.response.body.accessToken}}
+
+{
+  "sessionId": {{CustomerLoginAtPC.response.body.id}},
+  "paymentMethod": "CASH",
+  "items": [
+    {
+      "itemId": 726,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+# @name ErrRateLimitExceeded
+# Kỳ vọng: 429 TOO_MANY_REQUESTS + RATE_LIMITED ("Quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút!") + Header Retry-After: 60
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "phone": "0900000000",
+  "password": "wrongpassword"
+}

@@ -10,6 +10,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * Service phụ trách bắn thông điệp Real-time (WebSocket / STOMP)
@@ -21,15 +22,15 @@ public class RealtimeNotificationService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    public RealtimeNotificationService(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public RealtimeNotificationService(Optional<SimpMessagingTemplate> messagingTemplate) {
+        this.messagingTemplate = messagingTemplate.orElse(null);
     }
 
     /**
      * Bắn cập nhật trạng thái máy trạm tới topic /topic/computers
      */
     public void broadcastComputerStatus(Computer computer) {
-        if (computer == null) return;
+        if (computer == null || messagingTemplate == null) return;
         try {
             ComputerRealtimeEvent event = ComputerRealtimeEvent.fromComputer(computer);
             log.info("[WebSocket] Broadcast computer status: {} -> {}", computer.getCode(), computer.getStatus());
@@ -43,7 +44,7 @@ public class RealtimeNotificationService {
      * Bắn thông báo đơn đặt món tới topic /topic/orders
      */
     public void broadcastOrderEvent(Order order, String eventType, String message) {
-        if (order == null) return;
+        if (order == null || messagingTemplate == null) return;
         try {
             OrderRealtimeEvent event = OrderRealtimeEvent.fromOrder(order, eventType, message);
             log.info("[WebSocket] Broadcast order event: Order #{} [{}]", order.getId(), eventType);
@@ -57,6 +58,7 @@ public class RealtimeNotificationService {
      * Bắn thông báo liên quan đến phiên chơi tới topic /topic/sessions
      */
     public void broadcastSessionEvent(Long sessionId, String computerCode, String message, String eventType) {
+        if (messagingTemplate == null) return;
         try {
             SessionRealtimeEvent event = SessionRealtimeEvent.builder()
                     .sessionId(sessionId)

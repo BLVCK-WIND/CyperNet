@@ -32,19 +32,22 @@
 - **Đã hoãn (4 mục — có lý do kỹ thuật & giải pháp Frontend rõ ràng):**
   1. *Tìm kiếm SĐT autocomplete:* Hoãn vì quy mô tiệm net MVP dưới 500 khách; Frontend dùng Ant Design `Select showSearch` lọc client-side trên `GET /api/accounts?role=CUSTOMER`.
   2. *Bỏ tham số minutes khi mở máy (Chốt Phương án A):* Server tự động mở máy theo toàn bộ số dư thời gian của khách và tự động hoàn trả phút chưa dùng khi đóng phiên; Modal thu ngân không cần ô nhập số phút.
-  3. *Múi giờ Timezone Offset:* Toàn bộ tiệm chạy giờ Việt Nam; Frontend cấu hình `dayjs.tz.setDefault("Asia/Ho_Chi_Minh")`.
-  4. *Độ mịn countdown timer:* Server cung cấp mốc `expiresAt` ISO chuẩn xác; Frontend tự tính `dayjs(expiresAt).diff(now, 'second')` để chạy đồng hồ đếm ngược từng giây.
+  3. *Múi giờ & Giờ Server:* Toàn bộ tiệm chạy giờ Việt Nam (`Asia/Ho_Chi_Minh`). Mọi API phiên (`SessionResponse`) đều trả kèm trường `serverTime` (ISO string) và CORS exposed headers có `Date`, `Retry-After`. Frontend dùng `dayjs.tz` tính độ lệch đồng hồ máy khách để đếm ngược chính xác tuyệt đối.
+  4. *Độ mịn countdown timer:* Server cung cấp mốc `expiresAt` ISO chuẩn xác; Frontend tự tính `dayjs.tz(expiresAt).diff(adjustedNow, 'second')` để chạy đồng hồ đếm ngược từng giây.
 - **Còn mở (Open):** **0 mục** (Không có vấn đề nào bị bỏ lửng).
 
 ---
 
 ## 3. Các Quyết Định Đã Chốt & Quyết Định Còn Mở
 - **Quyết định ĐÃ CHỐT:**
-  1. **Real-time MVP dùng Polling:** TanStack Query polling (`refetchInterval: 10000ms` cho Floor Map, `5000ms` cho Order Queue). Backend đã có STOMP broker nhưng hoãn WebSocket sang giai đoạn sau MVP để tối ưu tốc độ bàn giao.
-  2. **Bảo mật danh tính Staff:** Mọi thao tác thu ngân (`confirmOrder`, `confirmTimePurchase`, `directOrder`) đều lấy `staffId` tự động từ claims JWT qua Spring Security `Authentication.getName()`.
-  3. **Lấy `sessionId` của khách:** Trích xuất từ `session.id` trong phản hồi của `POST /api/auth/customer-session-login` và lưu vào Zustand Store (`authStore.sessionId`).
-  4. **Quy ước lỗi thống nhất:** Bắt lỗi theo `errorCode` máy đọc được thay vì kiểm tra chuỗi text `message`.
-  5. **Mở máy quầy (Phương án A):** Mở theo toàn bộ số dư khả dụng, hoàn trả tự động khi `endSession`.
+  1. **Real-time MVP dùng Polling (WebSocket đang TẮT):** TanStack Query polling (`refetchInterval: 10000ms` cho Floor Map, `5000ms` cho Order Queue). **Cảnh báo bảo mật:** WebSocket đang TẮT cho MVP (`websocket.enabled=false`). Trước khi bật phải làm Phương án B: giới hạn origin, JWT ở STOMP CONNECT, phân quyền subscribe theo role/phiên. Tuyệt đối không bật lại khi chưa hoàn thành các bước bảo mật này!
+  2. **Bảo mật danh tính Staff & IDOR:** Mọi thao tác thu ngân (`confirmOrder`, `confirmTimePurchase`, `directOrder`) đều lấy `staffId` tự động từ claims JWT qua Spring Security. Khách hàng chỉ xem và tạo đơn thuộc phiên của chính mình (chống IDOR).
+  3. **Đăng nhập khách quét QR (MS-1.3):** Khách quét mã QR tại bàn chỉ cần nhập SĐT + mã máy trạm đọc từ URL param `?code=PC-01` (`POST /api/auth/customer-session-login`), **không** cần mật khẩu và **không** có checkbox "Ghi nhớ đăng nhập".
+  4. **Lấy và Quản lý `sessionId` của khách:** Trích xuất từ `session.id` trong phản hồi của `POST /api/auth/customer-session-login` và lưu vào Zustand Store (`authStore.sessionId`).
+  5. **Bảo mật token sau khi phiên ENDED:** Khi đóng phiên, backend tự động xóa toàn bộ refresh token của tài khoản. Dù access token còn hạn 30 phút, nghiệp vụ tạo đơn `POST /api/orders` trên phiên đã đóng bị từ chối triệt để với `400 BAD_REQUEST` + `errorCode: "SESSION_NOT_ACTIVE"`.
+  6. **Chuẩn hóa API Contract 100% dữ liệu thật:** Dùng `name` và `remainingMinutes` (thay vì `fullName`/`balanceMinutes`), `expiresIn: 1800000`, `toComputerId` (thay vì `newComputerId`), mã lỗi hết hàng `400 ORDER_OUT_OF_STOCK`.
+  7. **Đồng bộ thời gian thực tế:** `SessionResponse` có trường `serverTime`; CORS expose `Date` và `Retry-After`; Frontend dùng công thức bù lệch đồng hồ (Clock Drift Compensation) với `dayjs.tz`.
+  8. **Mở máy quầy (Phương án A):** Mở theo toàn bộ số dư khả dụng, hoàn trả tự động khi `endSession`.
 - **Quyết định CÒN MỞ:**
   - Ngưỡng cảnh báo tải mạng LAN khi số máy vượt quá 80 máy trạm (sẽ đánh giá lại khi chạy thực tế tại quán).
 

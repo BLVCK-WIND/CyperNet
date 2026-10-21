@@ -37,6 +37,7 @@ public class SessionResponse {
     // Thông tin tính toán động tiện ích cho Frontend
     private long playedMinutes;               // Số phút đã thực sự ngồi chơi
     private long remainingMinutesUntilExpiry; // Số phút còn lại trước khi máy tự tắt
+    private LocalDateTime serverTime;         // Thời gian hiện tại của server (ISO-8601 Asia/Ho_Chi_Minh)
 
     public SessionResponse() {
     }
@@ -45,6 +46,13 @@ public class SessionResponse {
                            Long accountId, String accountName, String accountPhone, int accountRemainingMinutes,
                            LocalDateTime startedAt, LocalDateTime expiresAt, LocalDateTime endedAt, Status status,
                            long playedMinutes, long remainingMinutesUntilExpiry) {
+        this(id, computerId, computerCode, computerZone, pricePerHour, accountId, accountName, accountPhone, accountRemainingMinutes, startedAt, expiresAt, endedAt, status, playedMinutes, remainingMinutesUntilExpiry, LocalDateTime.now());
+    }
+
+    public SessionResponse(Long id, Long computerId, String computerCode, Zone computerZone, BigDecimal pricePerHour,
+                           Long accountId, String accountName, String accountPhone, int accountRemainingMinutes,
+                           LocalDateTime startedAt, LocalDateTime expiresAt, LocalDateTime endedAt, Status status,
+                           long playedMinutes, long remainingMinutesUntilExpiry, LocalDateTime serverTime) {
         this.id = id;
         this.computerId = computerId;
         this.computerCode = computerCode;
@@ -60,6 +68,7 @@ public class SessionResponse {
         this.status = status;
         this.playedMinutes = playedMinutes;
         this.remainingMinutesUntilExpiry = remainingMinutesUntilExpiry;
+        this.serverTime = serverTime != null ? serverTime : LocalDateTime.now();
     }
 
     /**
@@ -98,7 +107,8 @@ public class SessionResponse {
                 session.getEndedAt(),
                 session.getStatus(),
                 played,
-                remaining
+                remaining,
+                now
         );
     }
 
@@ -220,5 +230,13 @@ public class SessionResponse {
 
     public void setRemainingMinutesUntilExpiry(long remainingMinutesUntilExpiry) {
         this.remainingMinutesUntilExpiry = remainingMinutesUntilExpiry;
+    }
+
+    public LocalDateTime getServerTime() {
+        return serverTime;
+    }
+
+    public void setServerTime(LocalDateTime serverTime) {
+        this.serverTime = serverTime;
     }
 }

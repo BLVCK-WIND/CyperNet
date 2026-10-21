@@ -109,6 +109,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        log.warn("NoResourceFoundException: {}", ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ErrorCode.NOT_FOUND,
+                "Không tìm thấy tài nguyên: " + ex.getResourcePath()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         log.error("Internal Server Error: ", ex);
@@ -124,6 +135,7 @@ public class GlobalExceptionHandler {
         if (message == null) return ErrorCode.MALFORMED_REQUEST;
         String lower = message.toLowerCase();
         if (lower.contains("chờ duyệt") || lower.contains("pending")) return ErrorCode.ORDER_NOT_PENDING;
+        if (lower.contains("hết hàng") || lower.contains("out of stock")) return ErrorCode.ORDER_OUT_OF_STOCK;
         if (lower.contains("chính máy hiện tại") || lower.contains("cùng một máy")) return ErrorCode.TRANSFER_SAME_COMPUTER;
         if (lower.contains("khả dụng") || lower.contains("available") || lower.contains("đang hoạt động") || lower.contains("đang được sử dụng") || lower.contains("đang sử dụng")) return ErrorCode.COMPUTER_NOT_AVAILABLE;
         if (lower.contains("không còn hoạt động") || lower.contains("không ở trạng thái active") || lower.contains("phiên")) return ErrorCode.SESSION_NOT_ACTIVE;

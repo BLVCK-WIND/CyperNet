@@ -20,6 +20,7 @@ public enum ErrorCode {
 
     // === LỖI NGHIỆP VỤ (BUSINESS RULES) ===
     ORDER_NOT_PENDING("Đơn hàng không ở trạng thái chờ duyệt"),
+    ORDER_OUT_OF_STOCK("Món ăn hoặc dịch vụ hiện đã hết hàng"),
     COMPUTER_NOT_AVAILABLE("Máy tính hiện không khả dụng"),
     SESSION_NOT_ACTIVE("Phiên chơi không ở trạng thái hoạt động"),
     INSUFFICIENT_TIME("Tài khoản không đủ thời gian chơi"),
