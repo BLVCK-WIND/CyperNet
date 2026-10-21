@@ -74,9 +74,15 @@ Lập trình viên khi tiếp nhận cần đọc theo đúng thứ tự sau:
 
 ---
 
-## 6. Việc Cần Làm Kế Tiếp
-👉 **Tiến hành thực hiện [MS-1.1 — Scaffold Project & Theme Setup](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/docs/notes/frontend-plan.md#L233):**
-- Khởi tạo dự án Vite + React 19 + TypeScript tại thư mục `/frontend`.
-- Cài đặt dependencies: `@ant-design/v5-patch-for-react-19`, `antd`, `@tailwindcss/vite`, `tailwindcss`, `framer-motion`, `axios`, `zustand`, `@tanstack/react-query`, `react-router-dom`, `lucide-react`, `dayjs`.
-- Cấu hình Theme tokens CyberLux trong `src/styles/antd-theme.ts` và biến màu trong `src/styles/index.css`.
-- Xác minh chạy thành công giao diện đen sang trọng (`#10232A`) với text màu cát (`#D3C3B9`).
+## 6. Trạng Thái Hiện Tại & Việc Cần Làm Kế Tiếp
+- **Phase 1: Customer UI (Web PC & Mobile QR Ordering):** ĐÃ HOÀN THÀNH 100% (MS-1.1 đến MS-1.11, build sạch `npm run build` exit code 0).
+- ⚠️ **Checklist Bắt Buộc Trước Khi Vào Phase 2 (Ưu tiên số 1 đầu phiên làm việc kế tiếp):**
+  1. **Backend (Spring Boot):**
+     - Thêm trường `imageUrl` vào Entity `Item.java`.
+     - Tạo migration Flyway `V4__add_image_url_to_items.sql` thêm cột `image_url` và cập nhật đường dẫn ảnh cho các món mẫu (mì tôm, Sting, gà rán, bò húc,...).
+     - Cập nhật DTOs `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest`.
+  2. **Frontend (React 19):**
+     - Cập nhật `types/item.ts` (`imageUrl?: string`).
+     - Cập nhật `MenuCard.tsx` render thumbnail ảnh món ăn thật với bo góc chuẩn CyberLux (fallback icon Lucide nếu món không có ảnh).
+     - Cập nhật `CartDrawer.tsx` và `OrderDetailDrawer.tsx` hiển thị thumbnail món ăn.
+- 👉 **Sau khi hoàn tất Checklist Ảnh Món Ăn:** Tiến hành khởi động **Phase 2: Staff Dashboard (Sơ đồ máy Floor Map, POS nạp giờ, duyệt đơn & chuyển máy)**.

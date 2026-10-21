@@ -686,6 +686,51 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 
 ---
 
+### 2026-10-21 — Hoàn thành toàn diện Phase 1 (Customer UI: MS-1.1 đến MS-1.11) & Thiết lập Checklist Must-Fix Ảnh Món Ăn
+
+**Phase**: Frontend Phase 1 — Customer UI (Web PC & Mobile QR Ordering)  
+**Thời gian**: ~6 giờ  
+**Việc đã làm**:
+- **MS-1.1 (Scaffold & Theme Setup):** Khởi tạo Vite + React 19 + TypeScript tại `frontend/`. Tích hợp Tailwind CSS 4 (`@theme`), Ant Design 5 Dark Tokens (`antd-theme.ts`), `@ant-design/v5-patch-for-react-19`, Google Fonts *Inter* & *Space Grotesk*, và hệ thống keyframes hiệu ứng CyberLux (`animations.css`).
+- **MS-1.2 (Auth Module & API Layer):** Thiết lập `axiosClient.ts` tự động gắn JWT Bearer, cơ chế mutex hàng đợi xử lý refresh token tự động khi gặp HTTP 401, chuẩn hóa `ErrorResponse`, xây dựng Zustand `authStore` lưu trữ phiên đăng nhập (`sessionId`, `computerCode`).
+- **MS-1.3 (Customer QR Login Page):** Xây dựng trang `/customer/login?code=PC-01` nhận diện mã máy trạm từ QR Code bàn, form nhập SĐT (10 số), GlassCard bo góc, hiệu ứng rung (shake animation) khi lỗi và thông báo trực quan.
+- **MS-1.4 (Session Dashboard & Countdown):** Xây dựng trang `/customer/dashboard`, vòng tròn đồng hồ SVG `TimerRing` biến đổi màu sắc (`gold` $\rightarrow$ `warning` $\rightarrow$ `danger`), thuật toán bù lệch đồng hồ (Clock Drift Compensation) với `dayjs.tz` dựa trên `serverTime` của backend. Thẻ thống kê phiên chơi và 2 nút hành động nhanh.
+- **MS-1.5 (Menu Browser & Filter):** Trang `/customer/menu` tải danh mục món, thanh tìm kiếm debounced, bộ lọc tabs (Tất cả, Đồ ăn, Đồ uống, Giờ chơi), thẻ món `MenuCard` trạng thái hết hàng/còn hàng.
+- **MS-1.6 (Cart & Order Creation):** Giỏ hàng nổi `FloatingCartButton` badge đỏ, Drawer trượt từ phải `CartDrawer` chọn tiền mặt hoặc VietQR, tích hợp API sinh mã thanh toán Napas247 động (`/api/files/vietqr`) qua popup `QrPaymentModal`.
+- **MS-1.7 (Order History & Detail):** Trang `/customer/orders` danh sách đơn hàng theo phiên chơi, polling tự động mỗi 10 giây, badge trạng thái `CHỜ XỬ LÝ` vàng amber nhấp nháy độ tương phản cao, xem chi tiết qua `OrderDetailDrawer` và mở lại mã VietQR theo yêu cầu.
+- **MS-1.8 (Page Transitions & Animations):** Bọc các trang bằng Framer Motion `PageTransition` (fade & slide-up), hiệu ứng hiển thị so le `StaggerContainer`, hạt ánh sáng lấp lánh `Sparkles`.
+- **MS-1.9 (Mobile Responsive & Bottom Navigation Bar):** Thiết kế thanh điều hướng cố định dưới màn hình `CustomerBottomNav` cho khách dùng điện thoại quét QR, tối ưu Drawer full-screen và giải pháp ẩn footer trên mobile để không che khuất thao tác.
+- **MS-1.10 (Loading & Error Handling):** Tích hợp `ErrorBoundary` bảo vệ ứng dụng khi có lỗi runtime, trang 404 `NotFoundPage` phong cách CyberLux, thanh tiến trình vàng kim `GlobalProgressBar` phía trên cùng khi gọi API.
+- **MS-1.11 (UX Polish & Edge Cases):** Modal cảnh báo hết phiên `SessionExpiredModal` (có nút kiểm tra lại phiên khi đã nạp thêm tại quầy), khóa chống click đúp (double-click lock) trên toàn bộ form và nút đặt hàng/thanh toán, chỉ báo viền vàng `:focus-visible` hỗ trợ Accessibility, hook `useDocumentTitle` đồng bộ tiêu đề tab trình duyệt.
+- **Thiết lập Checklist Bắt Buộc (Must-Fix):** Lên danh sách nhiệm vụ bổ sung thuộc tính `imageUrl` cho `Item` (Spring Boot Entity + Flyway V4 + DTOs + Frontend UI Menu Card) để hoàn thiện hiển thị ảnh món ăn thực tế (mì tôm, Sting, gà rán...) ngay đầu phiên làm việc kế tiếp trước khi sang Phase 2.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| React 19 + Vite + TypeScript | `frontend/src/*` | 🟢 Cơ bản |
+| Tailwind CSS 4 `@theme` | `src/styles/index.css` | 🟢 Cơ bản |
+| Ant Design 5 Dark Tokens & Patch | `src/styles/antd-theme.ts`, `main.tsx` | 🟢 Cơ bản |
+| Token Refresh Mutex Queue | `src/api/axiosClient.ts` | 🟡 Trung bình |
+| Zustand State Management | `src/store/authStore.ts`, `cartStore.ts` | 🟢 Cơ bản |
+| Clock Drift Compensation | `src/features/customer/hooks/useCountdown.ts` | 🔴 Nâng cao |
+| Napas247 Dynamic VietQR | `src/features/customer/components/QrPaymentModal.tsx` | 🟡 Trung bình |
+| Polling & Cache Invalidation | TanStack React Query v5 | 🟡 Trung bình |
+| Framer Motion Page Transitions | `src/components/animations/*` | 🟡 Trung bình |
+| Responsive Touch & Mobile Nav | `src/components/layout/CustomerBottomNav.tsx` | 🟡 Trung bình |
+| React Error Boundary | `src/components/common/ErrorBoundary.tsx` | 🟡 Trung bình |
+
+**Lỗi gặp phải & cách fix**:
+- Tailwind CSS 4 làm thẻ SVG trong nút Ant Design hiển thị dạng `display: block` dẫn đến icon bị lệch dòng $\rightarrow$ Thêm `.ant-btn svg { display: inline-block; vertical-align: middle; }` trong `index.css`.
+- Bottom Navigation Bar trên mobile đè lên phần footer của trang $\rightarrow$ Ẩn footer trên mobile (`hidden sm:block`) và chỉ hiện trên màn hình desktop.
+- Modal `styles` trong Ant Design không nhận thuộc tính `content` $\rightarrow$ Chuyển sang định dạng `styles={{ body: ... }}`.
+- So sánh `session.status === 'EXPIRED'` bị lỗi TypeScript vì Entity backend định nghĩa `ACTIVE` hoặc `ENDED` $\rightarrow$ Chỉnh lại `session.status === 'ENDED'`.
+
+**Ghi chú / Bài học rút ra**:
+- Việc xây dựng giao diện chia nhỏ thành từng Micro-step rõ ràng giúp kiểm soát chất lượng chặt chẽ, mọi khâu đều có thể review và test thực tế ngay trên trình duyệt.
+- Cần ưu tiên hoàn thiện thuộc tính ảnh món ăn (`imageUrl`) ở đầu phiên sau để Menu trông chân thực và bắt mắt nhất trước khi bước sang giao diện quầy thu ngân.
+
+---
+
 
 Copy block bên dưới, paste vào đây, điền thông tin:
 

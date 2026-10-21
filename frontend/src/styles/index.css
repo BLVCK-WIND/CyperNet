@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@import "./animations.css";
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --color-midnight: #10232A;
+  --color-slate: #3D4D55;
+  --color-mist: #A79E9C;
+  --color-sand: #D3C3B9;
+  --color-gold: #B58863;
+  --color-gold-light: #D4A574;
+  --color-gold-dark: #8B6B47;
+  --color-obsidian: #161616;
+
+  --color-success: #4CAF50;
+  --color-warning: #FFB74D;
+  --color-danger: #EF5350;
+  --color-info: #5B8FA8;
+}
+
+:root {
+  color-scheme: dark;
+  --bg-midnight: #10232A;
+  --bg-slate: #3D4D55;
+  --text-sand: #D3C3B9;
+  --text-mist: #A79E9C;
+  --accent-gold: #B58863;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-midnight);
+  color: var(--color-sand);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism utility for CyberLux components */
+.glass-panel {
+  background: rgba(61, 77, 85, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(167, 158, 156, 0.15);
+}
+
+.glass-panel-elevated {
+  background: rgba(61, 77, 85, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(181, 136, 99, 0.25);
+}
+
+/* Fix Tailwind 4 svg display:block in Ant Design buttons */
+.ant-btn svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* CyberLux Focus-visible ring for accessibility */
+:focus-visible {
+  outline: 2px solid #B58863;
+  outline-offset: 2px;
+}

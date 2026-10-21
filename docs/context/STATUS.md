@@ -18,21 +18,24 @@
   - **Bước 3 (Audit Trail & Rate Limiting):** Flyway V3 table `audit_logs`, `AuditLogService` ghi nhận lịch sử nhạy cảm (duyệt đơn, chuyển máy, nạp tiền), `RateLimitingFilter` chống Brute-force & spam request (HTTP 429).
   - **Bước 4 (Specification & Asset/VietQR):** `JpaSpecificationExecutor` đa tiêu chí cho Order/Computer, `FileUploadController` lưu ảnh món ăn/avatar và `VietQrHelper` sinh mã thanh toán Napas247 động.
   - **Bước 5 (Frontend CRUD Enablement):** Đã bổ sung 3 endpoints theo yêu cầu Frontend: `PUT /api/computers/{id}`, `PUT /api/accounts/{id}`, `GET /api/sessions/computer/{computerId}`.
+- [x] **Frontend Phase 1: Customer UI (Web PC & Mobile QR Ordering)** (100% DONE — MS-1.1 đến MS-1.11):
+  - MS-1.1 (Scaffold & CyberLux Theme), MS-1.2 (Auth & Token Mutex), MS-1.3 (Customer Login QR), MS-1.4 (Countdown & Stats), MS-1.5 (Menu Browser), MS-1.6 (Cart & Napas247 VietQR), MS-1.7 (Order History & 10s Polling), MS-1.8 (Page Transition & Stagger), MS-1.9 (Responsive & Bottom Nav Bar), MS-1.10 (Error Boundary, 404 & Global Progress Bar), MS-1.11 (Session Expired Modal, Double-click Lock, Focus-ring & Document Titles).
 
 ---
 
-## 🟢 Dự án: HOÀN THÀNH TOÀN DIỆN BACKEND & PHASE 6 (Sẵn sàng 100% cho UI Mockups)
-> **Trạng thái:** Robust Real-time Backend Architecture Complete (73/73 Tests PASS, 47/47 Runtime HTTP Tests PASS)
-- [x] **Phase 0 - Phase 5:** Core Backend & Production Architecture (100% DONE)
-- [x] **Micro-Step 0:** Frontend Enablement (100% DONE)
-- [x] **Phase 6:** All 7 Backend Gaps Resolved (100% DONE)
-- [x] **Backend & Runtime Audit:** Hoàn tất rà soát thực tế (16 mục [ĐÃ SỬA], 4 mục [HOÃN] có giải pháp chốt, 0 mục [MỞ]).
-- [ ] **Giai đoạn tiếp theo (Frontend UX/UI):** Bắt tay thực hiện MS-1.1 (Scaffold Project & Theme Setup) theo kế hoạch bàn giao frontend-handoff.md.
+## ⚠️ CHECKLIST BẮT BUỘC TRƯỚC KHI BẮT ĐẦU PHASE 2 (MUST-FIX ĐẦU PHIÊN SAU)
+> **Nhiệm vụ bắt buộc:** Bổ sung thuộc tính `imageUrl` (ảnh món ăn) cho Thực đơn & Món ăn:
+- [ ] **Backend (Item Entity & DTOs):** Bổ sung trường `imageUrl` (String) vào `Item`, migration Flyway V4 thêm cột `image_url VARCHAR(500)` vào bảng `items`, cập nhật `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest` và script nạp sẵn ảnh mẫu (mì tôm, Sting dâu/vàng, gà rán, bò húc, nước suối...).
+- [ ] **Frontend (Customer Menu & Cart):** Cập nhật `types/item.ts` (`imageUrl?: string`), chỉnh sửa `MenuCard.tsx` hiển thị ảnh món ăn thật với thumbnail bo góc đẹp mắt (fallback sang Lucide Icon nếu không có ảnh), cập nhật `CartDrawer.tsx` và `OrderDetailDrawer.tsx`.
+
+---
+
+## 🟢 Kế hoạch kế tiếp:
+1. **Ưu tiên 1:** Hoàn thành Checklist Must-Fix: Bổ sung thuộc tính `imageUrl` và hiển thị ảnh món ăn cho Menu Phase 1.
+2. **Ưu tiên 2:** Bắt tay triển khai **Phase 2: Staff Dashboard (Floor Map sơ đồ máy, POS nạp giờ, Order Queue duyệt đơn & chuyển máy)**.
 
 ---
 
 ## 🎯 Tổng kết chất lượng:
-- **Source Files:** 97 Java source files biên dịch hoàn hảo, 0 warning/error.
-- **Unit & Integration Tests:** 73 test cases bao phủ toàn bộ chức năng, **PASS 100%**.
-- **Runtime HTTP Tests:** 47 test cases trong `api-test.http`, **PASS 100%**.
-- **Tài liệu & Tuân thủ:** Tuân thủ triệt để nguyên tắc Clean Code, 12-Factor App, Security RBAC, WebSocket STOMP và Diff-Only.
+- **Backend:** 97 Java source files, 73/73 tests PASS 100%, 47/47 runtime HTTP tests PASS.
+- **Frontend:** React 19 + TypeScript + Vite + Tailwind 4 + Ant Design 5 (CyberLux Theme), `npm run build` PASS 100% (code 0).

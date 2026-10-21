@@ -231,61 +231,61 @@ flowchart TD
 ```
 
 ### MS-1.1 — Scaffold Project & Theme Setup
-- [ ] Init React + Vite + TypeScript project tại `/frontend`
-- [ ] Install dependencies: `antd`, `tailwindcss`, `framer-motion`, `axios`, `zustand`, `@tanstack/react-query`, `react-router-dom`, `lucide-react`, `dayjs`
-- [ ] Cấu hình `tailwind.config.ts` với custom colors (`midnight`, `slate`, `mist`, `sand`, `gold`, `obsidian`)
-- [ ] Tạo `antd-theme.ts` — ConfigProvider theme tokens (bảng màu CyberLux ở trên)
-- [ ] Tạo `index.css` — Import fonts Inter + Space Grotesk, CSS variables, Tailwind directives
-- [ ] Tạo `animations.css` — Keyframes: `sparkle`, `pulse-gold`, `fade-in`, `slide-up`, `glow`
-- [ ] Setup folder structure theo blueprint ở Section 3
-- [ ] Tạo `App.tsx` với ConfigProvider + QueryClientProvider + RouterProvider
-- [ ] Verify: chạy `npm run dev`, thấy trang trắng nền `#10232A` + text `#D3C3B9`
+- [x] Init React + Vite + TypeScript project tại `/frontend`
+- [x] Install dependencies: `antd`, `tailwindcss`, `framer-motion`, `axios`, `zustand`, `@tanstack/react-query`, `react-router-dom`, `lucide-react`, `dayjs`
+- [x] Cấu hình `tailwind.config.ts` với custom colors (`midnight`, `slate`, `mist`, `sand`, `gold`, `obsidian`)
+- [x] Tạo `antd-theme.ts` — ConfigProvider theme tokens (bảng màu CyberLux ở trên)
+- [x] Tạo `index.css` — Import fonts Inter + Space Grotesk, CSS variables, Tailwind directives
+- [x] Tạo `animations.css` — Keyframes: `sparkle`, `pulse-gold`, `fade-in`, `slide-up`, `glow`
+- [x] Setup folder structure theo blueprint ở Section 3
+- [x] Tạo `App.tsx` với ConfigProvider + QueryClientProvider + RouterProvider
+- [x] Verify: chạy `npm run dev`, thấy trang trắng nền `#10232A` + text `#D3C3B9`
 
 ### MS-1.2 — Auth Module & API Layer
-- [ ] Tạo `api/axiosClient.ts` — Base URL từ env, request interceptor (attach Bearer token), response interceptor (401 → auto refresh token → retry)
-- [ ] Tạo `api/authApi.ts` — `login()` (Staff/Admin), `customerSessionLogin()` (Khách quét QR), `refreshToken()`, `logout()`
-- [ ] Tạo `store/authStore.ts` (Zustand) — `user`, `accessToken`, `isAuthenticated`, `login()`, `logout()`, `setToken()`
-- [ ] Tạo `utils/storage.ts` — `getToken()`, `setToken()`, `removeToken()` (localStorage)
-- [ ] Tạo `features/auth/ProtectedRoute.tsx` — Redirect về login nếu chưa auth
-- [ ] Tạo `features/auth/RoleGuard.tsx` — Check role, redirect nếu sai role
+- [x] Tạo `api/axiosClient.ts` — Base URL từ env, request interceptor (attach Bearer token), response interceptor (401 → auto refresh token → retry)
+- [x] Tạo `api/authApi.ts` — `login()` (Staff/Admin), `customerSessionLogin()` (Khách quét QR), `refreshToken()`, `logout()`
+- [x] Tạo `store/authStore.ts` (Zustand) — `user`, `accessToken`, `isAuthenticated`, `login()`, `logout()`, `setToken()`
+- [x] Tạo `utils/storage.ts` — `getToken()`, `setToken()`, `removeToken()` (localStorage)
+- [x] Tạo `features/auth/ProtectedRoute.tsx` — Redirect về login nếu chưa auth
+- [x] Tạo `features/auth/RoleGuard.tsx` — Check role, redirect nếu sai role
 
 ### MS-1.3 — Customer Login Page (QR Session Login)
-- [ ] **Layout:** Full-screen centered, nền gradient `midnight → obsidian`, hiệu ứng sparkle dots
-- [ ] **Logo/Brand:** "CYBERNET" text lớn với font Space Grotesk, màu `gold`, subtle glow animation
-- [ ] **Mã máy trạm:** Badge nổi bật hiển thị mã máy đọc từ URL query param `?code=PC-01`. Nếu URL không có mã máy, hiển thị cảnh báo yêu cầu quét lại QR tại bàn.
-- [ ] **Form Card:** GlassCard (glassmorphism), chứa:
+- [x] **Layout:** Full-screen centered, nền gradient `midnight → obsidian`, hiệu ứng sparkle dots
+- [x] **Logo/Brand:** "CYBERNET" text lớn với font Space Grotesk, màu `gold`, subtle glow animation
+- [x] **Mã máy trạm:** Badge nổi bật hiển thị mã máy đọc từ URL query param `?code=PC-01`. Nếu URL không có mã máy, hiển thị cảnh báo yêu cầu quét lại QR tại bàn.
+- [x] **Form Card:** GlassCard (glassmorphism), chứa:
   - Input SĐT — icon Phone, placeholder "Nhập số điện thoại của bạn", validation định dạng 10 số
   - *(Lưu ý: Không cần ô mật khẩu và không cần checkbox "Ghi nhớ đăng nhập" — Khách quét QR tại bàn chỉ cần nhập SĐT + mã máy trạm)*
   - Nút "VÀO PHIÊN CHƠI" — full-width, nền `gold`, text `midnight`, hover glow effect
-- [ ] **API Endpoint:** Gọi `POST /api/auth/customer-session-login` với `{ computerCode, phone }`
-- [ ] **Xử lý phản hồi:** Lưu `accessToken`, `refreshToken`, `sessionId` (`res.session.id`) vào Zustand `authStore` và chuyển hướng tới `/customer/dashboard`
-- [ ] **Error handling:** Shake animation trên form khi sai thông tin hoặc máy chưa có phiên (`409 SESSION_NOT_ACTIVE`), toast notification
-- [ ] **Loading:** Button chuyển loading spinner khi đang xác thực
-- [ ] **Responsive:** Mobile-first — form full-width padding 16px, font-size tối ưu cho màn hình cảm ứng điện thoại
+- [x] **API Endpoint:** Gọi `POST /api/auth/customer-session-login` với `{ computerCode, phone }`
+- [x] **Xử lý phản hồi:** Lưu `accessToken`, `refreshToken`, `sessionId` (`res.session.id`) vào Zustand `authStore` và chuyển hướng tới `/customer/dashboard`
+- [x] **Error handling:** Shake animation trên form khi sai thông tin hoặc máy chưa có phiên (`409 SESSION_NOT_ACTIVE`), toast notification
+- [x] **Loading:** Button chuyển loading spinner khi đang xác thực
+- [x] **Responsive:** Mobile-first — form full-width padding 16px, font-size tối ưu cho màn hình cảm ứng điện thoại
 
 ### MS-1.4 — Session Dashboard (Trang chính)
-- [ ] **Top Bar:** Gradient `midnight` → transparent, hiện: avatar icon + tên khách, mã máy (badge gold), zone tag (VIP/Standard), nút Đăng xuất
-- [ ] **Countdown Timer (Hero):**
+- [x] **Top Bar:** Gradient `midnight` → transparent, hiện: avatar icon + tên khách, mã máy (badge gold), zone tag (VIP/Standard), nút Đăng xuất
+- [x] **Countdown Timer (Hero):**
   - **Desktop:** Circular ring timer (SVG animated) — vòng tròn lớn, số HH:MM:SS font Space Grotesk cỡ 48px, màu `gold`
   - **Mobile:** Compact horizontal bar timer
   - Màu vòng tròn thay đổi: `gold` (> 30 phút) → `warning` (< 10 phút, pulse animation) → `danger` (< 5 phút, shake + flash)
   - CountUp animation khi lần đầu render số phút
-- [ ] **Quick Stats Row:** 3 GlassCard nhỏ ngang hàng:
+- [x] **Quick Stats Row:** 3 GlassCard nhỏ ngang hàng:
   - ⏱️ Đã dùng: XX phút
   - 💰 Tiền giờ: XX.000đ/h
   - 📊 Zone: VIP / Standard
-- [ ] **Quick Actions:** 2 nút lớn có icon:
+- [x] **Quick Actions:** 2 nút lớn có icon:
   - 🍔 "Gọi món" — nền `gold`, icon + text, ripple effect on click
   - 📋 "Đơn hàng" — nền `slate` viền `gold`, icon + text
-- [ ] **Session Info Card:** Thông tin phiên: thời gian bắt đầu, dự kiến kết thúc, số phút còn lại trong tài khoản
-- [ ] **API:** `GET /api/sessions/check/{code}` (công khai trạng thái máy) & `GET /api/sessions/active/computer/{code}` (chi tiết phiên đang active sau khi auth) hoặc đọc từ payload `CustomerAuthResponse.session` khi login
+- [x] **Session Info Card:** Thông tin phiên: thời gian bắt đầu, dự kiến kết thúc, số phút còn lại trong tài khoản
+- [x] **API:** `GET /api/sessions/check/{code}` (công khai trạng thái máy) & `GET /api/sessions/active/computer/{code}` (chi tiết phiên đang active sau khi auth) hoặc đọc từ payload `CustomerAuthResponse.session` khi login
 
 ### MS-1.5 — Menu Browser & Filter
-- [ ] **Header:** "Thực đơn" + search input (debounced, tìm theo tên)
-- [ ] **Filter Tabs:** Horizontal scrollable tabs (Ant Segmented hoặc custom):
+- [x] **Header:** "Thực đơn" + search input (debounced, tìm theo tên)
+- [x] **Filter Tabs:** Horizontal scrollable tabs (Ant Segmented hoặc custom):
   - 🍽️ Tất cả · 🍔 Đồ ăn · 🥤 Đồ uống · 🎮 Gói giờ chơi
   - Active tab: underline `gold`, smooth slide animation
-- [ ] **Item Grid:**
+- [x] **Item Grid:**
   - **Desktop:** Grid 3-4 cột
   - **Mobile:** Grid 2 cột
   - Mỗi item là GlassCard:
@@ -294,106 +294,125 @@ flowchart TD
     - Giá — font bold, color `gold`, format "XX.000₫"
     - Nút "+" to — border `gold`, hover fill `gold`
     - Hết hàng: card mờ (opacity 0.4), badge "Hết hàng" overlay
-- [ ] **Animation:** Item card stagger fade-in khi load, scale-up nhẹ on hover (desktop)
-- [ ] **API:** `GET /api/items` (public endpoint)
+- [x] **Animation:** Item card stagger fade-in khi load, scale-up nhẹ on hover (desktop)
+- [x] **API:** `GET /api/items` (public endpoint)
 
 ### MS-1.6 — Cart & Order Creation
-- [ ] **Floating Cart Button:** Fixed bottom-right (desktop) hoặc bottom-center bar (mobile):
+- [x] **Floating Cart Button:** Fixed bottom-right (desktop) hoặc bottom-center bar (mobile):
   - Badge đếm số lượng món, pulse animation khi thêm
   - Tổng tiền hiện nhanh
   - Click mở Cart Drawer
-- [ ] **Cart Drawer (Slide-in từ phải):**
+- [x] **Cart Drawer (Slide-in từ phải):**
   - Danh sách món: tên, đơn giá, nút +/- quantity, nút xóa (swipe-to-delete trên mobile)
   - Tổng cộng: font lớn, color `gold`
   - Phương thức thanh toán: Radio group — 💵 Tiền mặt / 📱 QR
   - Nút "Đặt món" — full-width, gold, disabled khi giỏ trống
   - Nút "Xóa tất cả" — text button, color `danger`
-- [ ] **Confirmation Modal:** Sau khi bấm đặt:
+- [x] **Confirmation Modal:** Sau khi bấm đặt:
   - Summary đơn hàng
   - Animation check-mark success (Lottie hoặc CSS)
   - Auto-close sau 3s, redirect về Dashboard
-- [ ] **Optimistic update:** TanStack Query mutation, hiện toast "Đặt món thành công!"
-- [ ] **API:** `POST /api/orders` với body `CreateOrderRequest`
+- [x] **Optimistic update:** TanStack Query mutation, hiện toast "Đặt món thành công!"
+- [x] **API:** `POST /api/orders` với body `CreateOrderRequest`
 
 ### MS-1.7 — Order History & Detail
-- [ ] **Order List:** Vertical stack cards, mới nhất trên cùng
+- [x] **Order List:** Vertical stack cards, mới nhất trên cùng
   - Mỗi card: Mã đơn `#ORD-xx`, thời gian tạo (dayjs relative: "5 phút trước"), tổng tiền
   - **Status Badge** (Ant Tag):
     - 🟡 `PENDING_PAYMENT` → "Chờ thanh toán" — tag amber, pulse nhẹ
     - 🟢 `CONFIRMED` → "Đã xác nhận" — tag green
     - 🔴 `CANCELLED` → "Đã hủy" — tag red, opacity 0.7
   - Click expand hoặc mở modal chi tiết
-- [ ] **Order Detail (Expand/Modal):**
+- [x] **Order Detail (Expand/Modal):**
   - Danh sách món: tên, SL, đơn giá, thành tiền (aligned right)
   - Divider
   - Tổng cộng, phương thức thanh toán, nhân viên xác nhận (nếu có)
-- [ ] **Empty State:** Illustration + text "Chưa có đơn hàng nào" + nút "Gọi món ngay"
-- [ ] **Pull-to-refresh:** Trên mobile, kéo xuống để refetch
-- [ ] **Pagination:** Load more button hoặc infinite scroll
-- [ ] **API:** `GET /api/orders/session/{sessionId}?page=0&size=10` (lấy danh sách đơn theo phiên của khách, bảo vệ IDOR)
+- [x] **Empty State:** Illustration + text "Chưa có đơn hàng nào" + nút "Gọi món ngay"
+- [x] **Pull-to-refresh:** Trên mobile, kéo xuống để refetch
+- [x] **Pagination:** Load more button hoặc infinite scroll
+- [x] **API:** `GET /api/orders/session/{sessionId}?page=0&size=10` (lấy danh sách đơn theo phiên của khách, bảo vệ IDOR)
 
 ### MS-1.8 — Page Transitions & Animations
-- [ ] **Framer Motion `AnimatePresence`** trên route changes:
+- [x] **Framer Motion `AnimatePresence`** trên route changes:
   - Fade + slide-up (y: 20 → 0, opacity: 0 → 1) cho mọi page
   - Duration: 0.3s, ease: `[0.4, 0, 0.2, 1]`
-- [ ] **Micro-interactions:**
+- [x] **Micro-interactions:**
   - Button press: scale(0.97) → scale(1) spring
   - Card hover (desktop): translateY(-2px) + shadow tăng
   - Tab switch: underline sliding animation
   - Number changes (giá, quantity): countUp/countDown animation
   - Toast notifications: slide-in từ top-right
-- [ ] **Countdown timer:** Smooth circular progress ring animation (SVG `stroke-dashoffset` transition)
-- [ ] **Sparkle decoration:** CSS pseudo-elements, small dots `gold` random position trên Login + Dashboard hero section (giống reference)
-- [ ] **Loading skeleton:** Ant Skeleton với custom color matching dark theme
+- [x] **Countdown timer:** Smooth circular progress ring animation (SVG `stroke-dashoffset` transition)
+- [x] **Sparkle decoration:** CSS pseudo-elements, small dots `gold` random position trên Login + Dashboard hero section (giống reference)
+- [x] **Loading skeleton:** Ant Skeleton với custom color matching dark theme
 
 ### MS-1.9 — Mobile Responsive (QR Ordering)
 
 > [!IMPORTANT]
 > Khách hàng có thể **quét QR trên bàn bằng điện thoại** để gọi món. URL dạng: `https://cybernet.local/customer?code=VIP-01`. Giao diện phải tối ưu cho mobile touch.
 
-- [ ] **Breakpoints:**
+- [x] **Breakpoints:**
   - `< 640px` (sm): Mobile phone — single column, bottom nav, large touch targets
   - `640-1024px` (md): Tablet — 2 columns, sidebar collapse
   - `> 1024px` (lg): Desktop PC tiệm — full layout
-- [ ] **Mobile Navigation:** Bottom tab bar (fixed) thay vì top bar:
+- [x] **Mobile Navigation:** Bottom tab bar (fixed) thay vì top bar:
   - 🏠 Trang chủ · 🍔 Gọi món · 📋 Đơn hàng · 👤 Tài khoản
   - Active tab: icon + text color `gold`, indicator dot
-- [ ] **Touch Optimization:**
+- [x] **Touch Optimization:**
   - Minimum tap target: 44x44px
   - Swipe gestures: swipe-left to delete cart item
   - Pull-down to refresh on order list
   - Large +/- buttons (48px) trên menu items
-- [ ] **Mobile-specific layout:**
+- [x] **Mobile-specific layout:**
   - Login: full-screen, form chiếm 90% width, keyboard-aware (viewport resize)
   - Dashboard: countdown timer compact (horizontal bar instead of ring)
   - Menu: 2-column grid, card smaller, giá + nút + cùng dòng
   - Cart: Full-screen bottom sheet thay vì drawer
   - Order history: card list, expandable accordion
-- [ ] **Performance mobile:**
+- [x] **Performance mobile:**
   - Lazy load images (nếu có)
   - Reduce animation trên low-end devices (`prefers-reduced-motion`)
   - Service Worker cho offline fallback page (PWA-lite)
 
 ### MS-1.10 — Loading States & Error Handling
-- [ ] **Global loading:** Thin gold progress bar trên cùng (NProgress-style) khi API call
-- [ ] **Skeleton screens:** Cho Dashboard, Menu, Order list — hình dạng giống content thật, color `slate` shimmer
-- [ ] **Error Boundary:** Catch React errors, hiện fallback UI "Đã xảy ra lỗi" + nút Thử lại
-- [ ] **API Error handling:**
+- [x] **Global loading:** Thin gold progress bar trên cùng (NProgress-style) khi API call
+- [x] **Skeleton screens:** Cho Dashboard, Menu, Order list — hình dạng giống content thật, color `slate` shimmer
+- [x] **Error Boundary:** Catch React errors, hiện fallback UI "Đã xảy ra lỗi" + nút Thử lại
+- [x] **API Error handling:**
   - 401: Auto-refresh token, nếu fail → redirect login
   - 403: Toast "Bạn không có quyền truy cập"
   - 404: Trang "Không tìm thấy" với illustration
   - 500: Toast "Lỗi máy chủ, vui lòng thử lại"
   - Network error: Toast "Mất kết nối mạng" + retry button
-- [ ] **Empty states:** Custom illustration + text + CTA cho mỗi danh sách trống
-- [ ] **Toast notification:** Ant `message` hoặc custom toast, vị trí top-center, theme dark
+- [x] **Empty states:** Custom illustration + text + CTA cho mỗi danh sách trống
+- [x] **Toast notification:** Ant `message` hoặc custom toast, vị trí top-center, theme dark
 
 ### MS-1.11 — Edge Cases & UX Polish
-- [ ] **Session expired:** Auto-detect khi phiên hết giờ → modal "Phiên đã kết thúc" → redirect login
-- [ ] **Concurrent order:** Nếu item hết hàng sau khi thêm vào cart → hiện warning khi submit
-- [ ] **Double-click prevention:** Disable button sau khi click, re-enable sau API response
-- [ ] **Form validation UX:** Real-time validation, hiện lỗi dưới input (red text), shake animation
-- [ ] **Accessibility:** Focus ring visible (outline `gold`), aria-labels trên icon buttons
-- [ ] **Favicon + Title:** Dynamic title: "CyberNet — [Tên màn hình]"
+- [x] **Session expired:** Auto-detect khi phiên hết giờ → modal "Phiên đã kết thúc" → redirect login
+- [x] **Concurrent order:** Nếu item hết hàng sau khi thêm vào cart → hiện warning khi submit
+- [x] **Double-click prevention:** Disable button sau khi click, re-enable sau API response
+- [x] **Form validation UX:** Real-time validation, hiện lỗi dưới input (red text), shake animation
+- [x] **Accessibility:** Focus ring visible (outline `gold`), aria-labels trên icon buttons
+- [x] **Favicon + Title:** Dynamic title: "CyberNet — [Tên màn hình]"
+
+### ⚠️ CHECKLIST BẮT BUỘC TRƯỚC KHI BẮT ĐẦU PHASE 2 (MUST-FIX ĐẦU PHIÊN SAU)
+> **Yêu cầu bắt buộc:** Bổ sung thuộc tính `imageUrl` (ảnh món ăn) cho Thực đơn & Món ăn để hiển thị ảnh trực quan (mì tôm, Sting, gà rán, bò húc,...):
+- [ ] **Backend (Spring Boot):**
+  - Cập nhật Entity `Item.java`: thêm trường `private String imageUrl;`.
+  - Tạo Migration Flyway `V4__add_image_url_to_items.sql`: `ALTER TABLE items ADD COLUMN image_url VARCHAR(500);` kèm dữ liệu update ảnh cho các món mẫu hiện có.
+  - Cập nhật DTOs: `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest` ánh xạ trường `imageUrl`.
+  - Viết Unit / Integration Test kiểm tra lưu và trả về `imageUrl` khi gọi `GET /api/items`.
+- [ ] **Frontend (React 19):**
+  - Cập nhật `types/item.ts`: `imageUrl?: string`.
+  - Cập nhật `MenuCard.tsx`: Render ảnh món ăn thật với thumbnail mượt mà, aspect ratio chuẩn, hiệu ứng bo góc CyberLux (fallback sang Lucide Icon nếu món không có ảnh).
+  - Cập nhật `CartDrawer.tsx` & `OrderDetailDrawer.tsx`: Bổ sung thumbnail ảnh thu nhỏ cạnh tên món.
+
+### MS-1.12 — Integration Test & Bug Fix (Sau khi hoàn tất checklist ảnh món)
+- [ ] Test flow end-to-end: Login → Dashboard → Menu có ảnh → Add to cart → Order → View history
+- [ ] Test responsive: Chrome DevTools mobile emulation (iPhone SE, iPhone 14, iPad)
+- [ ] Test error scenarios: wrong password, expired token, network offline
+- [ ] Fix layout bugs, animation glitches, API race conditions
+- [ ] Performance audit: Lighthouse score > 90
 
 ### MS-1.12 — Integration Test & Bug Fix
 - [ ] Test flow end-to-end: Login → Dashboard → Menu → Add to cart → Order → View history

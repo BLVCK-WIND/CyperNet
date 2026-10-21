@@ -1,0 +1,77 @@
+export type Role = 'CUSTOMER' | 'STAFF' | 'ADMIN';
+
+export interface Account {
+  id: number;
+  phone: string;
+  name: string;
+  role: Role;
+  remainingMinutes: number;
+  createdAt: string;
+}
+
+export interface SessionResponse {
+  id: number;
+  computerId: number;
+  computerCode: string;
+  computerZone: 'STANDARD' | 'VIP';
+  pricePerHour: number;
+  accountId: number;
+  accountName: string;
+  accountPhone: string;
+  accountRemainingMinutes: number;
+  startedAt: string;
+  expiresAt: string;
+  endedAt: string | null;
+  status: 'ACTIVE' | 'ENDED';
+  playedMinutes: number;
+  remainingMinutesUntilExpiry: number;
+  serverTime: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  account: Account;
+  tokenType: string;
+}
+
+export interface CustomerAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  account: Account;
+  session: SessionResponse;
+  tokenType: string;
+}
+
+export interface CustomerLoginRequest {
+  computerCode: string;
+  phone: string;
+}
+
+export interface LoginRequest {
+  phone: string;
+  password: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface LogoutRequest {
+  refreshToken: string;
+}
+
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface ErrorResponse {
+  status: number;
+  errorCode: string;
+  message: string;
+  fieldErrors: FieldError[] | null;
+  timestamp: string;
+}
