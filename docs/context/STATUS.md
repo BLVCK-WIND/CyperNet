@@ -23,19 +23,22 @@
 
 ---
 
-## ⚠️ CHECKLIST BẮT BUỘC TRƯỚC KHI BẮT ĐẦU PHASE 2 (MUST-FIX ĐẦU PHIÊN SAU)
-> **Nhiệm vụ bắt buộc:** Bổ sung thuộc tính `imageUrl` (ảnh món ăn) cho Thực đơn & Món ăn:
-- [ ] **Backend (Item Entity & DTOs):** Bổ sung trường `imageUrl` (String) vào `Item`, migration Flyway V4 thêm cột `image_url VARCHAR(500)` vào bảng `items`, cập nhật `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest` và script nạp sẵn ảnh mẫu (mì tôm, Sting dâu/vàng, gà rán, bò húc, nước suối...).
-- [ ] **Frontend (Customer Menu & Cart):** Cập nhật `types/item.ts` (`imageUrl?: string`), chỉnh sửa `MenuCard.tsx` hiển thị ảnh món ăn thật với thumbnail bo góc đẹp mắt (fallback sang Lucide Icon nếu không có ảnh), cập nhật `CartDrawer.tsx` và `OrderDetailDrawer.tsx`.
+## 🟢 Cột mốc hoàn thành trước Phase 2 (ĐÃ HOÀN TẤT)
+> **Nhiệm vụ bắt buộc:** Bổ sung thuộc tính `imageUrl` (ảnh món ăn) cho Thực đơn & Món ăn và tối ưu độ ổn định giao diện:
+- [x] **Backend (Item Entity & DTOs):** Bổ sung trường `imageUrl` (String) vào `Item`, migration Flyway V4 thêm cột `image_url VARCHAR(500)` vào bảng `items`, cập nhật `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest`, `OrderItemResponse` và nạp sẵn ảnh mẫu Unsplash Food CDN độ nét cao cho các món.
+- [x] **Frontend (Customer Menu & Cart):** Cập nhật `types/item.ts` (`imageUrl?: string`), `types/order.ts` (`itemImageUrl?: string`), cập nhật `MenuCard.tsx` hiển thị ảnh thumbnail bo góc CyberLux (kèm fallback Lucide Icon khi không có ảnh hoặc lỗi mạng), cập nhật thumbnail cho `CartDrawer.tsx` và `OrderDetailDrawer.tsx`.
+- [x] **Frontend Polish & Bugfixes (Zero-Warning & CyberLux Smoothness):**
+  - Khắc phục triệt để lỗi chớp modal "Phiên chơi đã kết thúc" trong 0.1s khi đăng nhập bằng cách chuyển `useCountdown` sang derived state đồng bộ (`useMemo`).
+  - Tinh chỉnh hiệu ứng chuyển trang `PageTransition` và `StaggerContainer` theo chuẩn CyberLux mượt mà (0.28s, cubic-bezier, micro-scale), triệt tiêu hoàn toàn hiện tượng nảy giật trục Y kép 26px từ dưới lên và co giật khung hình do scrollbar Windows (`scrollbar-gutter: stable`).
+  - Dọn sạch 100% Ant Design warnings (`App.useApp()` thay thế static `message`, Drawer `size` thay cho `width`, sửa deprecation `mask.closable`).
 
 ---
 
 ## 🟢 Kế hoạch kế tiếp:
-1. **Ưu tiên 1:** Hoàn thành Checklist Must-Fix: Bổ sung thuộc tính `imageUrl` và hiển thị ảnh món ăn cho Menu Phase 1.
-2. **Ưu tiên 2:** Bắt tay triển khai **Phase 2: Staff Dashboard (Floor Map sơ đồ máy, POS nạp giờ, Order Queue duyệt đơn & chuyển máy)**.
+1. **Ưu tiên hàng đầu:** Bắt tay triển khai **Phase 2: Staff Dashboard (Floor Map sơ đồ máy, POS nạp giờ, Order Queue duyệt đơn & chuyển máy)** bắt đầu từ **MS-2.1 (Staff Layout & Navigation)**.
 
 ---
 
 ## 🎯 Tổng kết chất lượng:
-- **Backend:** 97 Java source files, 73/73 tests PASS 100%, 47/47 runtime HTTP tests PASS.
+- **Backend:** 99 Java source files, 78/78 tests PASS 100%, Flyway Schema V4 applied.
 - **Frontend:** React 19 + TypeScript + Vite + Tailwind 4 + Ant Design 5 (CyberLux Theme), `npm run build` PASS 100% (code 0).

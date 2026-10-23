@@ -9,7 +9,7 @@ interface UseSessionOptions {
 }
 
 export function useSession({ computerCode, enabled = true }: UseSessionOptions = {}) {
-  const { setSessionId, updateUser, user } = useAuthStore();
+  const { setSessionId, updateUser, user, isAuthenticated } = useAuthStore();
 
   const query = useQuery<SessionResponse>({
     queryKey: ['active-session', computerCode],
@@ -29,7 +29,7 @@ export function useSession({ computerCode, enabled = true }: UseSessionOptions =
       }
       return data;
     },
-    enabled: Boolean(computerCode && enabled),
+    enabled: Boolean(computerCode && enabled && isAuthenticated),
     refetchInterval: 15000, // Định kỳ 15 giây đồng bộ trạng thái phiên
     retry: 1,
   });

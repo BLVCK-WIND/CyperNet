@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Button, Tag, message } from 'antd';
+import { Modal, Button, Tag, App } from 'antd';
 import { QrCode, CheckCircle2, ShieldCheck, Copy } from 'lucide-react';
 import type { OrderResponse, VietQrResponse } from '@/types/order';
 
@@ -18,6 +18,7 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
   vietQr,
   onConfirmPaid,
 }) => {
+  const { message } = App.useApp();
   if (!order || !vietQr) return null;
 
   const formattedAmount = new Intl.NumberFormat('vi-VN', {

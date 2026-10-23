@@ -33,6 +33,11 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   background-color: var(--color-midnight);

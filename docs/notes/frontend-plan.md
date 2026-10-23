@@ -395,14 +395,14 @@ flowchart TD
 - [x] **Accessibility:** Focus ring visible (outline `gold`), aria-labels trên icon buttons
 - [x] **Favicon + Title:** Dynamic title: "CyberNet — [Tên màn hình]"
 
-### ⚠️ CHECKLIST BẮT BUỘC TRƯỚC KHI BẮT ĐẦU PHASE 2 (MUST-FIX ĐẦU PHIÊN SAU)
+### 🟢 CHECKLIST TRƯỚC KHI BẮT ĐẦU PHASE 2 (ĐÃ HOÀN TẤT)
 > **Yêu cầu bắt buộc:** Bổ sung thuộc tính `imageUrl` (ảnh món ăn) cho Thực đơn & Món ăn để hiển thị ảnh trực quan (mì tôm, Sting, gà rán, bò húc,...):
-- [ ] **Backend (Spring Boot):**
+- [x] **Backend (Spring Boot):**
   - Cập nhật Entity `Item.java`: thêm trường `private String imageUrl;`.
   - Tạo Migration Flyway `V4__add_image_url_to_items.sql`: `ALTER TABLE items ADD COLUMN image_url VARCHAR(500);` kèm dữ liệu update ảnh cho các món mẫu hiện có.
   - Cập nhật DTOs: `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest` ánh xạ trường `imageUrl`.
   - Viết Unit / Integration Test kiểm tra lưu và trả về `imageUrl` khi gọi `GET /api/items`.
-- [ ] **Frontend (React 19):**
+- [x] **Frontend (React 19):**
   - Cập nhật `types/item.ts`: `imageUrl?: string`.
   - Cập nhật `MenuCard.tsx`: Render ảnh món ăn thật với thumbnail mượt mà, aspect ratio chuẩn, hiệu ứng bo góc CyberLux (fallback sang Lucide Icon nếu món không có ảnh).
   - Cập nhật `CartDrawer.tsx` & `OrderDetailDrawer.tsx`: Bổ sung thumbnail ảnh thu nhỏ cạnh tên món.

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tag, Skeleton, message } from 'antd';
+import { Button, Tag, Skeleton, App } from 'antd';
 import {
   LogOut,
   Monitor,
@@ -23,6 +23,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export const CustomerDashboardPage: React.FC = () => {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const { user, computerCode, logout } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);

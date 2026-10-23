@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cybernet.internet_cafe_management.dto.request.CreateItemRequest;
+import com.cybernet.internet_cafe_management.dto.request.UpdateItemRequest;
 import com.cybernet.internet_cafe_management.dto.response.ItemResponse;
 import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.entity.Item;
@@ -74,7 +75,7 @@ public class ItemController {
     @Operation(summary = "Cập nhật thông tin món hàng", description = "Chỉnh sửa tên, giá tiền, loại mặt hàng hoặc trạng thái tồn kho. Yêu cầu đặc quyền ADMIN.")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ItemResponse> updateItem(@PathVariable Long id, @RequestBody CreateItemRequest request) {
+    public ResponseEntity<ItemResponse> updateItem(@PathVariable Long id, @Valid @RequestBody UpdateItemRequest request) {
         ItemResponse response = itemService.updateItem(id, request);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

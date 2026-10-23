@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Input, Skeleton, Button, Badge, message } from 'antd';
+import { Input, Skeleton, Button, Badge, App } from 'antd';
 import {
   ArrowLeft,
   Search,
@@ -26,6 +26,7 @@ import type { ItemResponse } from '@/types/item';
 import type { OrderResponse, VietQrResponse } from '@/types/order';
 
 export const CustomerMenuPage: React.FC = () => {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const { sessionId } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');

@@ -31,6 +31,9 @@ export function useCountdown({
   startedAt,
   onExpire,
 }: UseCountdownOptions): CountdownResult {
+  const [tick, setTick] = useState(0);
+  const onExpireCalledRef = useRef(false);
+
   // 1. Tính độ lệch đồng hồ máy khách so với máy chủ (Clock Drift Offset tính bằng mili-giây)
   const clientClockOffsetMs = useMemo(() => {
     if (!serverTime) return 0;
@@ -60,37 +63,35 @@ export function useCountdown({
     }
   }, [startedAt]);
 
-  const computeRemainingSeconds = (): number => {
-    if (!expireTimeMs) return 0;
-    const currentAdjustedServerTime = Date.now() - clientClockOffsetMs;
-    const remainingMs = expireTimeMs - currentAdjustedServerTime;
-    return Math.max(0, Math.floor(remainingMs / 1000));
-  };
-
-  const [totalSeconds, setTotalSeconds] = useState<number>(computeRemainingSeconds);
-  const onExpireCalledRef = useRef(false);
-
+  // Bộ đếm thời gian 1 giây cập nhật re-render
   useEffect(() => {
-    // Reset và tính toán lại khi expireTimeMs hoặc serverTime thay đổi
-    setTotalSeconds(computeRemainingSeconds());
     onExpireCalledRef.current = false;
-
     if (!expireTimeMs) return;
 
     const interval = setInterval(() => {
-      const remaining = computeRemainingSeconds();
-      setTotalSeconds(remaining);
-
-      if (remaining <= 0 && !onExpireCalledRef.current) {
-        onExpireCalledRef.current = true;
-        if (onExpire) {
-          onExpire();
-        }
-      }
+      setTick((t) => t + 1);
     }, 1000);
 
     return () => clearInterval(interval);
   }, [expireTimeMs, clientClockOffsetMs]);
+
+  // Tính toán đồng bộ số giây còn lại ngay trong lần render hiện tại (tránh stale state = 0 làm kích hoạt flash modal)
+  const totalSeconds = useMemo(() => {
+    if (!expireTimeMs) return 0;
+    const currentAdjustedServerTime = Date.now() - clientClockOffsetMs;
+    const remainingMs = expireTimeMs - currentAdjustedServerTime;
+    return Math.max(0, Math.floor(remainingMs / 1000));
+  }, [expireTimeMs, clientClockOffsetMs, tick]);
+
+  // Gọi callback khi hết giờ
+  useEffect(() => {
+    if (expireTimeMs && totalSeconds <= 0 && !onExpireCalledRef.current) {
+      onExpireCalledRef.current = true;
+      if (onExpire) {
+        onExpire();
+      }
+    }
+  }, [totalSeconds, expireTimeMs, onExpire]);
 
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

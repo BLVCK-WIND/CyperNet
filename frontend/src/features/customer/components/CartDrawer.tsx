@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Drawer, Button, message, Divider } from 'antd';
+import { Drawer, Button, App, Divider } from 'antd';
 import {
   ShoppingBag,
   Trash2,
@@ -27,6 +27,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onClose,
   onOrderSuccess,
 }) => {
+  const { message } = App.useApp();
   const {
     items,
     updateQuantity,
@@ -108,7 +109,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       open={isOpen}
       onClose={onClose}
       placement="right"
-      width={typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : 390}
+      size={typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : 390}
       title={
         <div className="flex items-center justify-between text-sand">
           <div className="flex items-center gap-2">
@@ -236,6 +237,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 key={item.id}
                 className="p-3 rounded-xl bg-slate/50 border border-mist/15 flex items-center justify-between gap-3"
               >
+                {/* Thumbnail */}
+                <div className="w-12 h-12 rounded-lg bg-midnight/80 border border-mist/20 overflow-hidden shrink-0 flex items-center justify-center">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <UtensilsCrossed className="w-5 h-5 text-gold/70" />
+                  )}
+                </div>
+
                 {/* Item Details */}
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-semibold text-sand truncate">

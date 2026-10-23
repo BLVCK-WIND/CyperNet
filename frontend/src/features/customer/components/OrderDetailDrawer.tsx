@@ -7,6 +7,7 @@ import {
   QrCode,
   Coins,
   Monitor,
+  Utensils,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import type { OrderResponse } from '@/types/order';
@@ -41,7 +42,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
       open={isOpen}
       onClose={onClose}
       placement="right"
-      width={380}
+      size={380}
       title={
         <div className="flex items-center gap-2 text-sand">
           <ReceiptText className="w-5 h-5 text-gold" />
@@ -157,17 +158,30 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
               return (
                 <div
                   key={item.id}
-                  className="p-3 rounded-lg bg-slate/40 border border-mist/10 flex items-center justify-between"
+                  className="p-3 rounded-lg bg-slate/40 border border-mist/10 flex items-center justify-between gap-3"
                 >
-                  <div>
-                    <h5 className="font-semibold text-sand text-xs m-0">
-                      {item.itemName}
-                    </h5>
-                    <span className="text-[11px] text-mist">
-                      {formattedUnitPrice} × {item.quantity}
-                    </span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-midnight/80 border border-mist/20 overflow-hidden shrink-0 flex items-center justify-center">
+                      {item.itemImageUrl || item.imageUrl ? (
+                        <img
+                          src={item.itemImageUrl || item.imageUrl}
+                          alt={item.itemName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Utensils className="w-4 h-4 text-gold/70" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="font-semibold text-sand text-xs m-0 truncate">
+                        {item.itemName}
+                      </h5>
+                      <span className="text-[11px] text-mist">
+                        {formattedUnitPrice} × {item.quantity}
+                      </span>
+                    </div>
                   </div>
-                  <span className="font-bold text-sand font-mono text-xs">
+                  <span className="font-bold text-sand font-mono text-xs shrink-0">
                     {formattedSubtotal}
                   </span>
                 </div>

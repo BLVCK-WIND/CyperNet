@@ -17,12 +17,18 @@ public class OrderItemResponse {
     private int quantity;
     private BigDecimal unitPrice;
     private BigDecimal subtotal;
+    private String itemImageUrl;
 
     public OrderItemResponse() {
     }
 
     public OrderItemResponse(Long id, Long itemId, String itemName, Type itemType,
                              int quantity, BigDecimal unitPrice, BigDecimal subtotal) {
+        this(id, itemId, itemName, itemType, quantity, unitPrice, subtotal, null);
+    }
+
+    public OrderItemResponse(Long id, Long itemId, String itemName, Type itemType,
+                             int quantity, BigDecimal unitPrice, BigDecimal subtotal, String itemImageUrl) {
         this.id = id;
         this.itemId = itemId;
         this.itemName = itemName;
@@ -30,9 +36,11 @@ public class OrderItemResponse {
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.subtotal = subtotal;
+        this.itemImageUrl = itemImageUrl;
     }
 
     public static OrderItemResponse fromEntity(OrderItem orderItem) {
+        String imageUrl = (orderItem.getItem() != null) ? orderItem.getItem().getImageUrl() : null;
         return new OrderItemResponse(
                 orderItem.getId(),
                 orderItem.getItem().getId(),
@@ -40,7 +48,8 @@ public class OrderItemResponse {
                 orderItem.getItem().getType(),
                 orderItem.getQuantity(),
                 orderItem.getUnitPrice(),
-                orderItem.getSubtotal()
+                orderItem.getSubtotal(),
+                imageUrl
         );
     }
 
@@ -98,5 +107,21 @@ public class OrderItemResponse {
 
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public String getItemImageUrl() {
+        return itemImageUrl;
+    }
+
+    public void setItemImageUrl(String itemImageUrl) {
+        this.itemImageUrl = itemImageUrl;
+    }
+
+    public String getImageUrl() {
+        return itemImageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.itemImageUrl = imageUrl;
     }
 }

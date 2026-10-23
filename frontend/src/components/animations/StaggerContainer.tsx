@@ -39,11 +39,11 @@ export const StaggerItem: React.FC<{
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 14 },
+        hidden: { opacity: 0, y: 8 },
         show: {
           opacity: 1,
           y: 0,
-          transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+          transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
         },
       }}
       className={className}

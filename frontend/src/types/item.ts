@@ -6,6 +6,7 @@ export interface ItemResponse {
   price: number;
   available: boolean;
   type: ItemType;
+  imageUrl?: string;
 }
 
 export interface PageResponse<T> {

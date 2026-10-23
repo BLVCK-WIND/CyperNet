@@ -731,29 +731,47 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 
 ---
 
+### 2026-10-23 — Bổ sung imageUrl Thực đơn & Tinh chỉnh toàn diện độ mượt Frontend
 
-Copy block bên dưới, paste vào đây, điền thông tin:
-
-### YYYY-MM-DD — [Tiêu đề]
-
-**Phase**: Phase X
-**Thời gian**: X giờ
+**Phase**: Pre-Phase 2 Stability & Image Integration
+**Thời gian**: ~3 giờ
 **Việc đã làm**:
-- 
+- **Backend (MS-A):**
+  - Bổ sung trường `imageUrl` vào `Item` entity, DTOs (`ItemResponse`, `CreateItemRequest`, `UpdateItemRequest`, `OrderItemResponse`).
+  - Viết migration `V4__add_image_url_to_items.sql` bổ sung cột `image_url VARCHAR(500)` và seed ảnh chất lượng cao Unsplash CDN cho các món.
+  - Cập nhật `ItemService.java`, `ItemController.java` và tích hợp `flyway.repair()` tự động.
+  - Viết bộ Integration Test `ItemImageUrlIntegrationTest.java` (5/5 PASS), toàn bộ test suite đạt 78/78 tests PASS 100%.
+- **Frontend (MS-B & Bugfixes):**
+  - Bổ sung `imageUrl` vào `types/item.ts` và `types/order.ts`.
+  - Thiết kế lại `MenuCard.tsx` hiển thị thumbnail ảnh tỉ lệ chuẩn CyberLux, bo góc, gradient shadow và fallback Lucide Icon.
+  - Thêm ảnh thu nhỏ vào `CartDrawer.tsx` và `OrderDetailDrawer.tsx`.
+  - Fix lỗi chớp giật modal hết hạn phiên trong 0.1s khi đăng nhập: chuyển `useCountdown.ts` sang đồng bộ tức thời bằng `useMemo` (Derived State) thay vì cập nhật trễ qua `useState` + `useEffect`.
+  - Triệt tiêu lỗi nảy giật trục Y kép 26px từ dưới lên khi chuyển trang: đồng bộ `PageTransition.tsx` (micro-scale 0.992 $\rightarrow$ 1, duration 0.28s, bezier `[0.22, 1, 0.36, 1]`) và `StaggerContainer.tsx` (y: 8px).
+  - Khắc phục rung giật layout do scrollbar trên Windows: thêm `html { scrollbar-gutter: stable; scroll-behavior: smooth; }` trong `index.css`.
+  - Dọn sạch 100% Ant Design v6 runtime warnings: chuyển toàn bộ 7 component sang dùng `const { message } = App.useApp()`, đổi `Drawer.width` sang `Drawer.size`.
+  - `npm run build` thành công 100% không phát sinh bất kỳ cảnh báo console nào.
 
 **Kỹ thuật & kiến thức áp dụng**:
 | Kỹ thuật | Dùng ở đâu | Tier |
 |---|---|---|
-|  |  |  |
+| Flyway Idempotent Dynamic SQL | `V4__add_image_url_to_items.sql` | 🟡 Trung bình |
+| DTO Projection with Media URL | `ItemResponse.java`, `OrderItemResponse.java` | 🔴 Tier 1 |
+| Derived State Pattern in React | `frontend/src/features/customer/hooks/useCountdown.ts` | 🟡 Trung bình |
+| Ant Design v6 Contextual Message Bridge | `App.useApp()` trên toàn bộ 7 components | 🟢 Cơ bản |
+| Micro-scale Page Transition Depth | `frontend/src/components/animations/PageTransition.tsx` | 🟡 Trung bình |
+| CSS Scrollbar Gutter Stabilization | `frontend/src/styles/index.css` | 🟢 Cơ bản |
 
 **Lỗi gặp phải & cách fix**:
-- 
+- `useCountdown` dùng `useState` + `useEffect` gây lag 1 khung hình làm `totalSeconds = 0`, kích hoạt `countdown.isExpired` nhấp nháy modal kết thúc phiên $\rightarrow$ Chuyển `totalSeconds` sang tính toán đồng bộ tức thì bằng `useMemo`.
+- `PageTransition` (`y: 12`) kết hợp cùng `StaggerItem` (`y: 14`) gây cộng hưởng trục Y 26px làm trang bị giật nảy từ dưới trồi lên $\rightarrow$ Đổi toàn trang sang micro-scale và giảm biên độ `StaggerItem` xuống `y: 8`.
+- Cảnh báo Ant Design static function can not consume context $\rightarrow$ Đổi sang `const { message } = App.useApp()`.
+- Cảnh báo `Drawer.width` deprecated $\rightarrow$ Thay thế bằng thuộc tính `size`.
 
 **Ghi chú / Bài học rút ra**:
-- 
+- Tuyệt đối không lưu derived state từ props vào `useState` rồi chờ `useEffect` cập nhật nếu state đó quyết định logic hiển thị quan trọng (như modal cảnh báo), hãy tính toán đồng bộ qua `useMemo`.
+- Animation toàn trang (Page Transition) nên ưu tiên thay đổi độ trong suốt (`opacity`) hoặc co giãn vi mô (`scale`) thay vì dịch chuyển trục Y (`translateY`), để tránh làm xê dịch thanh Header cố định và cộng hưởng với animation của các thẻ con bên trong.
 
 ---
--->
 
 
 

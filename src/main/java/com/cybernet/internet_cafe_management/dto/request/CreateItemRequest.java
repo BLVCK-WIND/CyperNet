@@ -23,14 +23,22 @@ public class CreateItemRequest {
     @NotNull(message = "Loại mặt hàng không được để trống")
     private Item.Type type;
 
+    @Size(max = 500, message = "Đường dẫn ảnh tối đa 500 ký tự")
+    private String imageUrl;
+
     public CreateItemRequest() {
     }
 
     public CreateItemRequest(String name, BigDecimal price, boolean available, Item.Type type) {
+        this(name, price, available, type, null);
+    }
+
+    public CreateItemRequest(String name, BigDecimal price, boolean available, Item.Type type, String imageUrl) {
         this.name = name;
         this.price = price;
         this.available = available;
         this.type = type;
+        this.imageUrl = imageUrl;
     }
 
     public String getName() {
@@ -63,5 +71,13 @@ public class CreateItemRequest {
 
     public void setType(Item.Type type) {
         this.type = type;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

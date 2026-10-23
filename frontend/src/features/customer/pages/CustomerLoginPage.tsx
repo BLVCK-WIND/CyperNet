@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Input, Button, Tag, message } from 'antd';
+import { Input, Button, Tag, App } from 'antd';
 import { Phone, Monitor, AlertTriangle, Sparkles as SparklesIcon, LogIn, ArrowRight } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { PageTransition } from '@/components/animations/PageTransition';
@@ -13,14 +13,15 @@ import type { ComputerCheckResponse } from '@/types/session';
 import type { ErrorResponse } from '@/types/auth';
 
 export const CustomerLoginPage: React.FC = () => {
+  const { message } = App.useApp();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const setCustomerAuth = useAuthStore((state) => state.setCustomerAuth);
 
   useDocumentTitle('Đăng nhập máy trạm');
 
-  // Lấy mã máy từ query param ?code=...
-  const computerCode = searchParams.get('code') || '';
+  // Lấy mã máy từ query param ?code=... hoặc máy đã lưu, mặc định PC-01
+  const computerCode = searchParams.get('code') || useAuthStore((s) => s.computerCode) || 'PC-01';
 
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);

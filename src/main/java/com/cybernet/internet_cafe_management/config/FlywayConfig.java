@@ -43,6 +43,7 @@ public class FlywayConfig {
                 .baselineVersion(baselineVersion)
                 .load();
 
+        flyway.repair();
         flyway.migrate();
         log.info("Flyway migration completed successfully. Current schema version: {}",
                 flyway.info().current() != null ? flyway.info().current().getVersion().getVersion() : "none");

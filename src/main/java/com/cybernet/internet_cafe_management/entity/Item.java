@@ -22,6 +22,9 @@ public class Item {
     @Column(nullable = false)
     private boolean available = true;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     public enum Type {
         DRINK, FOOD, SERVICE, PLAYTIME
     }

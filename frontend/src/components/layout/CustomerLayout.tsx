@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { App } from 'antd';
 import { CustomerBottomNav } from './CustomerBottomNav';
 import { SessionExpiredModal } from '@/components/ui/SessionExpiredModal';
 import { useSession } from '@/features/customer/hooks/useSession';
@@ -8,10 +8,17 @@ import { useCountdown } from '@/features/customer/hooks/useCountdown';
 import { useAuthStore } from '@/store/authStore';
 
 export const CustomerLayout: React.FC = () => {
+  const { message } = App.useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const { computerCode, logout } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [manualDismissed, setManualDismissed] = useState(false);
+
+  // Cuộn mượt mà lên đầu trang khi chuyển tab/trang trong phiên khách
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const { data: session, refetch: refetchSession } = useSession({
     computerCode: computerCode || undefined,
@@ -30,7 +37,10 @@ export const CustomerLayout: React.FC = () => {
   const isSessionExpired =
     !manualDismissed &&
     Boolean(session) &&
-    (countdown.isExpired || session?.status === 'ENDED');
+    (session?.status === 'ENDED' ||
+      (countdown.isExpired &&
+        (session?.remainingMinutesUntilExpiry === undefined ||
+          session.remainingMinutesUntilExpiry <= 0)));
 
   const handleLogout = async () => {
     try {

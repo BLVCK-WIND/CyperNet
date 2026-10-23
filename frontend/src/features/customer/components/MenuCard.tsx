@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Tag } from 'antd';
 import { Utensils, Coffee, Clock, Gamepad2, Plus } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -40,6 +40,7 @@ const getItemTypeLabel = (type: ItemType): string => {
 };
 
 export const MenuCard: React.FC<MenuCardProps> = ({ item, onAddToCart }) => {
+  const [imgError, setImgError] = useState(false);
   const isOutOfStock = !item.available;
 
   const formattedPrice = new Intl.NumberFormat('vi-VN', {
@@ -47,47 +48,67 @@ export const MenuCard: React.FC<MenuCardProps> = ({ item, onAddToCart }) => {
     currency: 'VND',
   }).format(item.price);
 
+  const hasValidImage = Boolean(item.imageUrl) && !imgError;
+
   return (
     <GlassCard
       elevated
       glowOnHover={!isOutOfStock}
-      className={`relative flex flex-col justify-between p-4 rounded-xl border-mist/15 transition-all duration-300 group ${
-        isOutOfStock ? 'opacity-45 pointer-events-none' : 'hover:-translate-y-1'
+      className={`relative flex flex-col justify-between p-3.5 sm:p-4 rounded-xl border-mist/15 transition-all duration-300 group ${
+        isOutOfStock ? 'opacity-50 pointer-events-none' : 'hover:-translate-y-1'
       }`}
     >
-      {/* Out of Stock Overlay Badge */}
-      {isOutOfStock && (
-        <div className="absolute top-2.5 right-2.5 z-20">
-          <Tag color="#EF5350" className="m-0 font-bold text-[10px] uppercase tracking-wider border-0 shadow-sm">
-            Hết hàng
-          </Tag>
-        </div>
-      )}
+      {/* Top Part: Thumbnail Image or Fallback Icon */}
+      <div className="relative w-full h-32 sm:h-36 rounded-lg overflow-hidden mb-3 bg-midnight/80 border border-mist/10 flex items-center justify-center">
+        {hasValidImage ? (
+          <>
+            <img
+              src={item.imageUrl}
+              alt={item.name}
+              loading="lazy"
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            {/* Subtle Gradient Shadow */}
+            <div className="absolute inset-0 bg-gradient-to-t from-midnight/70 via-transparent to-transparent pointer-events-none" />
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-midnight/40 to-slate/40">
+            <div className="w-11 h-11 rounded-xl bg-midnight/90 border border-gold/30 flex items-center justify-center shadow-inner group-hover:border-gold transition-colors duration-300">
+              {getItemIcon(item.type)}
+            </div>
+          </div>
+        )}
 
-      {/* Top Part: Icon & Category */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-lg bg-midnight/90 border border-gold/30 flex items-center justify-center shadow-inner group-hover:border-gold transition-colors duration-300">
-          {getItemIcon(item.type)}
-        </div>
-        {!isOutOfStock && (
-          <span className="text-[10px] uppercase font-semibold tracking-wider text-mist px-2 py-0.5 rounded bg-slate/40 border border-mist/10">
+        {/* Floating Category Tag */}
+        <div className="absolute top-2 left-2 z-10">
+          <span className="text-[10px] uppercase font-semibold tracking-wider text-sand px-2 py-0.5 rounded bg-midnight/85 backdrop-blur-md border border-gold/25 shadow-sm">
             {getItemTypeLabel(item.type)}
           </span>
+        </div>
+
+        {/* Out of Stock Overlay Badge */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 z-20 bg-obsidian/75 backdrop-blur-[2px] flex items-center justify-center">
+            <Tag color="#EF5350" className="m-0 font-bold text-xs uppercase tracking-wider border-0 shadow-md">
+              Hết hàng
+            </Tag>
+          </div>
         )}
       </div>
 
       {/* Middle Part: Name */}
-      <div className="mb-4">
+      <div className="mb-3 flex-1">
         <h3 className="text-sm sm:text-base font-semibold text-sand line-clamp-2 leading-snug group-hover:text-gold transition-colors duration-200">
           {item.name}
         </h3>
       </div>
 
       {/* Bottom Part: Price & Add Button */}
-      <div className="flex items-center justify-between pt-2 border-t border-mist/10">
+      <div className="flex items-center justify-between pt-2 border-t border-mist/10 mt-auto">
         <div>
           <span className="text-[10px] text-mist block">Giá tiền</span>
-          <span className="text-base font-bold text-gold font-['Space_Grotesk'] tracking-wide">
+          <span className="text-base sm:text-lg font-bold text-gold font-['Space_Grotesk'] tracking-wide">
             {formattedPrice}
           </span>
         </div>

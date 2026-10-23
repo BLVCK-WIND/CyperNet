@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Skeleton, message } from 'antd';
+import { Button, Skeleton, App } from 'antd';
 import {
   ArrowLeft,
   ReceiptText,
@@ -20,8 +20,9 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { OrderResponse, VietQrResponse } from '@/types/order';
 
 export const CustomerOrderHistoryPage: React.FC = () => {
+  const { message } = App.useApp();
   const navigate = useNavigate();
-  const { sessionId } = useAuthStore();
+  const { sessionId, isAuthenticated } = useAuthStore();
 
   useDocumentTitle('Lịch sử đơn hàng');
 
@@ -48,7 +49,7 @@ export const CustomerOrderHistoryPage: React.FC = () => {
       }
       return orderApi.getOrdersBySession(sessionId, { page: 0, size: 30 });
     },
-    enabled: Boolean(sessionId),
+    enabled: Boolean(sessionId && isAuthenticated),
     refetchInterval: 10000, // Polling định kỳ 10 giây cập nhật trạng thái đơn
   });
 

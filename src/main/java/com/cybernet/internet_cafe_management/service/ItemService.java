@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.cybernet.internet_cafe_management.dto.request.CreateItemRequest;
+import com.cybernet.internet_cafe_management.dto.request.UpdateItemRequest;
 import com.cybernet.internet_cafe_management.dto.response.ItemResponse;
 import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.entity.Item;
@@ -29,6 +30,7 @@ public class ItemService {
         item.setPrice(request.getPrice());
         item.setAvailable(request.isAvailable());
         item.setType(request.getType());
+        item.setImageUrl(request.getImageUrl());
         return ItemResponse.fromEntity(itemRepository.save(item));
     }
 
@@ -63,6 +65,18 @@ public class ItemService {
         item.setPrice(request.getPrice());
         item.setAvailable(request.isAvailable());
         item.setType(request.getType());
+        item.setImageUrl(request.getImageUrl());
+        return ItemResponse.fromEntity(itemRepository.save(item));
+    }
+
+    public ItemResponse updateItem(Long id, UpdateItemRequest request) {
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy món ăn với id: " + id));
+        item.setName(request.getName());
+        item.setPrice(request.getPrice());
+        item.setAvailable(request.isAvailable());
+        item.setType(request.getType());
+        item.setImageUrl(request.getImageUrl());
         return ItemResponse.fromEntity(itemRepository.save(item));
     }
 

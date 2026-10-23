@@ -21,7 +21,7 @@ export const SessionExpiredModal: React.FC<SessionExpiredModalProps> = ({
     <Modal
       open={open}
       closable={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       footer={null}
       centered
       width={400}

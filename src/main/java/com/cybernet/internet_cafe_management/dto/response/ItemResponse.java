@@ -10,16 +10,22 @@ public class ItemResponse {
     private BigDecimal price;
     private boolean available;
     private Item.Type type;
+    private String imageUrl;
 
     public ItemResponse() {
     }
 
     public ItemResponse(Long id, String name, BigDecimal price, boolean available, Item.Type type) {
+        this(id, name, price, available, type, null);
+    }
+
+    public ItemResponse(Long id, String name, BigDecimal price, boolean available, Item.Type type, String imageUrl) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.available = available;
         this.type = type;
+        this.imageUrl = imageUrl;
     }
 
     public static ItemResponse fromEntity(Item item) {
@@ -28,7 +34,8 @@ public class ItemResponse {
                 item.getName(),
                 item.getPrice(),
                 item.isAvailable(),
-                item.getType());
+                item.getType(),
+                item.getImageUrl());
     }
 
     public Long getId() {
@@ -69,6 +76,14 @@ public class ItemResponse {
 
     public void setType(Item.Type type) {
         this.type = type;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
 }
