@@ -21,7 +21,8 @@ export const CustomerLoginPage: React.FC = () => {
   useDocumentTitle('Đăng nhập máy trạm');
 
   // Lấy mã máy từ query param ?code=... hoặc máy đã lưu, mặc định PC-01
-  const computerCode = searchParams.get('code') || useAuthStore((s) => s.computerCode) || 'PC-01';
+  const storedComputerCode = useAuthStore((s) => s.computerCode);
+  const computerCode = searchParams.get('code') || storedComputerCode || 'PC-01';
 
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);

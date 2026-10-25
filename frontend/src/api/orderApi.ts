@@ -29,6 +29,19 @@ export const orderApi = {
   },
 
   /**
+   * Lấy danh sách đơn hàng lọc theo status (dành cho Staff / Admin)
+   * Endpoint: GET /api/orders?status={status}&page={page}&size={size}
+   */
+  getOrders(params: {
+    status?: string;
+    page?: number;
+    size?: number;
+    sort?: string;
+  } = {}): Promise<PageResponse<OrderResponse>> {
+    return axiosClient.get('/api/orders', { params });
+  },
+
+  /**
    * Sinh mã VietQR Napas247 động
    * Endpoint: GET /api/files/vietqr?amount={amount}&content={content}
    */
@@ -36,5 +49,22 @@ export const orderApi = {
     return axiosClient.get('/api/files/vietqr', {
       params: { amount, content },
     });
+  },
+
+  /**
+   * Xác nhận đơn hàng (Dành cho Thu ngân / Staff / Admin)
+   * Staff ID được Backend trích xuất an toàn từ JWT Token
+   * Endpoint: PATCH /api/orders/{id}/confirm
+   */
+  confirmOrder(id: number): Promise<OrderResponse> {
+    return axiosClient.patch(`/api/orders/${id}/confirm`);
+  },
+
+  /**
+   * Hủy đơn hàng
+   * Endpoint: PATCH /api/orders/{id}/cancel
+   */
+  cancelOrder(id: number): Promise<OrderResponse> {
+    return axiosClient.patch(`/api/orders/${id}/cancel`);
   },
 };

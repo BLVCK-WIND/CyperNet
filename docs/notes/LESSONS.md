@@ -365,11 +365,54 @@ Biên dịch thành công 69 files source code (`mvn clean test` BUILD SUCCESS).
 
 ---
 
-## 🏆 KẾT LUẬN TOÀN DIỆN DỰ ÁN CYBERNET:
+## 🏆 KẾT LUẬN TOÀN DIỆN BACKEND:
 - **Tất cả 6 Phase (Phase 0 đến Phase 5)** đã được hoàn thiện 100% đúng chuẩn kiến trúc phần mềm doanh nghiệp.
 - **73 Java source files** sạch sẽ, tuân thủ SOLID, DRY, Clean Code.
 - **40/40 Unit & Integration Tests PASS 100%**.
 - Dự án sẵn sàng bàn giao, đóng gói và triển khai trên môi trường Production!
+
+---
+
+## 📍 FRONTEND ARCHITECTURE & UX/UI DESIGN (CYBERLUX / TWINKLE THEME)
+
+### 1. Cột mốc đã đạt được:
+- Xây dựng hoàn chỉnh kiến trúc nền tảng React 19 + TypeScript + Vite + Tailwind 4 + Ant Design 5.
+- Hoàn thành Phase 1 (Customer Web/Mobile QR Calling & VietQR) và Phase 2 (Staff POS Floor Map & Order Queue).
+
+### 2. Các bài học & kinh nghiệm đắt giá rút ra từ Đợt Review Giao diện:
+
+#### A. Bài học UX Quầy Thu Ngân (POS Alert & Passive Monitoring)
+- **Sai lầm phổ biến**: Chỉ dựa vào âm thanh thông báo đơn hàng hoặc bắt nhân viên click vào từng màn hình để kiểm tra việc mới phát sinh.
+- **Thực tế nghiệp vụ**: Thu ngân thường xuyên phải rời quầy (pha nước, giao món, đi vệ sinh, tiếp khách). Khi quay lại quầy, họ không thể biết có đơn nào mới nếu không có **Badge Counter số đếm trực quan**.
+- **Quy tắc sống còn**:
+  - Mọi thanh điều hướng (Sidebar, Tab, Header) **bắt buộc phải có Badge số đếm realtime** (Ví dụ: `Đơn hàng [3]`, `Sơ đồ máy [4/6]`).
+  - Badge phải dùng màu sắc cảnh báo tương phản cao (`#EF5350` hoặc `#FFB74D`) có hiệu ứng nhấp nháy (pulse) khi có việc khẩn cấp.
+
+#### B. Bài học Phân cấp thị giác trạng thái (Status Visual Hierarchy)
+- **Sai lầm phổ biến**: Áp dụng cùng một font chữ, cùng cỡ chữ và sắc thái màu viền tương tự nhau cho tất cả các trạng thái, khiến giao diện trở nên đơn điệu và khó phân biệt từ xa.
+- **Quy tắc phân cấp thị giác rành mạch**:
+  - `AVAILABLE` (Sẵn sàng): Viền xanh emerald neon sáng rõ (`#4CAF50` / `#22C55E`), chữ "SẴN SÀNG" in hoa đậm nét, tạo cảm giác tươi mới, sẵn sàng đón khách.
+  - `IN_USE` (Đang chơi): Bề mặt Slate sâu lắng, tên khách hàng màu cát sáng (`#D3C3B9`), đồng hồ đếm ngược vàng hổ phách (`#B58863`) to đậm font `Space Grotesk`. Cảnh báo vàng khi < 15 phút, cảnh báo đỏ nhấp nháy khi < 5 phút.
+  - `MAINTENANCE` (Bảo trì): Tông đỏ trầm kết hợp xám tro mờ (`opacity 60%`), icon cờ lê to bản, tuyệt đối không bị lẫn với máy đang hoạt động.
+  - `PENDING_PAYMENT` (Chờ duyệt): Tag vàng cam hổ phách to bản, chữ đậm, kèm nhãn `MỚI` hoặc `CHỜ XP` cảnh báo khi quá 5 phút.
+
+#### C. Bài học Bố cục danh mục Menu F&B (Grouped Category Layout tại Tab "Tất cả")
+- **Sai lầm phổ biến**: Đổ dồn toàn bộ sản phẩm vào một danh sách phẳng (flat list) khi khách hàng chọn xem tab "Tất cả".
+- **Hệ quả**: Khách lướt xem thực đơn thấy món ăn, nước ngọt và gói nạp giờ chơi nằm xen kẽ lộn xộn, gây ức chế khi tìm kiếm món.
+- **Quy tắc bố cục chuẩn (Đã thống nhất)**:
+  - Giữ nguyên thanh Tab điều hướng phía trên (Tất cả, Đồ ăn, Đồ uống, Giờ chơi, Dịch vụ). Khi click vào từng tab cụ thể thì vẫn lọc nhanh danh mục đó như cũ.
+  - **Riêng tại tab "Tất cả"**: Thay vì một lưới phẳng, giao diện đặt các Section phân chia thẳng theo từng Category tương ứng với DB (`FOOD` ➔ 🍔 Món ăn nóng, `DRINK` ➔ 🥤 Đồ uống giải khát, `PLAYTIME` ➔ 🎮 Gói giờ chơi & Combo, `SERVICE` ➔ ⚡ Dịch vụ & Tiện ích).
+  - Mỗi section có tiêu đề to rõ, icon đại diện, badge đếm số lượng món và đường divider ánh kim ngăn cách sang trọng. Section nào không có món thì tự động ẩn đi, đảm bảo gọn gàng và không rườm rà.
+
+#### D. Tư duy phối màu Dark Luxury "Twinkle" vs Flat Dark Mode
+- **Sai lầm phổ biến**: Nghĩ rằng Dark Mode chỉ đơn giản là đặt màu nền xám đen phẳng lì (`flat dark`).
+- **Bản chất Dark Luxury ("Twinkle" Theme theo ảnh mẫu)**:
+  - **Ambient Lighting Gradient**: Nền không bao giờ là một màu đơn sắc lì. Phải có hiệu ứng ánh sáng hoàng hôn ấm áp ở đỉnh lan dần xuống đêm sâu:
+    `radial-gradient(ellipse at 50% 0%, rgba(181, 136, 99, 0.15) 0%, rgba(61, 77, 85, 0.08) 50%, #10232A 100%)`.
+  - **Bề mặt Card (Surface & Layering)**: Sử dụng gradient chéo nhẹ từ `#3D4D55` xuống `#10232A` kèm viền mỏng ánh cát `rgba(211, 195, 185, 0.12)`.
+  - **Soft Pill Shapes**: Bo góc mềm mại kiểu viên thuốc (`rounded-2xl` đến `rounded-full` / 16px - 24px) cho các nút, tag và ô nhập liệu.
+  - **Độ tương phản Typography**: Dùng màu cát sáng `#D3C3B9` cho chữ chính và màu vàng caramel đồng `#B58863` cho các số liệu quan trọng để tạo cảm giác sang trọng, ấm cúng.
+
 
 
 

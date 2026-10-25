@@ -32,10 +32,24 @@
   - Tinh chỉnh hiệu ứng chuyển trang `PageTransition` và `StaggerContainer` theo chuẩn CyberLux mượt mà (0.28s, cubic-bezier, micro-scale), triệt tiêu hoàn toàn hiện tượng nảy giật trục Y kép 26px từ dưới lên và co giật khung hình do scrollbar Windows (`scrollbar-gutter: stable`).
   - Dọn sạch 100% Ant Design warnings (`App.useApp()` thay thế static `message`, Drawer `size` thay cho `width`, sửa deprecation `mask.closable`).
 
+- [x] **Frontend Phase 2: Staff Dashboard (Floor Map sơ đồ máy, POS nạp giờ, Order Queue duyệt đơn & chuyển máy)** (100% DONE — MS-2.1 đến MS-2.12).
+- [x] **Frontend MS-2.12b: Staff & Customer UX/UI Polish & Twinkle Theme Refinement** (100% DONE — chuẩn hóa bảng màu Twinkle, phân chia Section Menu, bổ sung Badge Counter thời gian thực và nâng cao phân cấp thị giác trạng thái).
+
+---
+
+## 🟢 Cột mốc hoàn thành trước Phase 2 (ĐÃ HOÀN TẤT)
+> **Nhiệm vụ bắt buộc:** Bổ sung thuộc tính `imageUrl` (ảnh món ăn) cho Thực đơn & Món ăn và tối ưu độ ổn định giao diện:
+- [x] **Backend (Item Entity & DTOs):** Bổ sung trường `imageUrl` (String) vào `Item`, migration Flyway V4 thêm cột `image_url VARCHAR(500)` vào bảng `items`, cập nhật `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest`, `OrderItemResponse` và nạp sẵn ảnh mẫu Unsplash Food CDN độ nét cao cho các món.
+- [x] **Frontend (Customer Menu & Cart):** Cập nhật `types/item.ts` (`imageUrl?: string`), `types/order.ts` (`itemImageUrl?: string`), cập nhật `MenuCard.tsx` hiển thị ảnh thumbnail bo góc CyberLux (kèm fallback Lucide Icon khi không có ảnh hoặc lỗi mạng), cập nhật thumbnail cho `CartDrawer.tsx` và `OrderDetailDrawer.tsx`.
+- [x] **Frontend Polish & Bugfixes (Zero-Warning & CyberLux Smoothness):**
+  - Khắc phục triệt để lỗi chớp modal "Phiên chơi đã kết thúc" trong 0.1s khi đăng nhập bằng cách chuyển `useCountdown` sang derived state đồng bộ (`useMemo`).
+  - Tinh chỉnh hiệu ứng chuyển trang `PageTransition` và `StaggerContainer` theo chuẩn CyberLux mượt mà (0.28s, cubic-bezier, micro-scale), triệt tiêu hoàn toàn hiện tượng nảy giật trục Y kép 26px từ dưới lên và co giật khung hình do scrollbar Windows (`scrollbar-gutter: stable`).
+  - Dọn sạch 100% Ant Design warnings (`App.useApp()` thay thế static `message`, Drawer `size` thay cho `width`, sửa deprecation `mask.closable`).
+
 ---
 
 ## 🟢 Kế hoạch kế tiếp:
-1. **Ưu tiên hàng đầu:** Bắt tay triển khai **Phase 2: Staff Dashboard (Floor Map sơ đồ máy, POS nạp giờ, Order Queue duyệt đơn & chuyển máy)** bắt đầu từ **MS-2.1 (Staff Layout & Navigation)**.
+1. **Ưu tiên hàng đầu:** Bắt tay triển khai **Phase 3: Admin Panel (Báo cáo doanh thu, CRUD Máy trạm, Menu, Tài khoản)** bắt đầu từ **MS-3.1 (Admin Layout & RBAC Guard)**, kế thừa đầy đủ chuẩn giao diện Twinkle Luxury Theme và các quy tắc Badge Counter / Grouped Layout đã được đúc kết.
 
 ---
 

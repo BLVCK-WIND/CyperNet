@@ -773,5 +773,33 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 
 ---
 
+### 2026-10-25 — Đánh giá toàn diện Phase 1 & Phase 2, Thiết lập kế hoạch cải tiến Twinkle Luxury Theme
 
+**Phase**: Pre-Phase 3 UX/UI Review & Theme Standardization (MS-2.12b)
+**Thời gian**: ~2 giờ
+**Việc đã làm**:
+- Khởi động thành công môi trường kiểm thử E2E liên thông giữa Customer và Staff quầy POS (`http://localhost:5173` và Spring Boot `http://localhost:8080`).
+- Tiếp nhận 4 phản hồi đánh giá then chốt từ Tech Lead:
+  1. *Staff Dashboard thiếu số đếm (Badge Counter)*: Nhân viên rời quầy đi vệ sinh hoặc pha chế không nghe được chuông báo, khi quay lại không có số đếm trực quan để biết có đơn chờ hay máy online.
+  2. *Trạng thái thiếu phân cấp thị giác*: Toàn bộ thẻ máy và thẻ đơn hàng dùng chung một kiểu font chữ thường và màu sắc viền nhàn nhạt, thiếu độ rành mạch từ xa.
+  3. *Menu khách hàng tab "Tất cả" bị trộn lẫn lộn xộn*: Đồ ăn, nước uống và gói nạp giờ chơi xen kẽ nhau, chưa chia theo Section phân loại danh mục.
+  4. *Phối màu phẳng chưa đạt chuẩn ảnh mẫu "Twinkle"*: Chưa có Ambient Lighting Gradient, các card còn phẳng và thiếu độ bo cong viên thuốc (pill shapes) cao cấp.
+- Cập nhật tài liệu kiến trúc: `LESSONS.md`, `frontend-plan.md`, `STATUS.md`, `frontend-handoff.md` ghi nhận bài học và quy chuẩn mới.
+- Thiết lập kế hoạch 4 bước cải tiến `MS-2.12b` để hoàn thiện triệt để giao diện trước khi bắt tay vào Phase 3 (Admin Panel).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Ambient Lighting Radial Gradient | CSS Foundation / Theme | 🟢 Cơ bản |
+| Status Visual Hierarchy Matrix | `ComputerCard.tsx`, `StaffOrderCard.tsx` | 🟡 Trung bình |
+| Reactive Realtime Badge Counters | `StaffSidebar.tsx`, `StaffTopBar.tsx` | 🟡 Trung bình |
+| Grouped Category Sectioning | `CustomerMenuPage.tsx` | 🟡 Trung bình |
+| Soft Pill-shaped Components | Buttons, Tags, Form Inputs | 🟢 Cơ bản |
+
+**Lỗi gặp phải & cách fix**:
+- Frontend báo lỗi `ERR_CONNECTION_REFUSED :8080/api/sessions/check/PC-01` $\rightarrow$ Nguyên nhân: Port 3306 MySQL đang chạy nhưng tiến trình Spring Boot chưa được start $\rightarrow$ Khởi động Spring Boot backend bằng `mvnw spring-boot:run`, kết nối database thành công và trả về `HTTP 200 OK`.
+
+**Ghi chú / Bài học rút ra**:
+- Tài liệu hóa ngay lập tức sau mỗi đợt review giúp bảo toàn tri thức cho các phiên làm việc tiếp theo, chống lặp lại các lỗi thiết kế cũ.
+- Thiết kế quầy thu ngân thực tế phải đặt khả năng "liếc mắt nhận diện ngay" (Glanceable UI) lên hàng đầu thông qua Badge Counter và màu sắc tương phản cao.
 

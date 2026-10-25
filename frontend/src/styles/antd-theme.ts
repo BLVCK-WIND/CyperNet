@@ -21,9 +21,9 @@ export const cyberLuxTheme: ThemeConfig = {
     colorInfo: '#5B8FA8',
 
     // === Shape ===
-    borderRadius: 8,
-    borderRadiusLG: 12,
-    borderRadiusSM: 6,
+    borderRadius: 10,
+    borderRadiusLG: 16,
+    borderRadiusSM: 8,
 
     // === Typography ===
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -37,35 +37,49 @@ export const cyberLuxTheme: ThemeConfig = {
     margin: 16,
 
     // === Effects ===
-    boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
-    boxShadowSecondary: '0 4px 24px rgba(181, 136, 99, 0.08)',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+    boxShadowSecondary: '0 8px 32px rgba(0,0,0,0.55), 0 0 20px rgba(181,136,99,0.12)',
   },
   components: {
     Button: {
       primaryColor: '#10232A',         // Text trên nút gold
-      borderRadiusLG: 10,
+      borderRadius: 9999,              // Pill button chuẩn ảnh twinkle
+      borderRadiusLG: 9999,
+      fontWeight: 600,
     },
     Card: {
-      colorBgContainer: 'rgba(61, 77, 85, 0.6)',
-      borderRadiusLG: 12,
+      colorBgContainer: 'rgba(61, 77, 85, 0.7)',
+      borderRadiusLG: 18,
     },
     Table: {
       colorBgContainer: 'rgba(61, 77, 85, 0.4)',
-      headerBg: 'rgba(16, 35, 42, 0.8)',
-      rowHoverBg: 'rgba(181, 136, 99, 0.08)',
+      headerBg: 'rgba(16, 35, 42, 0.85)',
+      rowHoverBg: 'rgba(181, 136, 99, 0.1)',
     },
     Input: {
-      colorBgContainer: 'rgba(16, 35, 42, 0.6)',
+      colorBgContainer: 'rgba(16, 35, 42, 0.7)',
       activeBorderColor: '#B58863',
       hoverBorderColor: '#D4A574',
+      borderRadius: 9999,              // Pill input chuẩn ảnh twinkle
+      borderRadiusLG: 9999,
     },
     Modal: {
-      contentBg: '#3D4D55',
-      headerBg: '#3D4D55',
+      contentBg: '#2A383F',
+      headerBg: '#2A383F',
+      borderRadiusLG: 20,
+    },
+    Tag: {
+      borderRadiusSM: 9999,            // Pill tags
+    },
+    Segmented: {
+      itemSelectedBg: '#B58863',
+      itemSelectedColor: '#10232A',
+      trackBg: 'rgba(16, 35, 42, 0.65)',
+      borderRadius: 9999,
     },
     Menu: {
       darkItemBg: '#10232A',
-      darkItemSelectedBg: 'rgba(181, 136, 99, 0.15)',
+      darkItemSelectedBg: 'rgba(181, 136, 99, 0.18)',
       darkItemSelectedColor: '#B58863',
     },
   },

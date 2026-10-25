@@ -5,6 +5,7 @@ interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
   elevated?: boolean;
   glowOnHover?: boolean;
+  pill?: boolean;
 }
 
 export const GlassCard: React.FC<GlassCardProps> = ({
@@ -12,6 +13,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   className = '',
   elevated = false,
   glowOnHover = false,
+  pill = false,
   ...props
 }) => {
   const baseClasses = elevated
@@ -19,12 +21,14 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     : 'glass-panel shadow-lg';
 
   const hoverClasses = glowOnHover
-    ? 'transition-all duration-300 hover:border-gold/40 hover:shadow-[0_4px_24px_rgba(181,136,99,0.15)]'
+    ? 'transition-all duration-300 hover:border-gold/50 hover:shadow-[0_8px_30px_rgba(181,136,99,0.22)] hover:-translate-y-0.5'
     : 'transition-all duration-300';
+
+  const roundedClasses = pill ? 'rounded-full' : 'rounded-2xl';
 
   return (
     <div
-      className={`rounded-xl p-5 ${baseClasses} ${hoverClasses} ${className}`}
+      className={`${roundedClasses} p-5 ${baseClasses} ${hoverClasses} ${className}`}
       {...props}
     >
       {children}

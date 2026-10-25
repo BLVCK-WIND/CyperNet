@@ -8,6 +8,11 @@ import {
   UtensilsCrossed,
   RefreshCw,
   ReceiptText,
+  Utensils,
+  Coffee,
+  Clock,
+  Gamepad2,
+  Sparkles,
 } from 'lucide-react';
 import { itemApi } from '@/api/itemApi';
 import { orderApi } from '@/api/orderApi';
@@ -22,8 +27,21 @@ import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerCo
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import type { ItemResponse } from '@/types/item';
+import type { ItemResponse, ItemType } from '@/types/item';
 import type { OrderResponse, VietQrResponse } from '@/types/order';
+
+interface CategorySectionConfig {
+  key: ItemType;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const CATEGORY_SECTIONS: CategorySectionConfig[] = [
+  { key: 'FOOD', label: 'Món ăn nóng', icon: <Utensils className="w-4 h-4 text-gold" /> },
+  { key: 'DRINK', label: 'Đồ uống giải khát', icon: <Coffee className="w-4 h-4 text-gold" /> },
+  { key: 'PLAYTIME', label: 'Gói giờ chơi & Combo', icon: <Clock className="w-4 h-4 text-gold" /> },
+  { key: 'SERVICE', label: 'Dịch vụ & Tiện ích', icon: <Gamepad2 className="w-4 h-4 text-gold" /> },
+];
 
 export const CustomerMenuPage: React.FC = () => {
   const { message } = App.useApp();
@@ -97,6 +115,32 @@ export const CustomerMenuPage: React.FC = () => {
       return matchCategory && matchSearch;
     });
   }, [allItems, activeCategory, searchTerm]);
+
+  // Gom nhóm theo từng Category khi ở tab "Tất cả"
+  const groupedSections = useMemo(() => {
+    const list: { key: string; label: string; icon: React.ReactNode; items: ItemResponse[] }[] = [];
+
+    CATEGORY_SECTIONS.forEach((cat) => {
+      const items = filteredItems.filter((i) => i.type === cat.key);
+      if (items.length > 0) {
+        list.push({ ...cat, items });
+      }
+    });
+
+    // Fallback cho bất kỳ loại dịch vụ mới nào khác từ DB
+    const knownKeys = new Set(CATEGORY_SECTIONS.map((c) => c.key));
+    const otherItems = filteredItems.filter((i) => !knownKeys.has(i.type));
+    if (otherItems.length > 0) {
+      list.push({
+        key: 'OTHER',
+        label: 'Dịch vụ & Tiện ích khác',
+        icon: <Sparkles className="w-4 h-4 text-gold" />,
+        items: otherItems,
+      });
+    }
+
+    return list;
+  }, [filteredItems]);
 
   const handleAddToCart = (item: ItemResponse) => {
     addItem(item);
@@ -238,6 +282,39 @@ export const CustomerMenuPage: React.FC = () => {
                 </Button>
               )}
             </GlassCard>
+          ) : activeCategory === 'ALL' ? (
+            <div className="space-y-8">
+              {groupedSections.map((section) => (
+                <section key={section.key} className="space-y-3.5">
+                  {/* Category Section Header */}
+                  <div className="flex items-center justify-between pb-2.5 border-b border-mist/15">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-gold/15 flex items-center justify-center border border-gold/30">
+                        {section.icon}
+                      </div>
+                      <h2 className="text-sm sm:text-base font-bold text-sand tracking-wide">
+                        {section.label}
+                      </h2>
+                    </div>
+                    <span className="text-[11px] font-semibold text-mist bg-slate/60 px-2.5 py-0.5 rounded-full border border-mist/15 font-mono">
+                      {section.items.length} món
+                    </span>
+                  </div>
+
+                  {/* Category Items Grid */}
+                  <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+                    {section.items.map((item) => (
+                      <StaggerItem key={item.id}>
+                        <MenuCard
+                          item={item}
+                          onAddToCart={handleAddToCart}
+                        />
+                      </StaggerItem>
+                    ))}
+                  </StaggerContainer>
+                </section>
+              ))}
+            </div>
           ) : (
             <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
               {filteredItems.map((item) => (

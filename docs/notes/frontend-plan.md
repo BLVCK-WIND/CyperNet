@@ -35,18 +35,29 @@
 
 ![UI tham khảo — Dark Luxury Interface](C:/Users/phong/.gemini/antigravity/brain/ff5604f6-e335-42f7-958c-15cb7eb2ee6a/ui-reference.png)
 
-### 1.3 Design Language — "CyberLux"
+### 1.3 Design Language — "CyberLux / Twinkle Luxury Theme"
 
-| Thuộc tính | Quy tắc |
+| Thuộc tính | Quy tắc Chuẩn Hóa Theo Ảnh Mẫu "Twinkle" |
 |---|---|
-| **Border Radius** | `12px` cho card/modal, `8px` cho input/button, `20px` cho badge/tag |
-| **Card Style** | Glassmorphism nhẹ: `background: rgba(61,77,85,0.6)`, `backdrop-filter: blur(12px)`, `border: 1px solid rgba(167,158,156,0.15)` |
-| **Shadow** | Subtle warm glow: `0 4px 24px rgba(181,136,99,0.08)` cho card hover |
-| **Typography** | Font: `Inter` (body) + `Space Grotesk` (headings, countdown timer) |
+| **Ambient Lighting** | `radial-gradient(ellipse at 50% 0%, rgba(181, 136, 99, 0.15) 0%, rgba(61, 77, 85, 0.08) 50%, #10232A 100%)` tạo ánh sáng hoàng hôn/đêm sao ấm áp |
+| **Border Radius** | `16px - 20px` cho card/modal, `rounded-full` (dạng viên thuốc pill-shaped) cho input, nút bấm và badge |
+| **Card Surface** | Gradient mềm mại: `linear-gradient(145deg, rgba(61, 77, 85, 0.85) 0%, rgba(16, 35, 42, 0.95) 100%)`, viền mỏng ánh cát `1px solid rgba(211, 195, 185, 0.12)` |
+| **Shadow** | Subtle warm glow: `0 4px 24px rgba(181, 136, 99, 0.08)` cho hover state |
+| **Typography** | Font: `Inter` (body) + `Space Grotesk` (chữ số to, số đếm, countdown timer, giá tiền). Chữ chính màu cát sáng `--sand` (`#D3C3B9`) |
 | **Icon Style** | Lucide React — outline style, stroke-width 1.5, color `--mist` default, `--gold` on active |
 | **Spacing** | Base unit `4px`, section gap `24px`, card padding `20px` |
-| **Decorative** | ✨ Subtle particle/sparkle dots (CSS only, giống reference) trên hero sections |
+| **Decorative** | ✨ Subtle particle/sparkle dots (CSS only) trên hero sections |
 | **Transition** | Mọi interactive element: `transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1)` |
+
+#### Bảng Quy Chuẩn Phân Cấp Thị Giác Trạng Thái (Status Visual Hierarchy):
+
+| Trạng thái | Mã màu chủ đạo | Kiểu viền & Bề mặt | Typography & Badge | Ý nghĩa thị giác |
+|---|---|---|---|---|
+| **`AVAILABLE` (Máy trống)** | `#4CAF50` (Emerald) | Viền xanh sáng `border-success/60`, shadow xanh tươi | Badge xanh ngọc, chữ "SẴN SÀNG" in hoa đậm | Máy mát mẻ, đón khách được ngay |
+| **`IN_USE` (Đang chơi)** | `#3D4D55` + `#B58863` | Viền xanh slate, nền sâu thẳm, viền vàng hổ phách khi chọn | Tên khách màu `#D3C3B9`, Timer font `Space Grotesk` màu `#B58863` to đậm | Phiên chơi VIP sang trọng |
+| **`MAINTENANCE` (Bảo trì)** | `#EF5350` + `#A79E9C` | Nền mờ `opacity-60`, viền đỏ trầm | Icon cờ lê to, chữ "BẢO TRÌ" xám đỏ | Tách biệt tuyệt đối với máy hoạt động |
+| **`PENDING` (Đơn mới/chờ)** | `#FFB74D` / `#B58863` | Viền vàng cam, shadow ấm, pulse khi chờ > 5p | Tag vàng to bản, badge `MỚI` hoặc `CHỜ XP` | Bắt mắt ngay cả khi nhìn lướt |
+| **`CONFIRMED` (Đã duyệt)** | `#4CAF50` / `#5B8FA8` | Dịu màu, viền xanh dịu | Tag xanh lá hoặc xanh slate gọn gàng | Đã xử lý xong, không gây xao nhãng |
 
 ---
 
@@ -449,37 +460,37 @@ flowchart TD
 ```
 
 ### MS-2.1 — Staff Layout & Navigation
-- [ ] **Sidebar (fixed left):** Nền `midnight`, width 240px (collapse → 64px icon-only)
+- [x] **Sidebar (fixed left):** Nền `midnight`, width 240px (collapse → 64px icon-only)
   - Logo "CYBERNET" trên cùng
   - Menu items (Lucide icons + text): 🖥️ Sơ đồ máy · 🛒 Đơn hàng · 💰 Bán giờ · 📊 Phiên chơi
   - Active item: left border `gold` 3px + background `rgba(gold, 0.1)`
   - Bottom: avatar + tên nhân viên, nút Đăng xuất
-- [ ] **Top Bar:** Breadcrumb + search + notification bell (badge đếm order pending)
-- [ ] **Content Area:** Padding 24px, max-width auto, nền `midnight`
+- [x] **Top Bar:** Breadcrumb + search + notification bell (badge đếm order pending)
+- [x] **Content Area:** Padding 24px, max-width auto, nền `midnight`
 
 ### MS-2.2 — Staff Login Page
-- [ ] Tương tự Customer Login nhưng:
+- [x] Tương tự Customer Login nhưng:
   - Badge "NHÂN VIÊN" thay vì mã máy
   - Redirect sang Staff Dashboard sau login
   - Role check: phải là `STAFF` hoặc `ADMIN`
 
 ### MS-2.3 — Floor Map (Sơ đồ máy) ⭐
-- [ ] **Grid layout:** Hiển thị tất cả computers dạng card grid (4-6 cột)
-- [ ] **Computer Card:** Mỗi máy 1 card:
+- [x] **Grid layout:** Hiển thị tất cả computers dạng card grid (4-6 cột)
+- [x] **Computer Card:** Mỗi máy 1 card:
   - Mã máy (VIP-01, PC-05) — font bold
   - Zone badge: 🟣 VIP / 🔵 Standard
   - **Status indicator** (color-coded, animated):
     - 🟢 `AVAILABLE` — viền xanh, background glow nhẹ
     - 🔵 `IN_USE` — viền info blue, hiện tên khách + countdown mini
     - 🔴 `MAINTENANCE` — viền red, icon wrench, opacity giảm
-  - Click → mở Computer Detail Panel
-- [ ] **Filter bar:** Toggle hiện theo status / zone
-- [ ] **Ghép dữ liệu Client-side:** Gọi song song `GET /api/computers?size=100` và `GET /api/sessions?status=ACTIVE&size=100` bằng `Promise.all`, map thông tin khách (`session.accountName`) và thời gian còn lại (`session.remainingMinutesUntilExpiry`) vào từng máy theo `computerCode`
-- [ ] **Auto-refresh (MVP Polling):** TanStack Query `refetchInterval: 10000` (10s polling). WebSocket STOMP backend đã sẵn sàng nhưng hoãn tích hợp sang Phase sau để giữ MVP đơn giản, ổn định
-- [ ] **Animation:** Card status change → brief flash + color transition
+  - Click → mở Computer Detail Panel (lưu máy đang chọn)
+- [x] **Filter bar:** Toggle hiện theo status / zone
+- [x] **Ghép dữ liệu Client-side:** Gọi song song `GET /api/computers?size=100` và `GET /api/sessions?status=ACTIVE&size=100` bằng `Promise.all`, map thông tin khách (`session.accountName`) và thời gian còn lại (`session.remainingMinutesUntilExpiry`) vào từng máy theo `computerCode`
+- [x] **Auto-refresh (MVP Polling):** TanStack Query `refetchInterval: 10000` (10s polling). WebSocket STOMP backend đã sẵn sàng nhưng hoãn tích hợp sang Phase sau để giữ MVP đơn giản, ổn định
+- [x] **Animation:** Card status change → brief flash + color transition
 
 ### MS-2.4 — Computer Detail Panel (Slide-in)
-- [ ] **Drawer từ phải** khi click vào máy:
+- [x] **Drawer từ phải** khi click vào máy:
   - Thông tin máy: Mã, Tên, Zone, IP, Giá/giờ (`GET /api/computers/{id}`)
   - Nếu `IN_USE`: Khách đang dùng, thời gian bắt đầu, còn lại (`GET /api/sessions/active/computer/{code}`), nút "Kết thúc phiên" / "Chuyển máy"
   - Nếu `AVAILABLE`: Nút "Mở phiên mới" lớn
@@ -487,74 +498,89 @@ flowchart TD
   - Lịch sử phiên gần nhất của máy (3-5 phiên): `GET /api/sessions/computer/{computerId}?page=0&size=5` (sắp xếp mới nhất)
 
 ### MS-2.5 — Start Session Workflow
-- [ ] **Modal "Mở phiên chơi":**
+- [x] **Modal "Mở phiên chơi":**
   - Select khách hàng (search by SĐT — Ant Design `Select` với `showSearch` & `filterOption` trên danh sách khách)
   - Hiện thông tin: Tên, số phút còn lại khả dụng trong tài khoản
   - **Logic thời gian (Phương án A đã chốt):** Không cần ô nhập số phút. Hệ thống tự động mở máy theo toàn bộ số dư thời gian hiện có của khách (`account.remainingMinutes`). Khi kết thúc phiên (`PATCH /api/sessions/{id}/end`), hệ thống tự động tính thời gian chơi thực tế và hoàn trả 100% số phút chưa dùng về lại tài khoản.
   - Summary: Máy XX, Khách XX, Số phút khả dụng: XX phút
   - Nút "Xác nhận mở máy" — gold, confirm dialog
-- [ ] **API:** `POST /api/sessions/start` với body `{ "computerId": 1, "accountId": 6 }` (dành cho nhân viên mở phiên tại quầy) hoặc `POST /api/sessions/login` (khách tự login tại máy trạm)
-- [ ] **Success:** Floor Map auto-update, card chuyển sang `IN_USE` với animation
+- [x] **API:** `POST /api/sessions/start` với body `{ "computerId": 1, "accountId": 6 }` (dành cho nhân viên mở phiên tại quầy) hoặc `POST /api/sessions/login` (khách tự login tại máy trạm)
+- [x] **Success:** Floor Map auto-update, card chuyển sang `IN_USE` với animation
 
 ### MS-2.6 — End / Transfer Session
-- [ ] **End Session:**
+- [x] **End Session:**
   - Confirm modal: "Kết thúc phiên cho [Tên khách] tại [Mã máy]?"
   - API: `PATCH /api/sessions/{id}/end`
   - Animation: Card chuyển về `AVAILABLE`, flash green
-- [ ] **Transfer Computer:**
+- [x] **Transfer Computer:**
   - Modal: chọn máy đích (chỉ hiện `AVAILABLE`), confirm
   - API: `PATCH /api/sessions/{id}/transfer`
   - Animation: Card cũ → AVAILABLE, card mới → IN_USE (cả 2 flash)
 
 ### MS-2.7 — Order Queue (Đơn hàng chờ xử lý)
-- [ ] **Layout:** Full-page list hoặc 2-column (Pending | Processed)
-- [ ] **Pending Orders:** Card list, sorted mới nhất trên:
+- [x] **Layout:** Full-page list hoặc 2-column (Pending | Processed)
+- [x] **Pending Orders:** Card list, sorted mới nhất trên:
   - Mã đơn, thời gian, mã máy, tên khách, số món, tổng tiền
   - Badge "MỚI" pulse animation cho đơn < 1 phút
   - 2 nút: ✅ Xác nhận (gold) · ❌ Hủy (red outline)
-- [ ] **Đã xử lý (Tab 2):** Danh sách đã confirm/cancel hôm nay
-- [ ] **Sound/Visual alert:** Khi có đơn mới → notification bell badge + optional sound ping
-- [ ] **Auto-refresh (MVP Polling):** TanStack Query `refetchInterval: 5000` (5-10s polling)
-- [ ] **API:** `GET /api/orders?status=PENDING_PAYMENT&page=0&size=20`
+- [x] **Đã xử lý (Tab 2):** Danh sách đã confirm/cancel hôm nay
+- [x] **Sound/Visual alert:** Khi có đơn mới → notification bell badge + optional sound ping
+- [x] **Auto-refresh (MVP Polling):** TanStack Query `refetchInterval: 5000` (5-10s polling)
+- [x] **API:** `GET /api/orders?status=PENDING_PAYMENT&page=0&size=20`
 
 ### MS-2.8 — Confirm / Cancel Order
-- [ ] **Confirm:** Quick-action button trên card, hoặc mở detail modal
+- [x] **Confirm:** Quick-action button trên card, hoặc mở detail modal
   - API: `PATCH /api/orders/{id}/confirm` (Nhân viên xác nhận được trích xuất an toàn từ JWT; không truyền staffId qua query/body)
   - Animation: Card slide-out → vào tab "Đã xác nhận"
   - Toast: "Đơn #XX đã xác nhận"
-- [ ] **Cancel:** Confirm dialog trước khi hủy
+- [x] **Cancel:** Confirm dialog trước khi hủy
   - API: `PATCH /api/orders/{id}/cancel`
   - Animation: Card fade-out red
   - Toast: "Đơn #XX đã hủy"
 
 ### MS-2.9 — Sell Time (Bán giờ chơi tại quầy)
-- [ ] **Modal "Bán giờ":**
+- [x] **Modal "Bán giờ":**
   - Search khách hàng (SĐT qua Ant Design Select `showSearch`)
   - Hiện số phút hiện có
   - Chọn gói nạp hoặc nhập số phút bán: Frontend đọc bảng giá từ `GET /api/items/type/PLAYTIME` hoặc tự nhân theo đơn giá giờ để tính `amount` gửi lên Backend
   - Chọn thanh toán: Tiền mặt / QR
   - Nút "Tạo đơn bán giờ" → cần Confirm
-- [ ] **API:** `POST /api/time-purchases` gửi body `{ "accountId": 6, "minutes": 60, "amount": 10000.00, "paymentMethod": "CASH" }`, rồi `PATCH /api/time-purchases/{id}/confirm` (hoặc dùng `POST /api/orders/direct` bán trực tiếp tại quầy). Nhân viên thực hiện được trích xuất an toàn từ JWT.
-- [ ] **Success:** Hiện biên lai tóm tắt, print-friendly (optional)
+- [x] **API:** `POST /api/time-purchases` gửi body `{ "accountId": 6, "minutes": 60, "amount": 10000.00, "paymentMethod": "CASH" }`, rồi `PATCH /api/time-purchases/{id}/confirm` (hoặc dùng `POST /api/orders/direct` bán trực tiếp tại quầy). Nhân viên thực hiện được trích xuất an toàn từ JWT.
+- [x] **Success:** Hiện biên lai tóm tắt, print-friendly (optional)
 
 ### MS-2.10 — Staff Animations & Transitions
-- [ ] Page transitions: Framer Motion fade + slide
-- [ ] Floor Map: Card status transition smooth (color + border)
-- [ ] Order Queue: AnimatePresence — card đơn mới slide-in từ top, confirm slide-out
-- [ ] Sidebar: Collapse animation smooth (width transition)
-- [ ] Notification bell: Bounce animation khi có đơn mới
+- [x] Page transitions: Framer Motion fade + slide
+- [x] Floor Map: Card status transition smooth (color + border)
+- [x] Order Queue: AnimatePresence — card đơn mới slide-in từ top, confirm slide-out
+- [x] Sidebar: Collapse animation smooth (width transition)
+- [x] Notification bell: Bounce animation khi có đơn mới
 
 ### MS-2.11 — Notification & Alert System
-- [ ] **Notification bell** (top bar): Badge đếm đơn pending, dropdown list recent
-- [ ] **Visual urgency:** Đơn chờ > 5 phút → card border flash amber
-- [ ] **Session expiring soon:** Nếu máy < 5 phút → Floor Map card flash warning
-- [ ] **Sound alert** (optional toggle): Ting khi đơn mới (Web Audio API)
+- [x] **Notification bell** (top bar): Badge đếm đơn pending, dropdown list recent
+- [x] **Visual urgency:** Đơn chờ > 5 phút → card border flash amber
+- [x] **Session expiring soon:** Nếu máy < 5 phút → Floor Map card flash warning
+- [x] **Sound alert** (optional toggle): Ting khi đơn mới (Web Audio API)
 
 ### MS-2.12 — Staff Test & Polish
-- [ ] Test flow: Login → Floor Map → Start Session → Order confirm → Sell Time → End Session
-- [ ] Test concurrent: 2 tab cùng confirm 1 đơn
-- [ ] Layout audit: sidebar + content alignment, overflow handling
-- [ ] Performance: Table/Grid với 50+ computers, 100+ orders
+- [x] Test flow: Login → Floor Map → Start Session → Order confirm → Sell Time → End Session
+- [x] Test concurrent: 2 tab cùng confirm 1 đơn
+- [x] Layout audit: sidebar + content alignment, overflow handling
+- [x] Performance: Table/Grid với 50+ computers, 100+ orders
+
+### MS-2.12b — Staff & Customer UX/UI Polish & Twinkle Theme Refinement ⭐
+- [x] **Task 1: Cập nhật CSS Foundation (Twinkle Luxury Theme):**
+  - Tích hợp Ambient Lighting Gradient `radial-gradient` trên toàn bộ layout.
+  - Tích hợp Card Gradient mềm mại (`#3D4D55` sang `#10232A`), bo góc lớn `rounded-2xl` và dạng viên thuốc `rounded-full` (pill shapes).
+  - Tinh chỉnh Ant Design theme tokens và CSS variables khớp 100% mẫu.
+- [x] **Task 2: Tái cấu trúc Menu Khách (Customer Menu Category Sections tại Tab "Tất cả"):**
+  - Giữ nguyên các tab lọc đơn lẻ. Chỉ thay đổi cách hiển thị tại tab "Tất cả": render theo từng Section Category tương ứng với DB (`FOOD` ➔ 🍔 Món ăn nóng, `DRINK` ➔ 🥤 Đồ uống giải khát, `PLAYTIME` ➔ 🎮 Gói giờ chơi & Combo, `SERVICE` ➔ ⚡ Dịch vụ & Tiện ích).
+  - Bổ sung header phân cách, badge đếm số lượng từng loại món và tự động ẩn danh mục rỗng.
+- [x] **Task 3: Bổ sung Badge Counter thời gian thực cho Staff:**
+  - Tích hợp số đếm trực quan trên Sidebar: `Đơn hàng [X]` (đơn pending), `Sơ đồ máy [Y/Z]` (tỷ lệ máy online).
+  - Tích hợp đồng bộ chuông báo TopBar, đảm bảo nhân viên đi vệ sinh hoặc rời quầy quay lại biết ngay có việc cần làm.
+- [x] **Task 4: Nâng cấp Phân cấp Thị giác Trạng thái (Status Contrast & Typography):**
+  - Thiết kế lại `ComputerCard.tsx`: `AVAILABLE` (xanh emerald tươi sáng, chữ đậm rõ ràng), `IN_USE` (xanh slate sang trọng, số countdown to rõ font `Space Grotesk`), `MAINTENANCE` (đỏ trầm / xám tro mờ 60%).
+  - Thiết kế lại `StaffOrderCard.tsx`: Tăng cường độ tương phản cho đơn chờ, đơn mới và đơn khẩn cấp.
 
 ---
 

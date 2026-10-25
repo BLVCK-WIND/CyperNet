@@ -74,15 +74,11 @@ Lập trình viên khi tiếp nhận cần đọc theo đúng thứ tự sau:
 
 ---
 
-## 6. Trạng Thái Hiện Tại & Việc Cần Làm Kế Tiếp
-- **Phase 1: Customer UI (Web PC & Mobile QR Ordering):** ĐÃ HOÀN THÀNH 100% (MS-1.1 đến MS-1.11, build sạch `npm run build` exit code 0).
-- ⚠️ **Checklist Bắt Buộc Trước Khi Vào Phase 2 (Ưu tiên số 1 đầu phiên làm việc kế tiếp):**
-  1. **Backend (Spring Boot):**
-     - Thêm trường `imageUrl` vào Entity `Item.java`.
-     - Tạo migration Flyway `V4__add_image_url_to_items.sql` thêm cột `image_url` và cập nhật đường dẫn ảnh cho các món mẫu (mì tôm, Sting, gà rán, bò húc,...).
-     - Cập nhật DTOs `ItemResponse`, `CreateItemRequest`, `UpdateItemRequest`.
-  2. **Frontend (React 19):**
-     - Cập nhật `types/item.ts` (`imageUrl?: string`).
-     - Cập nhật `MenuCard.tsx` render thumbnail ảnh món ăn thật với bo góc chuẩn CyberLux (fallback icon Lucide nếu món không có ảnh).
-     - Cập nhật `CartDrawer.tsx` và `OrderDetailDrawer.tsx` hiển thị thumbnail món ăn.
-- 👉 **Sau khi hoàn tất Checklist Ảnh Món Ăn:** Tiến hành khởi động **Phase 2: Staff Dashboard (Sơ đồ máy Floor Map, POS nạp giờ, duyệt đơn & chuyển máy)**.
+## 6. Trạng Thái Hiện Tại & Quy Chuẩn UI/UX Mới (MS-2.12b)
+- **Phase 1: Customer UI:** ĐÃ HOÀN THÀNH 100% (kèm tích hợp ảnh món ăn `imageUrl`).
+- **Phase 2: Staff Dashboard:** ĐÃ HOÀN THÀNH 100% (MS-2.1 đến MS-2.12).
+- **⚠️ 2 NGUYÊN TẮC UI/UX BẮT BUỘC CHO MỌI PHÂN HỆ (STAFF, CUSTOMER & ADMIN):**
+  1. **Quy tắc Badge Counter:** Mọi menu điều hướng chứa tác vụ chờ (Đơn hàng chờ duyệt, máy đang chạy, phiên hoạt động, máy bảo trì) **bắt buộc phải có badge số đếm realtime**. Không bao giờ bắt người dùng tự click vào từng trang để kiểm tra công việc phát sinh.
+  2. **Quy tắc Grouped Categories:** Bất kỳ danh mục tổng hợp đa chủng loại nào (như Thực đơn gọi món tab "Tất cả") **tuyệt đối không để dạng phẳng (flat list) trộn lẫn**. Bắt buộc phải nhóm thành các Section riêng biệt có Section Header (Đồ ăn, Đồ uống, Gói giờ chơi) kèm badge đếm số lượng.
+  3. **Quy tắc Phân cấp thị giác & Theme Twinkle:** Tuân thủ triệt để bảng màu Soft Twilight (#10232A, #3D4D55, #A79E9C, #D3C3B9, #B58863), áp dụng Ambient Gradient trên nền, bo góc dạng viên thuốc (pill shapes) và rành mạch màu sắc - font chữ cho từng trạng thái máy và đơn hàng.
+- 👉 **Công việc trước mắt:** Triển khai đợt tinh chỉnh **MS-2.12b (Twinkle Theme Refinement)** trước khi chuyển sang **Phase 3: Admin Panel**.
