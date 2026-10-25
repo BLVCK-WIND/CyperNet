@@ -35,17 +35,19 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Đồng bộ máy trạm khi mở modal
+  // Chỉ khởi tạo state khi modal mở lên (open = true)
   useEffect(() => {
-    if (computer) {
-      setSelectedComputerId(computer.id);
-    } else if (availableComputers.length > 0) {
-      setSelectedComputerId(availableComputers[0].id);
-    } else {
-      setSelectedComputerId(null);
+    if (open) {
+      if (computer) {
+        setSelectedComputerId(computer.id);
+      } else if (availableComputers.length > 0) {
+        setSelectedComputerId(availableComputers[0].id);
+      } else {
+        setSelectedComputerId(null);
+      }
+      setSelectedAccountId(null);
     }
-    setSelectedAccountId(null);
-  }, [computer, availableComputers, open]);
+  }, [open, computer?.id]);
 
   // Lấy danh sách tài khoản khách hàng (CUSTOMER)
   const { data: accountsData, isLoading: isLoadingAccounts } = useQuery({
@@ -66,6 +68,12 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
   const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
   const remainingMinutes = selectedAccount?.remainingMinutes ?? 0;
   const isInsufficient = selectedAccount && remainingMinutes <= 0;
+
+  // Tính số phút chơi thực tế quy đổi theo đơn giá máy đang chọn (Dynamic Tariff)
+  const baseTariff = 10000;
+  const computerPrice = Number(activeComputer?.pricePerHour) || baseTariff;
+  const playableMinutes = Math.floor((remainingMinutes * baseTariff) / computerPrice);
+  const playableHours = (playableMinutes / 60).toFixed(1);
 
   // Format đơn giá giờ
   const formattedPrice = activeComputer
@@ -228,8 +236,39 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
               className="w-full h-11"
               options={accounts.map((acc) => ({
                 value: acc.id,
-                label: `[${acc.phone}] ${acc.name} • ${acc.remainingMinutes} phút`,
+                label: `${acc.phone} • ${acc.name}`,
               }))}
+              optionRender={(oriOption) => {
+                const acc = accounts.find((a) => a.id === oriOption.value);
+                if (!acc) return oriOption.label;
+                const accPlayableMins = Math.floor((acc.remainingMinutes * baseTariff) / computerPrice);
+                const isZero = acc.remainingMinutes <= 0;
+
+                return (
+                  <div className="flex items-center justify-between py-0.5 text-xs">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className="font-mono text-sand font-bold shrink-0">
+                        {acc.phone}
+                      </span>
+                      <span className="text-sand/90 truncate font-medium">
+                        {acc.name}
+                      </span>
+                    </div>
+
+                    <div className="shrink-0">
+                      {isZero ? (
+                        <span className="text-danger text-[10px] font-mono font-bold bg-danger/10 px-2 py-0.5 rounded border border-danger/25">
+                          0 phút
+                        </span>
+                      ) : (
+                        <span className="text-gold font-mono font-bold text-[11px] bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
+                          {accPlayableMins}p (~{(accPlayableMins / 60).toFixed(1)}h)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }}
             />
           )}
         </div>
@@ -255,7 +294,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
                     : 'bg-gold/20 text-gold'
                 }`}
               >
-                Số dư: {remainingMinutes} phút
+                Số dư: {remainingMinutes} phút Standard
               </span>
             </div>
 
@@ -267,11 +306,26 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
                 </span>
               </div>
             ) : (
-              <div className="flex items-center justify-between text-xs text-mist pt-1 border-t border-[rgba(181,136,99,0.15)] font-mono">
-                <span>Ước tính thời gian chơi:</span>
-                <span className="text-sand font-bold">
-                  {(remainingMinutes / 60).toFixed(1)} giờ
-                </span>
+              <div className="space-y-1.5 pt-1.5 border-t border-[rgba(181,136,99,0.15)] text-xs">
+                <div className="flex items-center justify-between text-mist">
+                  <span>
+                    Đơn giá máy ({activeComputer?.code || 'Máy'} - {activeComputer?.zone || 'STANDARD'}):
+                  </span>
+                  <span className="font-mono text-sand font-bold">
+                    {new Intl.NumberFormat('vi-VN').format(computerPrice)}đ / giờ
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sand font-semibold">Ước tính thời gian chơi thực tế:</span>
+                  <span className="font-mono font-bold text-gold text-sm">
+                    {playableMinutes} phút (~{playableHours} giờ)
+                  </span>
+                </div>
+                {computerPrice !== baseTariff && (
+                  <p className="text-[11px] text-mist/70 italic text-right">
+                    (Đã tự động quy đổi từ {remainingMinutes} phút Standard theo đơn giá máy {new Intl.NumberFormat('vi-VN').format(computerPrice)}đ/h)
+                  </p>
+                )}
               </div>
             )}
           </GlassCard>

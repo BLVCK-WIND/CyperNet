@@ -38,7 +38,7 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
   const isExpiringSoon = status === 'IN_USE' && remainingMinutes > 0 && remainingMinutes <= 15;
 
   // Cấu hình hiển thị theo trạng thái với độ tương phản cao (Status Hierarchy)
-  const statusConfig = {
+  const statusConfigMap = {
     AVAILABLE: {
       badgeText: 'SẴN SÀNG',
       badgeClass: 'bg-success/20 text-[#4ADE80] border-success/40 shadow-[0_0_12px_rgba(74,222,128,0.25)]',
@@ -78,7 +78,8 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
       dotClass: 'bg-danger shadow-[0_0_8px_rgba(239,83,80,0.8)]',
       iconContainer: 'bg-danger/20 text-danger border border-danger/40',
     },
-  }[status];
+  };
+  const statusConfig = statusConfigMap[status] || statusConfigMap.AVAILABLE;
 
   return (
     <motion.div
@@ -110,11 +111,11 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
               )}
             </div>
 
-            <div>
-              <span className="font-heading font-black text-lg tracking-wide text-sand group-hover:text-gold transition-colors block leading-tight">
+            <div className="min-w-0 flex-1">
+              <span className="font-heading font-black text-lg tracking-wide text-sand group-hover:text-gold transition-colors block leading-tight whitespace-nowrap truncate">
                 {code}
               </span>
-              <span className="text-[11px] font-mono text-mist">
+              <span className="text-[11px] font-mono text-mist block truncate">
                 {computer.ipAddress}
               </span>
             </div>
@@ -141,41 +142,51 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
 
         {/* 2. Body: Trạng thái & Thông tin khách chơi (nếu có) */}
         <div className="min-h-[64px] py-2 border-t border-[rgba(167,158,156,0.12)] flex flex-col justify-center">
-          {status === 'IN_USE' && activeSession ? (
-            <div className="space-y-1.5">
-              {/* Tên khách */}
-              <div className="flex items-center gap-1.5 text-sm text-sand font-bold truncate">
-                <User className="w-3.5 h-3.5 text-gold shrink-0" />
-                <span className="truncate">{activeSession.accountName || 'Khách chơi'}</span>
-              </div>
-
-              {/* Thời gian còn lại */}
-              <div className="flex items-center justify-between gap-1">
-                <div
-                  className={`flex items-center gap-1.5 font-mono text-sm font-extrabold ${
-                    isCriticalExpiring
-                      ? 'text-danger animate-pulse'
-                      : isExpiringSoon
-                      ? 'text-warning'
-                      : 'text-gold'
-                  }`}
-                >
-                  <Clock className="w-3.5 h-3.5 shrink-0" />
-                  <span>
-                    Còn {remainingMinutes > 0 ? `${remainingMinutes}p` : 'Hết giờ'}
-                  </span>
+          {status === 'IN_USE' ? (
+            activeSession ? (
+              <div className="space-y-1.5">
+                {/* Tên khách */}
+                <div className="flex items-center gap-1.5 text-sm text-sand font-bold truncate">
+                  <User className="w-3.5 h-3.5 text-gold shrink-0" />
+                  <span className="truncate">{activeSession.accountName || 'Khách chơi'}</span>
                 </div>
-                {isCriticalExpiring ? (
-                  <span className="text-[10px] uppercase tracking-wider text-danger px-2 py-0.5 rounded-full bg-danger/25 font-bold border border-danger/50 animate-pulse">
-                    &le; 5P
-                  </span>
-                ) : isExpiringSoon ? (
-                  <span className="text-[10px] uppercase tracking-wider text-warning px-2 py-0.5 rounded-full bg-warning/20 font-bold border border-warning/40">
-                    GẤP
-                  </span>
-                ) : null}
+
+                {/* Thời gian còn lại */}
+                <div className="flex items-center justify-between gap-1">
+                  <div
+                    className={`flex items-center gap-1.5 font-mono text-sm font-extrabold ${
+                      isCriticalExpiring
+                        ? 'text-danger animate-pulse'
+                        : isExpiringSoon
+                        ? 'text-warning'
+                        : 'text-gold'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Còn {remainingMinutes > 0 ? `${remainingMinutes}p` : 'Hết giờ'}
+                    </span>
+                  </div>
+                  {isCriticalExpiring ? (
+                    <span className="text-[10px] uppercase tracking-wider text-danger px-2 py-0.5 rounded-full bg-danger/25 font-bold border border-danger/50 animate-pulse">
+                      &le; 5P
+                    </span>
+                  ) : isExpiringSoon ? (
+                    <span className="text-[10px] uppercase tracking-wider text-warning px-2 py-0.5 rounded-full bg-warning/20 font-bold border border-warning/40">
+                      GẤP
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-[#85C1DC] font-semibold py-1">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#5B8FA8] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#5B8FA8]" />
+                </span>
+                <span className="truncate">Đang đồng bộ phiên chơi...</span>
+              </div>
+            )
           ) : status === 'AVAILABLE' ? (
             <div className="flex flex-col justify-center">
               <span className="text-[11px] font-semibold text-[#4ADE80] tracking-wide uppercase mb-0.5">

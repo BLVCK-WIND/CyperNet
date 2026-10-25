@@ -413,6 +413,224 @@ Biên dịch thành công 69 files source code (`mvn clean test` BUILD SUCCESS).
   - **Soft Pill Shapes**: Bo góc mềm mại kiểu viên thuốc (`rounded-2xl` đến `rounded-full` / 16px - 24px) cho các nút, tag và ô nhập liệu.
   - **Độ tương phản Typography**: Dùng màu cát sáng `#D3C3B9` cho chữ chính và màu vàng caramel đồng `#B58863` cho các số liệu quan trọng để tạo cảm giác sang trọng, ấm cúng.
 
+#### E. Bài học Kiến trúc Frontend: TanStack Query Cache Isolation & Chống lỗi Blank Screen khi F5
+
+1. **Cô lập Cache Key trong TanStack Query (Query Key Isolation)**:
+   - **Triệu chứng**: Bấm vào menu "Sơ đồ máy" nhưng màn hình hiện *"Không tìm thấy máy trạm phù hợp"* (0 máy).
+   - **Nguyên nhân**: Component hiển thị tóm tắt (`StaffSidebar`, `StaffTopBar`) và Component hiển thị chi tiết (`useFloorMap` trong `FloorMapPage`) cùng dùng chung `queryKey: ['staff-floormap-data']` nhưng cấu trúc dữ liệu trả về khác nhau:
+     - Sidebar/TopBar trả về `{ totalComputers: number, activeSessions: number }` (2 số đếm để hiện badge).
+     - `useFloorMap` trả về `{ computers: FloorMapComputerItem[], rawComputers: ComputerResponse[], activeSessions: SessionResponse[] }`.
+     Vì Sidebar/TopBar mount trước, TanStack Query lưu `{ totalComputers, activeSessions }` vào cache key này. Khi trang Floor Map mở ra, `data.computers` bị `undefined` $\rightarrow$ mảng máy bị gán thành rỗng (`[]`) $\rightarrow$ Màn hình hiện *"Không tìm thấy máy trạm phù hợp"*.
+   - **Quy tắc sống còn**: Tuyệt đối không dùng chung `queryKey` giữa các thành phần tóm tắt và trang chi tiết nếu cấu trúc dữ liệu khác nhau. Phân định tiền tố rõ ràng:
+     - Quick Stats / Counters: `['staff-quick-status-stats']`
+     - Floor Map Full Data: `['staff-floormap-data']`
+
+2. **Ngăn chặn lỗi render Object / Array of Objects vào React JSX**:
+   - **Triệu chứng**: Khi F5 làm mới trên `/staff/floormap`, toàn bộ màn hình tối đen.
+   - **Nguyên nhân**: Do cache key bị chia sẻ, khi `useFloorMap` hoàn tất query, nó ghi đè lại cache với `activeSessions` là một mảng Object (`SessionResponse[]`). Khi chèn trực tiếp `{floorData?.activeSessions || 0}` vào JSX của `StaffTopBar`, React ném ngoại lệ nghiêm trọng: `Objects are not valid as a React child (found: object with keys {id, computerCode...})`.
+   - **Quy tắc**: Luôn đặt tên biến trả về của API đếm số lượng rõ ràng: `activeSessionsCount: number` thay vì dùng chung tên với mảng object, kiểm tra kỹ kiểu dữ liệu trước khi render vào JSX.
+
+3. **React Router 7 Route Error Boundary & Ngăn ngừa màn hình đen (Blank Screen)**:
+   - **Triệu chứng**: Khi có runtime error ở component con, toàn bộ màn hình đen tuyền, không có thông báo lỗi hay nút bấm nào.
+   - **Nguyên nhân**: React Router `errorElement` không kích hoạt lifecycle `componentDidCatch` của React Class Component `ErrorBoundary` thông thường mà cần Functional Component sử dụng hook `useRouteError()`. Nếu truyền class component không có children, nó render `undefined` (màn hình đen tuyền che giấu lỗi).
+   - **Quy tắc**: Xây dựng component `RouteErrorBoundary` riêng tích hợp `useRouteError()`, hiển thị chi tiết lỗi kèm nút Tải lại trang và Về trang chủ, loại bỏ hoàn toàn tình trạng Blank Screen.
+
+4. **Đồng bộ Route Guard & Cấu trúc Router**:
+   - Các đường dẫn redirect trong `RoleGuard` (`Navigate to="..."`) phải luôn khớp 1:1 với router tree thực tế (`/staff/floormap` thay vì `/staff/dashboard`, `/staff/login` thay vì `/login`).
+
+5. **Tương thích React 19 giữa Ant Design v5 vs Ant Design v6**:
+   - Nếu dùng **Ant Design v5**: Cần import `@ant-design/v5-patch-for-react-19` để patch tương thích ref/portal với React 19.
+   - Nhưng dự án CyberNet sử dụng **Ant Design v6 (`antd: ^6.6.7`)**: AntD v6 đã **hỗ trợ React 19 từ trong nhân (Native Support)**, do đó tuyệt đối **không import `@ant-design/v5-patch-for-react-19`** vì sẽ gây cảnh báo `[antd: compatible]` thừa trong console. Luôn kiểm tra version của `antd` trước khi áp dụng patch.
+
+---
+
+## 📍 PHASE 2 (BỔ SUNG) — BÀI HỌC KIẾN TRÚC TÍNH GIỜ ĐỘNG (DYNAMIC TARIFF), GIA HẠN PHIÊN ĐANG CHƠI (AUTO-EXTEND ACTIVE SESSION) & ĐỘ ỔN ĐỊNH GIAO DIỆN REACT (UI RESILIENCE)
+
+> **Bối cảnh thực tế**: Trong quá trình vận hành thử nghiệm tại quầy thu ngân (Staff POS & Floor Map), hệ thống phát sinh các vấn đề nghiệp vụ và kỹ thuật cốt tử:
+> 1. Tài khoản khách có 300 phút, mở máy 10k/h được 5.0h, nhưng mở máy VIP 15k/h hay 20k/h thì hệ thống vẫn tính 300 phút (5.0h) — sai lệch doanh thu nghiêm trọng.
+> 2. Khách đang chơi máy VIP gần hết giờ, nộp thêm 50,000đ tại quầy: Tiền vào tài khoản nhưng phiên chơi trên máy không được tăng giờ, máy tắt ngấm; hoặc khi trả máy thì số phút dư bị trừ sai lệch.
+> 3. Nhân viên click chọn khách hàng trong Modal mở máy / bán giờ, sau 1.2s ô nhập tự động bị xóa trắng (auto-reset).
+> 4. Dropdown danh sách khách hàng bị tràn chữ thành ba chấm `090123... (12...`, không đọc được tên và số phút khả dụng.
+
+---
+
+### 1. Kiến Trúc "Đồng Tiền Cơ Sở" & Quy Đổi Đơn Giá Giờ Động (Universal Standard Minutes Currency)
+
+#### A. Bản chất kiến trúc:
+- Trong Database, trường `Account.remainingMinutes` **LUÔN LUÔN là Số phút chuẩn (Standard Base Minutes)**.
+- Mệnh giá giờ chuẩn được neo cố định tại:
+  $$\text{BASE\_PRICE\_PER\_HOUR} = 10,000\text{ VNĐ/giờ} \iff 1\text{ phút chuẩn} = \frac{10,000}{60} \approx 166.67\text{ VNĐ}$$
+- Số phút trong tài khoản **KHÔNG PHẢI** là số phút riêng của một máy cụ thể nào, mà là **năng lực chi trả chuẩn hóa**.
+
+#### B. Công thức Mở máy (Start Session / Login):
+- Khi khách ngồi vào một máy có đơn giá `computer.pricePerHour`:
+  $$\text{playableMinutes} = \left\lfloor \frac{\text{account.remainingMinutes} \times \text{BASE\_PRICE\_PER\_HOUR}}{\text{computer.pricePerHour}} \right\rfloor$$
+- **Ví dụ cụ thể** (Khách có 300 phút chuẩn trong tài khoản):
+  - Ngồi máy Standard (10k/h): $\lfloor 300 \times 10,000 / 10,000 \rfloor = 300\text{ phút} = 5.0\text{ giờ}$.
+  - Ngồi máy VIP (15k/h): $\lfloor 300 \times 10,000 / 15,000 \rfloor = 200\text{ phút} = 3.3\text{ giờ}$.
+  - Ngồi máy VIP Pro (20k/h): $\lfloor 300 \times 10,000 / 20,000 \rfloor = 150\text{ phút} = 2.5\text{ giờ}$.
+- Backend cập nhật mốc thời gian hết hạn:
+  $$\text{session.expiresAt} = \text{LocalDateTime.now}().plusMinutes(\text{playableMinutes})$$
+- Đồng thời: `account.remainingMinutes` được set về `0` (do toàn bộ số dư đã nạp vào phiên chơi hiện tại).
+
+#### C. Công thức Trả máy & Hoàn tiền (End Session Refund):
+- Khi khách đứng dậy trả máy trước thời hạn, số phút máy trạm còn dư là:
+  $$\text{remainingMachineMinutes} = \text{Duration.between}(\text{now}, \text{session.expiresAt}).toMinutes()$$
+- **Quy tắc hoàn trả đối xứng**: Số phút máy trạm phải được quy đổi ngược lại thành số phút chuẩn trước khi cộng trả vào `account.remainingMinutes`:
+  $$\text{refundStandardMinutes} = \left\lfloor \frac{\text{remainingMachineMinutes} \times \text{computer.pricePerHour}}{\text{BASE\_PRICE\_PER\_HOUR}} \right\rfloor$$
+  $$\text{account.remainingMinutes} = \text{account.remainingMinutes} + \text{refundStandardMinutes}$$
+- **Minh chứng toán học bảo toàn tài chính**:
+  - Khách nạp 50k $\rightarrow$ Có 300 phút chuẩn.
+  - Ngồi máy VIP 20k/h $\rightarrow$ Được chơi 150 phút máy VIP.
+  - Chơi đúng 30 phút thì có việc bận xin nghỉ $\rightarrow$ Máy VIP còn dư $150 - 30 = 120$ phút máy.
+  - Khi bấm Kết thúc phiên: Hoàn trả $\lfloor 120 \times 20,000 / 10,000 \rfloor = 240$ phút chuẩn.
+  - Khách đã tiêu hao: $300 - 240 = 60$ phút chuẩn $= 10,000$ VNĐ (Đúng bằng 30 phút ngồi máy 20k/h: $0.5\text{h} \times 20,000 = 10,000$ VNĐ). **Không lệch 1 đồng!**
+
+---
+
+### 2. Nghiệp Vụ Liên Thông Nạp Giờ & Tự Động Gia Hạn Phiên Đang Chơi (Active Session Auto-Extend)
+
+#### A. Bài toán thực tế:
+- Khách đang chơi dở trận combat trên máy VIP (20k/h), gần hết giờ thì gọi nhân viên: *"Nộp thêm cho anh 50k nhé!"*.
+- **Nếu xử lý ngây thơ (Naive approach)**: Chỉ cộng 300 phút chuẩn vào `account.remainingMinutes`.
+  - Hậu quả 1: Phiên chơi trên máy trạm (`session.expiresAt`) không hề thay đổi, máy trạm hết giờ tự động ngắt kết nối giữa lúc khách đang thi đấu!
+  - Hậu quả 2: Khi phiên cũ hết giờ, khách phải đăng nhập lại từ đầu để hệ thống mở phiên mới từ số phút trong tài khoản, gây ức chế tột độ.
+
+#### B. Giải pháp Enterprise Chuẩn (Đã triển khai trong `TimePurchaseService.java`):
+- Trong hàm `confirmTimePurchase`:
+  1. Cộng số phút chuẩn vào `account.remainingMinutes`:
+     $$\text{account.remainingMinutes} += \text{purchase.getMinutes}()$$
+  2. Tra cứu phiên chơi đang chạy của tài khoản:
+     `sessionRepository.findByAccountIdAndStatus(account.getId(), SessionStatus.ACTIVE)`
+  3. **Nếu khách đang ngồi máy trạm**:
+     - Lấy thông tin máy trạm `computer = session.getComputer()`.
+     - Tính số phút quy đổi trực tiếp theo đơn giá máy trạm:
+       $$\text{extraMachineMinutes} = \left\lfloor \frac{\text{purchase.getMinutes}() \times \text{BASE\_PRICE\_PER\_HOUR}}{\text{computer.pricePerHour}} \right\rfloor$$
+     - Gia hạn trực tiếp mốc hết hạn của phiên:
+       $$\text{session.expiresAt} = \text{session.expiresAt}.plusMinutes(\text{extraMachineMinutes})$$
+     - Đặt lại `account.remainingMinutes = 0` (vì toàn bộ số phút nạp thêm đã được chuyển hóa vào phiên đang chạy).
+     - Gửi WebSocket STOMP notification `SESSION_EXTENDED` tới máy trạm và Dashboard nhân viên để cập nhật đồng hồ đếm ngược tức thì.
+  4. **Khi kết thúc phiên**: Toàn bộ thời gian dư trên máy (bao gồm cả giờ cũ và giờ vừa nạp thêm) sẽ được hàm `endSession` quy đổi ngược lại về số phút chuẩn nạp vào tài khoản.
+
+---
+
+### 3. Bài Học Kiến Trúc Frontend: Ổn Định Trạng Thái Dropdown & Tránh Văng State Khi Re-render (State Resilience)
+
+#### A. Triệu chứng lỗi "1.2s tự động xóa trắng":
+- Nhân viên bấm "Mở phiên máy", chọn khách hàng "0988001122 - Nguyễn Văn A".
+- Chưa kịp bấm nút Xác nhận (trong vòng ~1.2 giây), ô chọn bỗng nhiên bị xóa sạch, trở về trạng thái trống `placeholder="Chọn khách hàng..."`.
+
+#### B. Truy vết nguyên nhân sâu xa (Root Cause Analysis):
+- `FloorMapPage.tsx` có cơ chế đồng bộ polling (10s) và nhận sự kiện WebSocket máy đổi trạng thái.
+- Khi truyền danh sách máy khả dụng cho Modal:
+  `<StartSessionModal availableComputers={computers.filter(c => c.status === 'AVAILABLE')} ... />`
+- Mỗi lần `FloorMapPage` re-render (dù dữ liệu không đổi), biểu thức `.filter()` trả về một **Array Reference hoàn toàn mới** (`[] !== []`).
+- Trong `StartSessionModal.tsx`:
+  ```tsx
+  useEffect(() => {
+    setSelectedAccountId(null);
+  }, [open, availableComputers]); // <-- CHÍNH LÀ THỦ PHẠM!
+  ```
+  Dependency array chứa `availableComputers`. Khi prop này đổi tham chiếu, `useEffect` chạy lại và gọi `setSelectedAccountId(null)` xóa trắng ô chọn của nhân viên!
+
+#### C. Quy tắc khắc phục sống còn (Best Practices):
+1. **Bóc tách Lifecycle Reset**: Trạng thái nhập liệu của Form/Modal **chỉ được phép reset khi thuộc tính `open` thay đổi** (modal mở ra hoặc đóng lại), tuyệt đối không đưa các mảng dữ liệu phụ thuộc (`availableComputers`, `customersList`, v.v.) vào dependency array của reset effect:
+   ```tsx
+   useEffect(() => {
+     if (open) {
+       setSelectedAccountId(defaultAccountId ?? null);
+     } else {
+       setSelectedAccountId(null);
+     }
+   }, [open]); // CHỈ phụ thuộc vào open!
+   ```
+2. **Memoize Derived Props ở Component Cha**: Bọc các mảng lọc bằng `useMemo`:
+   ```tsx
+   const availableComputers = useMemo(
+     () => computers.filter((c) => c.status === 'AVAILABLE'),
+     [computers]
+   );
+   ```
+
+---
+
+### 4. Bài Học Frontend UX: Thiết Kế Dropdown 2 Cột Chống Tràn Ba Chấm (`...`) (Anti-Ellipsis Select Layout)
+
+#### A. Vấn đề trải nghiệm:
+- Nếu ghép chuỗi đơn thuần vào label của Select:
+  `label: "${c.phoneNumber} - ${c.name} (${c.remainingMinutes} phút khả dụng)"`
+- Khi hiển thị trên ô Dropdown có bề rộng giới hạn (300px - 400px), chuỗi bị cắt cụt với dấu ba chấm xấu xí:
+  `090123... (12...`
+- Nhân viên thu ngân hoàn toàn không nhìn thấy tên khách cũng như không biết khách còn bao nhiêu phút.
+
+#### B. Giải pháp 2 Cột Chuyên Nghiệp với Ant Design `optionRender`:
+- Tận dụng `optionRender` (Ant Design v5 / v6) để custom toàn diện thẻ item:
+  ```tsx
+  optionRender={(option) => {
+    const customer = customers.find(c => c.id === option.value);
+    return (
+      <div className="flex items-center justify-between w-full py-0.5 gap-2">
+        {/* Cột trái: SĐT Monospace nổi bật + Tên khách cát sáng */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-xs text-[#B58863] shrink-0 font-semibold">
+            {customer.phoneNumber}
+          </span>
+          <span className="text-sm text-[#D3C3B9] font-medium truncate">
+            {customer.fullName}
+          </span>
+        </div>
+        {/* Cột phải: Badge vàng đồng hiển thị rõ giờ/phút quy đổi */}
+        <div className="shrink-0">
+          {playableMinutes > 0 ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#B58863]/20 text-[#B58863] border border-[#B58863]/30">
+              {formatHoursMinutes(playableMinutes)}
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+              0 phút
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }}
+  ```
+- **Kết quả**: Cột trái luôn ưu tiên hiển thị SĐT và tên khách; Cột phải luôn cố định Badge số phút màu vàng đồng sang trọng. Không bao giờ xuất hiện chữ ba chấm che giấu thông tin.
+
+---
+
+### 5. Bài Học Xử Lý Trạng Thái Máy Đang Chuyển Tiếp (`IN_USE` Fallback)
+
+- Khi một phiên chơi vừa được tạo, trạng thái của `Computer` lập tức chuyển thành `IN_USE` nhưng dữ liệu chi tiết của `Session` có thể chưa kịp đồng bộ về client qua API/WebSocket (độ trễ ~0.2s - 0.5s).
+- **Lỗi cũ**: Khi `session === null`, giao diện rơi vào nhánh bảo trì và hiển thị Icon Cờ lê đỏ rực trên thẻ máy đang có khách chơi.
+- **Quy tắc xử lý an toàn**:
+  ```tsx
+  if (computer.status === 'IN_USE' && !session) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-[#B58863]/80 animate-pulse">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <span>Đang đồng bộ phiên chơi...</span>
+      </div>
+    );
+  }
+  ```
+  Tuyệt đối không để rơi vào fallback bảo trì hoặc làm crash giao diện khi dữ liệu quan hệ đang trong quá trình đồng bộ (in-flight state).
+
+---
+
+### 6. Xây Dựng Hoàn Chỉnh Màn Hình Bán Giờ (`SellTimePage`) & Quản Lý Phiên Chơi (`SessionManagerPage`)
+
+1. **`SellTimePage.tsx` (MS-2.9 POS Bán Giờ)**:
+   - Cung cấp trải nghiệm bán giờ tương tự máy POS siêu thị: Ô tìm kiếm SĐT khách hàng tự động focus, 6 nút preset mệnh giá thông dụng (10.000đ, 20.000đ, 50.000đ, 100.000đ, 200.000đ, 500.000đ).
+   - Tự động tính toán số phút quy đổi chuẩn theo công thức $M = \frac{\text{amount}}{10,000} \times 60$.
+   - Tích hợp thanh toán kép: **Tiền mặt (CASH)** với 1 click xác nhận và **Chuyển khoản (VietQR)** tự động sinh mã QR Napas247 động theo đúng cú pháp tài khoản ngân hàng của quán.
+2. **`SessionManagerPage.tsx` (MS-2.6 & MS-2.7 Quản Lý Phiên)**:
+   - Chia 2 Tab chuyên biệt:
+     - **Tab 1: Phiên đang chạy (Active Sessions Grid)**: Thẻ phiên chơi hiển thị mã máy, tên khách hàng, SĐT, mốc bắt đầu, mốc hết hạn, đồng hồ đếm ngược thời gian thực, thanh tiến trình (progress bar) % thời gian đã chơi, cảnh báo vàng khi $\le 15$ phút, cảnh báo đỏ khi $\le 5$ phút. Tích hợp trực tiếp 3 nút tác vụ: Nạp thêm giờ, Đổi máy, Kết thúc phiên.
+     - **Tab 2: Lịch sử phiên chơi (Session History Table)**: Bảng dữ liệu tra cứu các phiên đã kết thúc trong ngày, kèm số phút thực tế đã chơi và lý do kết thúc.
+
+
+
 
 
 

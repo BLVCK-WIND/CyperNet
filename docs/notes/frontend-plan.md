@@ -582,6 +582,19 @@ flowchart TD
   - Thiết kế lại `ComputerCard.tsx`: `AVAILABLE` (xanh emerald tươi sáng, chữ đậm rõ ràng), `IN_USE` (xanh slate sang trọng, số countdown to rõ font `Space Grotesk`), `MAINTENANCE` (đỏ trầm / xám tro mờ 60%).
   - Thiết kế lại `StaffOrderCard.tsx`: Tăng cường độ tương phản cho đơn chờ, đơn mới và đơn khẩn cấp.
 
+### MS-2.12c — Floor Map Isolation & Route Error Boundary Hotfix ⭐
+- [x] Tách biệt độc lập TanStack Query Key: `['staff-quick-status-stats']` cho Sidebar/TopBar và `['staff-floormap-data']` cho sơ đồ máy.
+- [x] Xây dựng `RouteErrorBoundary` sử dụng `useRouteError()` bắt lỗi React Router, loại bỏ hoàn toàn màn hình đen (Blank Screen) khi F5.
+- [x] Gỡ bỏ `@ant-design/v5-patch-for-react-19` thừa khỏi `main.tsx` vì Ant Design v6 đã hỗ trợ Native React 19.
+
+### MS-2.12d — Dynamic Tariff Architecture, POS Sell Time & Session Manager ⭐
+- [x] **Dynamic Tariff Engine**: Chuẩn hóa `Account.remainingMinutes` thành Số phút chuẩn (Standard Base Minutes @ 10k/h). Tính giờ chơi theo tỷ giá máy: $\text{playableMinutes} = \lfloor \frac{\text{remainingMinutes} \times 10000}{\text{pricePerHour}} \rfloor$.
+- [x] **Symmetrical Dynamic Refund**: Khi kết thúc phiên sớm, quy đổi ngược số phút máy trạm chưa dùng về số phút chuẩn hoàn lại tài khoản: $\text{refundStandardMinutes} = \lfloor \frac{\text{machineMinutes} \times \text{pricePerHour}}{10000} \rfloor$.
+- [x] **Active Session Auto-Extend Linkage**: Khi khách đang ngồi máy VIP nạp thêm tiền tại quầy (`confirmTimePurchase`), tự động gia hạn `session.expiresAt` theo tỷ giá máy VIP và gửi WebSocket STOMP realtime notification `SESSION_EXTENDED`.
+- [x] **SellTimePage POS (`/staff/sell-time`)**: Màn hình bán giờ quầy chuyên nghiệp với 6 nút Preset mệnh giá (10k-500k), sinh mã Napas247 VietQR động và thanh toán tiền mặt.
+- [x] **SessionManagerPage (`/staff/sessions`)**: Màn hình quản lý phiên chơi thời gian thực tập trung, theo dõi đếm ngược, thanh tiến trình, cảnh báo hết giờ và bảng lịch sử phiên.
+- [x] **Dropdown UX Anti-Ellipsis & State Resilience**: Bố cục 2 cột với Ant Design `optionRender` (SĐT + Tên bên trái, Badge vàng số phút bên phải); bóc tách `availableComputers` khỏi reset `useEffect` để ngăn chặn lỗi xóa trắng sau 1.2s.
+
 ---
 
 ## 7. 🎯 PHASE 3 — Admin Panel

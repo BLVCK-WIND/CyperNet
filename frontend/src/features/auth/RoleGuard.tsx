@@ -17,13 +17,14 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   const { role, isAuthenticated } = useAuthStore();
 
   if (!isAuthenticated || !role) {
-    return <Navigate to="/login" replace />;
+    const isStaffRoute = allowedRoles.includes('STAFF') || allowedRoles.includes('ADMIN');
+    return <Navigate to={isStaffRoute ? '/staff/login' : '/customer/login'} replace />;
   }
 
   const hasPermission = allowedRoles.includes(role);
 
   if (!hasPermission) {
-    // Nếu không khớp quyền, redirect về dashboard tương ứng của role đó
+    // Nếu không khớp quyền, redirect về màn hình chính tương ứng của role đó
     if (fallbackPath) {
       return <Navigate to={fallbackPath} replace />;
     }
@@ -32,11 +33,10 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
       case 'CUSTOMER':
         return <Navigate to="/customer/dashboard" replace />;
       case 'STAFF':
-        return <Navigate to="/staff/dashboard" replace />;
       case 'ADMIN':
-        return <Navigate to="/admin/dashboard" replace />;
+        return <Navigate to="/staff/floormap" replace />;
       default:
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/customer/login" replace />;
     }
   }
 

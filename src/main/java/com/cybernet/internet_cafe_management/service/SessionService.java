@@ -34,6 +34,8 @@ import java.util.List;
 @Service
 public class SessionService {
 
+    public static final BigDecimal BASE_PRICE_PER_HOUR = BigDecimal.valueOf(10000);
+
     private final SessionRepository sessionRepository;
     private final ComputerRepository computerRepository;
     private final AccountRepository accountRepository;
@@ -57,6 +59,23 @@ public class SessionService {
         this.passwordEncoder = passwordEncoder;
         this.realtimeNotificationService = realtimeNotificationService;
         this.auditLogService = auditLogService;
+    }
+
+    /**
+     * Quy đổi số phút chuẩn Standard sang số phút thực tế chơi được trên máy trạm cụ thể.
+     * playableMinutes = floor(standardMinutes * 10000 / pricePerHour)
+     */
+    public static long calculatePlayableMinutes(int standardMinutes, BigDecimal pricePerHour) {
+        if (standardMinutes <= 0) {
+            return 0;
+        }
+        if (pricePerHour == null || pricePerHour.compareTo(BigDecimal.ZERO) <= 0 || pricePerHour.compareTo(BASE_PRICE_PER_HOUR) == 0) {
+            return standardMinutes;
+        }
+        return BigDecimal.valueOf(standardMinutes)
+                .multiply(BASE_PRICE_PER_HOUR)
+                .divide(pricePerHour, 0, RoundingMode.FLOOR)
+                .longValue();
     }
 
     /**
@@ -98,8 +117,10 @@ public class SessionService {
         session.setAccount(account);
         session.setComputer(computer);
         session.setStartedAt(now);
-        // Tự động tính thời điểm hết giờ dựa trên số phút khách đang có
-        session.setExpiresAt(now.plusMinutes(account.getRemainingMinutes()));
+
+        // Quy đổi số phút chơi thực tế theo Dynamic Tariff dựa trên đơn giá máy
+        long playableMinutes = calculatePlayableMinutes(account.getRemainingMinutes(), computer.getPricePerHour());
+        session.setExpiresAt(now.plusMinutes(playableMinutes));
         session.setStatus(Status.ACTIVE);
 
         // Đổi trạng thái máy tính sang IN_USE để khoá máy
@@ -109,7 +130,7 @@ public class SessionService {
         Session savedSession = sessionRepository.save(session);
         realtimeNotificationService.broadcastComputerStatus(computer);
         auditLogService.log("START_SESSION", "Session", savedSession.getId(),
-                "Mở máy " + computer.getCode() + " cho khách " + account.getPhone());
+                "Mở máy " + computer.getCode() + " cho khách " + account.getPhone() + " (" + playableMinutes + " phút chơi thực tế)");
         return SessionResponse.fromEntity(savedSession);
     }
 
@@ -137,10 +158,23 @@ public class SessionService {
         computer.setStatus(Computer.Status.AVAILABLE);
         computerRepository.save(computer);
 
-        // 3. Tính toán trừ số phút khách thực sự đã chơi trong phiên này
+        // 3. Tính toán hoàn trả số phút chuẩn Standard chưa sử dụng về tài khoản
         Account account = session.getAccount();
-        long playedMinutes = Math.max(0, Duration.between(session.getStartedAt(), now).toMinutes());
-        int newRemainingMinutes = (int) Math.max(0, account.getRemainingMinutes() - playedMinutes);
+        long remainingMinutesUntilExpiry = Math.max(0, Duration.between(now, session.getExpiresAt()).toMinutes());
+
+        int refundStandardMinutes;
+        BigDecimal computerPrice = computer.getPricePerHour();
+        if (computerPrice == null || computerPrice.compareTo(BigDecimal.ZERO) <= 0 || computerPrice.compareTo(BASE_PRICE_PER_HOUR) == 0) {
+            refundStandardMinutes = (int) remainingMinutesUntilExpiry;
+        } else {
+            refundStandardMinutes = BigDecimal.valueOf(remainingMinutesUntilExpiry)
+                    .multiply(computerPrice)
+                    .divide(BASE_PRICE_PER_HOUR, 0, RoundingMode.FLOOR)
+                    .intValue();
+        }
+
+        // Đảm bảo số phút hoàn trả không vượt quá số phút khả dụng trước đó của tài khoản
+        int newRemainingMinutes = Math.min(account.getRemainingMinutes(), Math.max(0, refundStandardMinutes));
 
         account.setRemainingMinutes(newRemainingMinutes);
         accountRepository.save(account);
@@ -172,10 +206,11 @@ public class SessionService {
             throw new IllegalStateException("Không thể gia hạn cho phiên chơi đã kết thúc!");
         }
 
-        // Tịnh tiến thời điểm hết hạn của phiên
-        session.setExpiresAt(session.getExpiresAt().plusMinutes(request.getExtraMinutes()));
+        // Tịnh tiến thời điểm hết hạn của phiên quy đổi theo đơn giá máy đang ngồi
+        long extraMachineMinutes = calculatePlayableMinutes(request.getExtraMinutes(), session.getComputer().getPricePerHour());
+        session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMachineMinutes));
 
-        // Đồng thời cộng thêm phút vào tài khoản khách
+        // Đồng thời cộng thêm phút chuẩn vào tài khoản khách
         Account account = session.getAccount();
         account.setRemainingMinutes(account.getRemainingMinutes() + request.getExtraMinutes());
         accountRepository.save(account);
@@ -394,7 +429,10 @@ public class SessionService {
         session.setAccount(account);
         session.setComputer(computer);
         session.setStartedAt(now);
-        session.setExpiresAt(now.plusMinutes(account.getRemainingMinutes()));
+
+        // Quy đổi số phút chơi thực tế theo Dynamic Tariff dựa trên đơn giá máy
+        long playableMinutes = calculatePlayableMinutes(account.getRemainingMinutes(), computer.getPricePerHour());
+        session.setExpiresAt(now.plusMinutes(playableMinutes));
         session.setStatus(Status.ACTIVE);
 
         // Khóa máy tính sang IN_USE

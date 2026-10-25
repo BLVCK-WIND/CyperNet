@@ -803,3 +803,103 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 - Tài liệu hóa ngay lập tức sau mỗi đợt review giúp bảo toàn tri thức cho các phiên làm việc tiếp theo, chống lặp lại các lỗi thiết kế cũ.
 - Thiết kế quầy thu ngân thực tế phải đặt khả năng "liếc mắt nhận diện ngay" (Glanceable UI) lên hàng đầu thông qua Badge Counter và màu sắc tương phản cao.
 
+---
+
+### 2026-10-25 — Phân tích & Tài liệu hóa Khắc phục sự cố MS-2.12c (Floor Map Cache Key Collision & Blank Screen)
+
+**Phase**: Post-MS-2.12b Bug Analysis & Hotfix Planning (MS-2.12c)
+**Thời gian**: ~1 giờ
+**Việc đã làm**:
+- Tiếp nhận phản ánh lỗi từ Tech Lead: Bấm vào "Sơ đồ máy" hiển thị 0 máy ("Không tìm thấy máy trạm phù hợp"), và khi F5 làm mới thì toàn bộ màn hình tối đen.
+- Phân tích và truy vết chính xác 2 nguyên nhân gốc rễ:
+  1. *Xung đột TanStack Query Key*: `['staff-floormap-data']` dùng chung giữa `StaffSidebar`/`StaffTopBar` (trả về `{ totalComputers, activeSessions }`) và `useFloorMap` (trả về `{ computers, rawComputers, activeSessions }`). Do Sidebar/TopBar mount trước, cache bị lưu đè dạng số đếm khiến `data.computers` bị undefined, mảng máy rỗng.
+  2. *Lỗi render Object vào React JSX*: Khi `useFloorMap` hoàn tất query và ghi đè mảng Object vào cache, `StaffTopBar` đọc `floorData.activeSessions` và chèn trực tiếp vào JSX `{floorData?.activeSessions}` gây sập React (`Objects are not valid as a React child`). Kết hợp với `ErrorBoundary` thiếu hook `useRouteError()`, React Router render `undefined` biến cả màn hình thành màu đen tuyền.
+- Đề xuất giải pháp khắc phục toàn diện:
+  + Tách riêng query key `['staff-quick-status-stats']` với trường đếm `activeSessionsCount: number` cho Sidebar và TopBar.
+  + Bổ sung component `RouteErrorBoundary` sử dụng `useRouteError()` để bắt lỗi React Router và hiển thị giao diện báo lỗi trực quan kèm nút Tải lại trang.
+  + Sửa đường dẫn redirect trong `RoleGuard.tsx` sang `/staff/floormap` và `/staff/login` / `/customer/login`.
+  + Gỡ bỏ `@ant-design/v5-patch-for-react-19` khỏi `main.tsx` vì Ant Design v6 đã hỗ trợ Native React 19, làm sạch 100% console warning.
+  + Bổ sung fallback an toàn cho `statusConfig` trong `ComputerCard.tsx`.
+- Cập nhật bài học kiến trúc chi tiết vào `LESSONS.md`.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| TanStack Query Cache Granular Key Isolation | `StaffSidebar.tsx`, `StaffTopBar.tsx`, `useFloorMap.ts` | 🟡 Trung bình |
+| React Router Route Error Handling (`useRouteError`) | `RouteErrorBoundary` trong `ErrorBoundary.tsx` | 🟡 Trung bình |
+| Ant Design v6 Native React 19 Support | `main.tsx` (loại bỏ v5-patch thừa) | 🟢 Cơ bản |
+| Guard Redirect Canonical Paths | `RoleGuard.tsx` | 🟢 Cơ bản |
+| Defensive Style Map Lookup | `ComputerCard.tsx` | 🟢 Cơ bản |
+
+**Lỗi gặp phải & cách fix**:
+- Xung đột cache TanStack Query làm rỗng danh sách máy $\rightarrow$ Tách riêng key `['staff-quick-status-stats']` cho badge/stats và giữ `['staff-floormap-data']` độc quyền cho sơ đồ máy.
+- Chèn trực tiếp Object Array vào JSX và sập ErrorBoundary $\rightarrow$ Đổi tên trường đếm `activeSessionsCount`, xây dựng `RouteErrorBoundary` tích hợp `useRouteError()`.
+- Cảnh báo console `Warning: [antd: compatible] antd v6 support React 19 already` $\rightarrow$ Gỡ bỏ import `@ant-design/v5-patch-for-react-19` khỏi `main.tsx`.
+- Lỗi `ws://127.0.0.1:5500//ws` và `STAGING is false` $\rightarrow$ Xác minh đây là tiến trình của tiện ích Live Server extension phía trình duyệt người dùng, hoàn toàn độc lập và không ảnh hưởng tới hệ thống.
+
+**Ghi chú / Bài học rút ra**:
+- Tuyệt đối không dùng chung TanStack Query Key nếu 2 component sử dụng cấu trúc dữ liệu trả về khác nhau.
+- Mọi Error Boundary dùng cho React Router bắt buộc phải là Functional Component sử dụng `useRouteError()`, không dùng React Class Component đơn thuần vì sẽ render `undefined` khi có lỗi.
+- Ant Design v6 đã native React 19, không cần và không được nạp `@ant-design/v5-patch-for-react-19`.
+
+---
+
+### 2026-10-25 / 2026-10-26 — Hoàn tất Toàn diện Phase 2 (Staff POS Floor Map, Session Manager, Sell Time POS) & Tái Cấu Trúc Kiến Trúc Dynamic Tariff & Active Session Auto-Extend
+
+**Phase**: Phase 2 Finalization & Core Business Refactoring (MS-2.6, MS-2.7, MS-2.9, Dynamic Tariff)  
+**Thời gian**: ~4 giờ  
+**Việc đã làm**:
+1. **Hoàn thiện Giao diện Sơ đồ máy (Floor Map Polish)**:
+   - `frontend/src/features/staff/components/ComputerCard.tsx`: Khắc phục lỗi xung đột trạng thái: khi máy `IN_USE` mà `session` đang đồng bộ (`null`), hiển thị loading pulse "Đang đồng bộ phiên chơi..." thay vì cờ lê bảo trì. Bổ sung `whitespace-nowrap truncate` ngăn chữ mã máy dài (ví dụ `SEC-PC-01`) bị rớt dòng.
+   - `frontend/src/features/staff/pages/FloorMapPage.tsx`: Giảm lưới hiển thị từ 6 cột chật chội về 4-5 cột thoáng đãng; bọc danh sách `availableComputers` bằng `useMemo`.
+   - `frontend/src/components/layout/StaffTopBar.tsx` & `StaffSidebar.tsx`: Đồng bộ số lượng máy online chính xác theo `computers.filter(c => c.status === 'IN_USE')`.
+2. **Xây dựng Trang Bán Giờ Chơi Quầy POS (`SellTimePage.tsx` — MS-2.9)**:
+   - Bổ sung API `getTimePurchases` và `cancelTimePurchase` trong `frontend/src/api/timePurchaseApi.ts`.
+   - Xây dựng giao diện POS bán giờ chuyên nghiệp: Tìm kiếm khách hàng theo SĐT/Tên, 6 nút preset mệnh giá thông dụng (10k, 20k, 50k, 100k, 200k, 500k), lựa chọn thanh toán Tiền mặt hoặc Chuyển khoản VietQR Napas247, kèm bảng lịch sử giao dịch nạp giờ gần nhất trong ngày.
+3. **Xây dựng Màn hình Quản Lý Phiên Chơi (`SessionManagerPage.tsx` — MS-2.6 & MS-2.7)**:
+   - Tạo mới trang quản lý tập trung toàn bộ phiên chơi tại `/staff/sessions` với 2 tab:
+     - Tab "Đang hoạt động": Lưới card các phiên chơi realtime, đồng hồ đếm ngược, thanh tiến trình % thời gian đã chơi, cảnh báo vàng khi $\le 15$ phút, cảnh báo đỏ khi $\le 5$ phút, 3 nút hành động nhanh: Nạp giờ, Đổi máy, Kết thúc phiên.
+     - Tab "Lịch sử phiên": Bảng danh sách các phiên đã kết thúc trong ngày kèm số phút thực tế đã chơi.
+   - Tích hợp 10s auto-refresh polling và liên kết trực tiếp với các modal nghiệp vụ `StartSessionModal`, `EndSessionModal`, `TransferSessionModal`, `SellTimeModal`.
+4. **Tái Cấu Trúc Toàn Diện Kiến Trúc Tính Giờ Động (Dynamic Tariff Architecture)**:
+   - **Frontend**: Khắc phục lỗi hiển thị 5.0h cho cả máy 15k và 10k (300 phút chuẩn). Áp dụng công thức quy đổi động: $\text{playableMinutes} = \lfloor \frac{\text{account.remainingMinutes} \times 10000}{\text{pricePerHour}} \rfloor$.
+   - **Backend (`SessionService.java`)**: Khai báo hằng số chuẩn `BASE_PRICE_PER_HOUR = 10000`. Xây dựng hàm `calculatePlayableMinutes` và áp dụng đồng bộ cho `startSession`, `loginAndStartSession`, `extendSession`.
+   - **Hoàn trả giờ dư đối xứng (`endSession`)**: Quy đổi số phút máy trạm còn dư về lại số phút chuẩn: $\text{refundStandardMinutes} = \lfloor \frac{\text{remainingMachineMinutes} \times \text{pricePerHour}}{10000} \rfloor$, bảo toàn 100% giá trị tài sản của khách.
+5. **Khắc Phục Sự Cố UI/UX Dropdown Khách Hàng (Zero-Ellipsis & State Resilience)**:
+   - **Lỗi xóa trắng sau 1.2s**: Bóc tách mảng `availableComputers` ra khỏi dependency array của `useEffect` reset trong `StartSessionModal.tsx` và `TransferSessionModal.tsx`, chỉ cho phép reset khi modal đóng/mở (`open`).
+   - **Lỗi ba chấm `...`**: Tận dụng Ant Design `optionRender` thiết kế bố cục Flexbox 2 cột (Cột trái: SĐT Monospace vàng kim + Tên khách cát sáng; Cột phải: Badge vàng đồng số phút/giờ quy đổi tương ứng với đơn giá máy được chọn, hoặc Badge đỏ khi 0 phút).
+6. **Nghiệp Vụ Liên Thông Nạp Giờ & Tự Động Gia Hạn Phiên Đang Chơi (Active Session Auto-Extend)**:
+   - `src/main/java/com/cybernet/internet_cafe_management/service/TimePurchaseService.java`: Bổ sung tiêm `SessionRepository` và `RealtimeNotificationService`.
+   - Khi nhân viên duyệt phiếu nạp tiền (`confirmTimePurchase`): Kiểm tra nếu khách đang có phiên `ACTIVE`, tự động gia hạn `session.expiresAt` theo đơn giá của máy đó: $\text{extraMinutes} = \lfloor \text{topupStandardMinutes} \times \frac{10000}{\text{computer.pricePerHour}} \rfloor$, đồng thời bắn WebSocket realtime notification `SESSION_EXTENDED`.
+   - Khi phiên kết thúc, toàn bộ thời gian dư trên máy được quy đổi ngược lại về số phút chuẩn hoàn lại tài khoản mà không bị lệch 1 đồng.
+7. **Kiểm Thử Thực Nghiệm & Biên Dịch (PASS 100%)**:
+   - Backend compilation `./mvnw.cmd compile`: BUILD SUCCESS.
+   - Frontend compilation `npm run build --prefix frontend`: PASS (0 errors, 0 warnings, 1.85s).
+   - Chạy kịch bản PowerShell thực nghiệm (`scratch/verify_vip_auto_extend.ps1`): Khách nạp 50k trên máy VIP 20k/h (`TEST-VIP-01`) gia hạn chính xác 150 phút; kết thúc phiên hoàn lại 598 phút chuẩn nguyên vẹn.
+   - **Bộ Kiểm Thử Toàn Diện API & Trải Nghiệm Client (`scratch/run_all_client_api_tests.ps1`)**: Tự động hóa 4 luồng kiểm thử thực nghiệm (F&B Order Snapshot & PLAYTIME item, Dynamic Tariff Machine Transfer, Floor Map Data Mapping & Quick Stats, Customer Session Lifecycle & Token Invalidation) $\rightarrow$ **PASS 100% trong 3.09s**.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Universal Base Currency Dynamic Tariff | `SessionService.java`, `StartSessionModal.tsx` | 🔴 Nâng cao |
+| Active Session Auto-Extend Linkage | `TimePurchaseService.java` | 🔴 Nâng cao |
+| Bidirectional Symmetrical Refund Logic | `SessionService.java` (`endSession`) | 🟡 Trung bình |
+| Ant Design `optionRender` 2-Column Flexbox | `StartSessionModal.tsx`, `SellTimeModal.tsx` | 🟡 Trung bình |
+| React Hook Dependency Decoupling & `useMemo` | `FloorMapPage.tsx`, `StartSessionModal.tsx` | 🟡 Trung bình |
+| Full POS Screen with Napas247 VietQR | `SellTimePage.tsx` | 🟡 Trung bình |
+| Centralized Live Session Manager | `SessionManagerPage.tsx` | 🟡 Trung bình |
+
+**Lỗi gặp phải & cách fix**:
+- *Lỗi 1: Máy VIP 15k và máy Standard 10k đều hiển thị 5.0h cho 300 phút* $\rightarrow$ Fix: Áp dụng Dynamic Tariff quy đổi theo tỷ lệ `10000 / pricePerHour` trên cả Frontend Modal và Backend `SessionService`.
+- *Lỗi 2: Chọn khách xong bị mất sau 1.2s* $\rightarrow$ Fix: Gỡ `availableComputers` khỏi `useEffect` dependency array và bọc `useMemo` ở `FloorMapPage`.
+- *Lỗi 3: Text danh sách khách bị tràn dấu ba chấm `...`* $\rightarrow$ Fix: Dùng `optionRender` chia 2 cột: SĐT + Tên bên trái, Badge vàng số phút bên phải.
+- *Lỗi 4: Máy `IN_USE` chớp cờ lê bảo trì* $\rightarrow$ Fix: Thêm nhánh loading pulse "Đang đồng bộ phiên chơi..." khi `status === 'IN_USE'` và `session === null`.
+- *Lỗi 5: Nạp tiền khi đang chơi máy VIP không tăng giờ* $\rightarrow$ Fix: Thêm cơ chế liên thông tự động gia hạn `session.expiresAt` trong `TimePurchaseService.confirmTimePurchase`.
+
+**Ghi chú / Bài học rút ra**:
+- Tiền tệ giờ chơi trong Database phải luôn lưu theo đơn vị chuẩn (Universal Standard Minutes), không bao giờ lưu theo đơn vị máy riêng lẻ.
+- Mọi thao tác nạp tiền tại quầy phải chủ động kiểm tra phiên chơi đang chạy của khách để gia hạn kịp thời, bảo đảm trải nghiệm không gián đoạn.
+- Trạng thái nhập liệu của Modal chỉ được reset khi `open` thay đổi, không bao giờ đưa các mảng phụ thuộc bên ngoài vào reset hook.
+
+
+

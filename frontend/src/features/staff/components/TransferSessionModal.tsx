@@ -32,6 +32,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Chỉ khởi tạo state khi modal mở lên (open = true)
   useEffect(() => {
     if (open) {
       setTargetComputerId(
@@ -40,7 +41,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
       setMarkOldAsMaintenance(false);
       setReason('');
     }
-  }, [open, availableComputers]);
+  }, [open, computer?.id]);
 
   if (!computer || !computer.activeSession) return null;
 

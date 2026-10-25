@@ -74,17 +74,19 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
     refetchInterval: 5000,
   });
 
-  // Polling số máy online / tổng máy
-  const { data: floorData } = useQuery({
-    queryKey: ['staff-floormap-data'],
+  // Polling số máy online / tổng máy (Dùng key riêng 'staff-quick-status-stats', không xung đột với useFloorMap)
+  const { data: quickStats } = useQuery({
+    queryKey: ['staff-quick-status-stats'],
     queryFn: async () => {
       const [computersRes, sessionsRes] = await Promise.all([
         computerApi.getComputers({ size: 100 }),
         sessionApi.getSessions({ status: 'ACTIVE', size: 100 }),
       ]);
+      const computers = computersRes.content || [];
+      const inUseCount = computers.filter((c) => c.status === 'IN_USE').length;
       return {
-        totalComputers: computersRes.totalElements || computersRes.content?.length || 0,
-        activeSessions: sessionsRes.totalElements || sessionsRes.content?.length || 0,
+        totalComputers: computersRes.totalElements || computers.length || 0,
+        activeSessionsCount: inUseCount || sessionsRes.totalElements || sessionsRes.content?.length || 0,
       };
     },
     enabled: Boolean(isAuthenticated && (role === 'STAFF' || role === 'ADMIN')),
@@ -167,7 +169,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
             <span className="w-2 h-2 rounded-full bg-success shadow-[0_0_6px_rgba(76,175,80,0.8)]" />
             <span className="text-mist">Máy online:</span>
             <span className="font-bold font-mono text-sand">
-              {floorData?.activeSessions || 0}/{floorData?.totalComputers || 0}
+              {quickStats?.activeSessionsCount || 0}/{quickStats?.totalComputers || 0}
             </span>
           </div>
           <span className="text-mist/30">|</span>

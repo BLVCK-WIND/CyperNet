@@ -11,25 +11,25 @@ import { StaffOrderQueuePage } from '@/features/staff/pages/StaffOrderQueuePage'
 import { SellTimePage } from '@/features/staff/pages/SellTimePage';
 import { SessionManagerPage } from '@/features/staff/pages/SessionManagerPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
-import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { RouteErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { RoleGuard } from '@/features/auth/RoleGuard';
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    errorElement: <ErrorBoundary />,
+    errorElement: <RouteErrorBoundary />,
     element: <Navigate to="/customer/login" replace />,
   },
   {
     path: '/customer/login',
-    errorElement: <ErrorBoundary />,
+    errorElement: <RouteErrorBoundary />,
     element: <CustomerLoginPage />,
   },
   {
     path: '/customer',
     element: <ProtectedRoute redirectPath="/customer/login" />,
-    errorElement: <ErrorBoundary />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         element: (
@@ -60,13 +60,13 @@ export const router = createBrowserRouter([
   },
   {
     path: '/staff/login',
-    errorElement: <ErrorBoundary />,
+    errorElement: <RouteErrorBoundary />,
     element: <StaffLoginPage />,
   },
   {
     path: '/staff',
     element: <ProtectedRoute redirectPath="/staff/login" />,
-    errorElement: <ErrorBoundary />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         element: (

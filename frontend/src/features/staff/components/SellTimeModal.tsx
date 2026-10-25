@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Select, Button, Tag, Skeleton, InputNumber, App, Radio } from 'antd';
+import { Modal, Select, Button, Tag, Skeleton, InputNumber, App } from 'antd';
 import {
   ClockPlus,
   Coins,
@@ -9,7 +9,6 @@ import {
   Printer,
   User,
   ShieldCheck,
-  Zap,
   Monitor,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,7 +18,7 @@ import { timePurchaseApi } from '@/api/timePurchaseApi';
 import { orderApi } from '@/api/orderApi';
 import { GlassCard } from '@/components/ui/GlassCard';
 import type { Account } from '@/types/auth';
-import type { FloorMapComputerItem, ComputerZone } from '@/types/computer';
+import type { FloorMapComputerItem } from '@/types/computer';
 import type { TimePurchaseResponse, PaymentMethod } from '@/types/timePurchase';
 import type { VietQrResponse } from '@/types/order';
 
@@ -41,12 +40,6 @@ const PRESET_AMOUNTS = [
   { amount: 500000, label: '500.000 đ' },
 ];
 
-// Cấu hình đơn giá theo từng Zone phòng máy
-const ZONE_OPTIONS: { zone: ComputerZone; label: string; pricePerHour: number }[] = [
-  { zone: 'STANDARD', label: 'Zone STANDARD (10.000đ/h)', pricePerHour: 10000 },
-  { zone: 'VIP', label: 'Zone VIP (15.000đ/h)', pricePerHour: 15000 },
-];
-
 export const SellTimeModal: React.FC<SellTimeModalProps> = ({
   open,
   initialAccountId,
@@ -59,7 +52,6 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
 
   const [step, setStep] = useState<'FORM' | 'QR_PAYMENT' | 'SUCCESS'>('FORM');
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
-  const [selectedZone, setSelectedZone] = useState<ComputerZone>('STANDARD');
   const [pricePerHour, setPricePerHour] = useState<number>(10000);
   const [selectedAmount, setSelectedAmount] = useState<number>(50000);
   const [selectedMinutes, setSelectedMinutes] = useState<number>(300);
@@ -71,27 +63,23 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
   const [createdPurchase, setCreatedPurchase] = useState<TimePurchaseResponse | null>(null);
   const [vietQrData, setVietQrData] = useState<VietQrResponse | null>(null);
 
+  const BASE_TARIFF = 10000;
+
   // Khôi phục & khởi tạo giá trị khi mở modal
   useEffect(() => {
     if (open) {
       setStep('FORM');
       setSelectedAccountId(initialAccountId || null);
 
-      // Nếu mở từ máy cụ thể, lấy đúng Zone và đơn giá của máy đó
       if (targetComputer) {
-        const zone = targetComputer.zone || 'STANDARD';
-        const price = targetComputer.pricePerHour || (zone === 'VIP' ? 15000 : 10000);
-        setSelectedZone(zone);
+        const price = Number(targetComputer.pricePerHour) || (targetComputer.zone === 'VIP' ? 20000 : 10000);
         setPricePerHour(price);
-        setSelectedAmount(50000);
-        setSelectedMinutes(Math.round((50000 / price) * 60));
       } else {
-        setSelectedZone('STANDARD');
         setPricePerHour(10000);
-        setSelectedAmount(50000);
-        setSelectedMinutes(300); // 50.000 / 10.000 * 60 = 300p
       }
 
+      setSelectedAmount(50000);
+      setSelectedMinutes(300); // 50.000đ = 300 phút chuẩn Standard cơ sở
       setIsCustomAmount(false);
       setPaymentMethod('CASH');
       setCreatedPurchase(null);
@@ -109,22 +97,16 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
   const accounts: Account[] = accountsData?.content || [];
   const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
 
-  // Khi thay đổi Zone (chỉ cho phép đổi nếu không gắn cứng với targetComputer đang ngồi)
-  const handleZoneChange = (zone: ComputerZone) => {
-    const option = ZONE_OPTIONS.find((z) => z.zone === zone);
-    const newPrice = option ? option.pricePerHour : 10000;
-    setSelectedZone(zone);
-    setPricePerHour(newPrice);
-    // Tính lại số phút theo đơn giá Zone mới
-    const newMins = Math.round((selectedAmount / newPrice) * 60);
-    setSelectedMinutes(newMins);
-  };
+  // Số phút chuẩn Standard (cơ sở lưu vào bảng accounts trong DB)
+  const standardMinutes = Math.round((selectedAmount / BASE_TARIFF) * 60);
+  // Số phút thực tế chơi được tại máy hiện tại (nếu mở nạp từ máy)
+  const machinePlayableMinutes = Math.floor((standardMinutes * BASE_TARIFF) / pricePerHour);
 
   // Chọn mệnh giá nạp tiền nhanh (10k, 20k, 50k, 100k...)
   const handleSelectAmount = (amt: number) => {
     setIsCustomAmount(false);
     setSelectedAmount(amt);
-    const mins = Math.round((amt / pricePerHour) * 60);
+    const mins = Math.round((amt / BASE_TARIFF) * 60);
     setSelectedMinutes(mins);
   };
 
@@ -132,7 +114,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
   const handleCustomAmountChange = (value: number | null) => {
     const amt = value || 0;
     setSelectedAmount(amt);
-    const calculatedMinutes = Math.round((amt / pricePerHour) * 60);
+    const calculatedMinutes = Math.round((amt / BASE_TARIFF) * 60);
     setSelectedMinutes(calculatedMinutes);
   };
 
@@ -140,7 +122,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
   const handleCustomMinutesChange = (value: number | null) => {
     const mins = value || 0;
     setSelectedMinutes(mins);
-    const calculatedAmount = Math.round((mins / 60) * pricePerHour);
+    const calculatedAmount = Math.round((mins / 60) * BASE_TARIFF);
     setSelectedAmount(calculatedAmount);
   };
 
@@ -150,17 +132,17 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
       message.error('Vui lòng chọn tài khoản khách hàng để nạp giờ!');
       return;
     }
-    if (selectedMinutes <= 0 || selectedAmount <= 0) {
+    if (standardMinutes <= 0 || selectedAmount <= 0) {
       message.error('Số phút nạp và số tiền phải lớn hơn 0!');
       return;
     }
 
     setSubmitting(true);
     try {
-      // 1. Tạo phiếu nạp giờ
+      // 1. Tạo phiếu nạp giờ (luôn gửi số phút chuẩn Standard để backend lưu DB đúng nghiệp vụ)
       const newPurchase = await timePurchaseApi.createTimePurchase({
         accountId: selectedAccountId,
-        minutes: selectedMinutes,
+        minutes: standardMinutes,
         amount: selectedAmount,
         paymentMethod,
       });
@@ -177,7 +159,8 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
         // Làm mới cache tài khoản & sơ đồ máy
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
-          queryClient.invalidateQueries({ queryKey: ['staff-floor-map-computers'] }),
+          queryClient.invalidateQueries({ queryKey: ['staff-floormap-data'] }),
+          queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
         ]);
 
         if (onSuccess) onSuccess(confirmed);
@@ -213,7 +196,8 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['staff-floor-map-computers'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-floormap-data'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
       ]);
 
       if (onSuccess) onSuccess(confirmed);
@@ -291,8 +275,27 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                 popupClassName="cyberlux-select-dropdown"
                 options={accounts.map((acc) => ({
                   value: acc.id,
-                  label: `${acc.phone} • ${acc.name} (${acc.remainingMinutes} phút)`,
+                  label: `${acc.phone} • ${acc.name}`,
                 }))}
+                optionRender={(oriOption) => {
+                  const acc = accounts.find((a) => a.id === oriOption.value);
+                  if (!acc) return oriOption.label;
+                  return (
+                    <div className="flex items-center justify-between py-0.5 text-xs">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <span className="font-mono text-sand font-bold shrink-0">
+                          {acc.phone}
+                        </span>
+                        <span className="text-sand/90 truncate font-medium">
+                          {acc.name}
+                        </span>
+                      </div>
+                      <span className="shrink-0 text-gold font-mono font-bold text-[11px] bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
+                        {acc.remainingMinutes} phút
+                      </span>
+                    </div>
+                  );
+                }}
               />
             )}
 
@@ -314,47 +317,46 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
             )}
           </div>
 
-          {/* 2. Đơn giá & Khu vực máy (Zone Dynamic Tariff) */}
+          {/* 2. Đơn giá & Khu vực máy (Dynamic Tariff) */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-mist uppercase tracking-wider flex items-center gap-1.5">
                 <Monitor className="w-3.5 h-3.5 text-gold" />
-                Đơn giá khu vực (Zone)
+                Đơn giá nạp giờ
               </label>
-              <span className="text-[11px] font-mono text-gold">
+              <span className="text-[11px] font-mono text-gold font-bold">
                 {new Intl.NumberFormat('vi-VN').format(pricePerHour)}đ / giờ
               </span>
             </div>
 
             {targetComputer ? (
-              <GlassCard className="p-2.5 rounded-xl border border-gold/30 bg-gold/10 flex items-center justify-between text-xs">
-                <span className="text-sand font-medium">
-                  Máy đang ngồi: <strong>{targetComputer.code}</strong> ({targetComputer.zone})
-                </span>
+              <GlassCard className="p-3 rounded-xl border border-gold/30 bg-gold/10 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-gold" />
+                  <div>
+                    <div className="text-xs font-bold text-sand">
+                      Máy {targetComputer.code} ({targetComputer.zone})
+                    </div>
+                    <div className="text-[11px] text-mist">Đang mở nạp giờ từ sơ đồ máy</div>
+                  </div>
+                </div>
                 <Tag color="gold" className="m-0 font-mono font-bold text-xs">
-                  {new Intl.NumberFormat('vi-VN').format(pricePerHour)}đ/h
+                  {new Intl.NumberFormat('vi-VN').format(pricePerHour)}đ/giờ
                 </Tag>
               </GlassCard>
             ) : (
-              <Radio.Group
-                value={selectedZone}
-                onChange={(e) => handleZoneChange(e.target.value)}
-                className="w-full grid grid-cols-2 gap-2.5"
-              >
-                {ZONE_OPTIONS.map((opt) => (
-                  <Radio.Button
-                    key={opt.zone}
-                    value={opt.zone}
-                    className={`h-10 rounded-xl flex items-center justify-center text-xs font-bold border transition-all cursor-pointer ${
-                      selectedZone === opt.zone
-                        ? 'border-gold bg-gold/15 text-gold'
-                        : 'border-[rgba(167,158,156,0.15)] bg-midnight/60 text-mist'
-                    }`}
-                  >
-                    {opt.label}
-                  </Radio.Button>
-                ))}
-              </Radio.Group>
+              <GlassCard className="p-3 rounded-xl border border-[rgba(167,158,156,0.15)] bg-midnight/60 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-gold" />
+                  <div>
+                    <div className="text-xs font-bold text-sand">Biểu phí tài khoản chuẩn</div>
+                    <div className="text-[11px] text-mist">Quy đổi 10.000đ = 60 phút Standard (166.7đ/phút)</div>
+                  </div>
+                </div>
+                <Tag color="blue" className="m-0 font-mono font-bold text-xs">
+                  10.000đ/giờ
+                </Tag>
+              </GlassCard>
             )}
           </div>
 
@@ -377,73 +379,76 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                     key={item.amount}
                     type="button"
                     onClick={() => handleSelectAmount(item.amount)}
-                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center relative ${
+                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center relative ${
                       isSelected
-                        ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)]'
+                        ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)] ring-1 ring-gold'
                         : 'border-[rgba(167,158,156,0.15)] bg-midnight/50 text-mist hover:border-gold/50 hover:text-sand'
                     }`}
                   >
                     {item.isPopular && (
-                      <span className="absolute -top-2 right-2 bg-gradient-to-r from-gold to-warning text-midnight text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shadow">
-                        PHỔ BIẾN
+                      <span className="absolute -top-2 right-2 bg-gradient-to-r from-gold to-warning text-midnight text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow">
+                        HOT
                       </span>
                     )}
-                    <span className="font-heading font-extrabold text-sm text-sand">
+                    <span className="font-heading font-extrabold text-xs sm:text-sm text-sand">
                       {item.label}
                     </span>
-                    <span className="text-[11px] font-mono font-bold text-gold mt-0.5">
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold text-gold mt-0.5">
                       {equivMins} phút (~{equivHours}h)
                     </span>
                   </button>
                 );
               })}
-
-              {/* Nút Tùy chỉnh */}
-              <button
-                type="button"
-                onClick={() => setIsCustomAmount(true)}
-                className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center col-span-3 sm:col-span-1 ${
-                  isCustomAmount
-                    ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)]'
-                    : 'border-[rgba(167,158,156,0.15)] bg-midnight/50 text-mist hover:border-gold/50 hover:text-sand'
-                }`}
-              >
-                <Zap className="w-4 h-4 text-gold mb-0.5" />
-                <span className="font-heading font-extrabold text-xs">Tự nhập tiền</span>
-                <span className="text-[10px] text-mist/70 mt-0.5">Tiền lẻ / Khác</span>
-              </button>
             </div>
 
-            {/* Khung Tùy chỉnh nếu chọn Tự nhập tiền */}
-            {isCustomAmount && (
-              <GlassCard className="p-3.5 rounded-xl border border-gold/30 bg-midnight/70 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-[11px] text-mist block mb-1">Số tiền khách đưa:</span>
-                    <InputNumber
-                      min={1000}
-                      step={5000}
-                      value={selectedAmount}
-                      onChange={handleCustomAmountChange}
-                      className="w-full rounded-lg"
-                      formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      addonAfter="đ"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-mist block mb-1">Quy đổi số phút:</span>
-                    <InputNumber
-                      min={15}
-                      step={15}
-                      value={selectedMinutes}
-                      onChange={handleCustomMinutesChange}
-                      className="w-full rounded-lg"
-                      addonAfter="phút"
-                    />
-                  </div>
+            {/* Khung Tùy chỉnh nếu muốn nhập số tiền khác */}
+            <div className="p-3 rounded-xl bg-midnight/60 border border-[rgba(167,158,156,0.15)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-medium text-mist">
+                  Hoặc tự nhập số tiền / số phút tùy ý:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomAmount(!isCustomAmount)}
+                  className="text-[11px] text-gold hover:underline cursor-pointer"
+                >
+                  {isCustomAmount ? 'Dùng gói gợi ý' : 'Nhập tự do'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <span className="text-[10px] text-mist block mb-1">Số tiền khách đưa (VNĐ):</span>
+                  <InputNumber
+                    min={1000}
+                    step={5000}
+                    value={selectedAmount}
+                    formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    parser={(val) => Number(val?.replace(/\$\s?|(,*)/g, '') || 0)}
+                    onChange={(val) => {
+                      setIsCustomAmount(true);
+                      handleCustomAmountChange(val);
+                    }}
+                    className="w-full rounded-lg text-xs"
+                    addonAfter="đ"
+                  />
                 </div>
-              </GlassCard>
-            )}
+                <div>
+                  <span className="text-[10px] text-mist block mb-1">Quy đổi số phút:</span>
+                  <InputNumber
+                    min={15}
+                    step={15}
+                    value={selectedMinutes}
+                    onChange={(val) => {
+                      setIsCustomAmount(true);
+                      handleCustomMinutesChange(val);
+                    }}
+                    className="w-full rounded-lg text-xs"
+                    addonAfter="phút"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* 4. Phương thức thanh toán */}
@@ -453,51 +458,58 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
               Phương thức thanh toán
             </label>
 
-            <Radio.Group
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full grid grid-cols-2 gap-3"
-            >
-              <Radio.Button
-                value="CASH"
-                className={`h-12 rounded-xl flex items-center justify-center gap-2 border text-xs font-bold transition-all cursor-pointer ${
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('CASH')}
+                className={`h-11 rounded-xl flex items-center justify-center gap-2 border text-xs font-bold transition-all cursor-pointer ${
                   paymentMethod === 'CASH'
-                    ? 'border-gold bg-gold/15 text-gold'
-                    : 'border-[rgba(167,158,156,0.2)] bg-midnight/60 text-mist'
+                    ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)]'
+                    : 'border-[rgba(167,158,156,0.15)] bg-midnight/50 text-mist hover:text-sand hover:border-gold/30'
                 }`}
               >
                 <Banknote className="w-4 h-4 text-success" />
                 Tiền mặt (Cash)
-              </Radio.Button>
-
-              <Radio.Button
-                value="QR"
-                className={`h-12 rounded-xl flex items-center justify-center gap-2 border text-xs font-bold transition-all cursor-pointer ${
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('QR')}
+                className={`h-11 rounded-xl flex items-center justify-center gap-2 border text-xs font-bold transition-all cursor-pointer ${
                   paymentMethod === 'QR'
-                    ? 'border-gold bg-gold/15 text-gold'
-                    : 'border-[rgba(167,158,156,0.2)] bg-midnight/60 text-mist'
+                    ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)]'
+                    : 'border-[rgba(167,158,156,0.15)] bg-midnight/50 text-mist hover:text-sand hover:border-gold/30'
                 }`}
               >
                 <QrCode className="w-4 h-4 text-[#85C1DC]" />
                 VietQR Napas247
-              </Radio.Button>
-            </Radio.Group>
+              </button>
+            </div>
           </div>
 
           {/* 5. Tóm tắt thanh toán & Quy đổi phút */}
           <GlassCard className="p-4 rounded-xl border border-[rgba(167,158,156,0.15)] bg-midnight/90 flex items-center justify-between">
-            <div>
-              <span className="text-xs text-mist block">Khách thanh toán:</span>
-              <span className="text-xs text-mist">
-                Quy đổi: <strong className="text-sand">{selectedMinutes} phút</strong> (~
-                {(selectedMinutes / 60).toFixed(1)}h)
+            <div className="space-y-1">
+              <span className="text-xs text-mist block">
+                Số tiền nạp: <strong className="text-sand font-mono">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedAmount)}</strong>
               </span>
+              <div className="text-xs text-mist">
+                Quy đổi chuẩn: <strong className="text-sand">{standardMinutes} phút Standard</strong>
+              </div>
+              {targetComputer && (
+                <div className="text-xs text-success font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
+                  <span>
+                    Gia hạn máy {targetComputer.code}: <strong className="font-mono text-sand">+{machinePlayableMinutes} phút</strong> (~{(machinePlayableMinutes / 60).toFixed(1)}h)
+                  </span>
+                </div>
+              )}
             </div>
             <div className="text-right">
               <span className="font-heading font-extrabold text-xl text-gold font-mono block">
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                  selectedAmount
-                )}
+                +{targetComputer ? machinePlayableMinutes : standardMinutes}p
+              </span>
+              <span className="text-[11px] text-mist">
+                {targetComputer ? 'cộng vào phiên máy' : 'cộng vào tài khoản'}
               </span>
             </div>
           </GlassCard>
@@ -634,17 +646,26 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                 <strong className="text-sand font-mono">{createdPurchase.accountPhone}</strong>
               </div>
               <div className="flex justify-between">
-                <span>Khu vực áp dụng:</span>
+                <span>Đơn giá áp dụng:</span>
                 <strong className="text-sand">
-                  Zone {selectedZone} ({new Intl.NumberFormat('vi-VN').format(pricePerHour)}đ/h)
+                  {targetComputer ? `${targetComputer.code} (${targetComputer.zone}) - ` : 'Chuẩn Standard - '}
+                  {new Intl.NumberFormat('vi-VN').format(pricePerHour)}đ/h
                 </strong>
               </div>
               <div className="flex justify-between">
-                <span>Thời gian nạp thêm:</span>
-                <strong className="text-gold font-mono">
-                  +{createdPurchase.minutes} phút (~{(createdPurchase.minutes / 60).toFixed(1)}h)
+                <span>Số phút chuẩn Standard:</span>
+                <strong className="text-sand font-mono">
+                  +{createdPurchase.minutes} phút
                 </strong>
               </div>
+              {targetComputer && (
+                <div className="flex justify-between text-success">
+                  <span>Gia hạn phiên máy {targetComputer.code}:</span>
+                  <strong className="font-mono font-bold">
+                    +{Math.floor((createdPurchase.minutes * BASE_TARIFF) / pricePerHour)} phút (~{(Math.floor((createdPurchase.minutes * BASE_TARIFF) / pricePerHour) / 60).toFixed(1)}h)
+                  </strong>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Số tiền thanh toán:</span>
                 <strong className="text-gold font-bold font-mono text-sm">

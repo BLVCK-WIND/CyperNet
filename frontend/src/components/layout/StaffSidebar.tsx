@@ -45,31 +45,33 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
   // 1. Polling số đơn hàng PENDING_PAYMENT chờ duyệt mỗi 5s
   const { data: pendingOrdersData } = useQuery({
     queryKey: ['staff-topbar-pending-orders'],
-    queryFn: () => orderApi.getOrders({ status: 'PENDING_PAYMENT', page: 0, size: 1 }),
+    queryFn: () => orderApi.getOrders({ status: 'PENDING_PAYMENT', page: 0, size: 4 }),
     enabled: Boolean(isAuthenticated && (role === 'STAFF' || role === 'ADMIN')),
     refetchInterval: 5000,
   });
   const pendingCount = pendingOrdersData?.totalElements || 0;
 
-  // 2. Polling tỷ lệ máy online / tổng máy
-  const { data: floorData } = useQuery({
-    queryKey: ['staff-floormap-data'],
+  // 2. Polling tỷ lệ máy online / tổng máy (Dùng key riêng 'staff-quick-status-stats', không xung đột với useFloorMap)
+  const { data: quickStats } = useQuery({
+    queryKey: ['staff-quick-status-stats'],
     queryFn: async () => {
       const [computersRes, sessionsRes] = await Promise.all([
         computerApi.getComputers({ size: 100 }),
         sessionApi.getSessions({ status: 'ACTIVE', size: 100 }),
       ]);
+      const computers = computersRes.content || [];
+      const inUseCount = computers.filter((c) => c.status === 'IN_USE').length;
       return {
-        totalComputers: computersRes.totalElements || computersRes.content?.length || 0,
-        activeSessions: sessionsRes.totalElements || sessionsRes.content?.length || 0,
+        totalComputers: computersRes.totalElements || computers.length || 0,
+        activeSessionsCount: inUseCount || sessionsRes.totalElements || sessionsRes.content?.length || 0,
       };
     },
     enabled: Boolean(isAuthenticated && (role === 'STAFF' || role === 'ADMIN')),
     refetchInterval: 10000,
   });
 
-  const totalComputers = floorData?.totalComputers || 0;
-  const activeComputers = floorData?.activeSessions || 0;
+  const totalComputers = quickStats?.totalComputers || 0;
+  const activeComputers = quickStats?.activeSessionsCount || 0;
 
   const menuItems: NavMenuItem[] = [
     {

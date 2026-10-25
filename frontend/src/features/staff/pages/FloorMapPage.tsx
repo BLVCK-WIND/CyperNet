@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Input, Button, Skeleton, Segmented } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -53,6 +53,11 @@ export const FloorMapPage: React.FC = () => {
     zoneFilter,
     searchKeyword,
   });
+
+  const availableComputers = useMemo(
+    () => allComputers.filter((c) => c.status === 'AVAILABLE'),
+    [allComputers]
+  );
 
   const handleSelectComputer = (computer: FloorMapComputerItem) => {
     setSelectedComputer(computer);
@@ -211,9 +216,9 @@ export const FloorMapPage: React.FC = () => {
 
       {/* 4. Grid Sơ Đồ Máy Trạm */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <GlassCard key={idx} className="p-4 rounded-2xl border border-[rgba(167,158,156,0.1)]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4.5">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <GlassCard key={idx} className="p-4.5 rounded-2xl border border-[rgba(167,158,156,0.1)]">
               <Skeleton active paragraph={{ rows: 3 }} />
             </GlassCard>
           ))}
@@ -236,7 +241,7 @@ export const FloorMapPage: React.FC = () => {
       ) : (
         <motion.div
           layout
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4.5"
         >
           <AnimatePresence mode="popLayout">
             {computers.map((comp) => (
@@ -284,7 +289,7 @@ export const FloorMapPage: React.FC = () => {
       <StartSessionModal
         open={isStartModalOpen}
         computer={modalTargetComputer}
-        availableComputers={allComputers.filter((c) => c.status === 'AVAILABLE')}
+        availableComputers={availableComputers}
         onClose={() => setIsStartModalOpen(false)}
         onSuccess={() => {
           refetch();
@@ -305,7 +310,7 @@ export const FloorMapPage: React.FC = () => {
       <TransferSessionModal
         open={isTransferModalOpen}
         computer={sessionActionComputer}
-        availableComputers={allComputers.filter((c) => c.status === 'AVAILABLE')}
+        availableComputers={availableComputers}
         onClose={() => setIsTransferModalOpen(false)}
         onSuccess={() => {
           refetch();

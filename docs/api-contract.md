@@ -432,6 +432,12 @@ sequenceDiagram
     }
     ```
   - *(Lưu ý: Đã chốt Phương án A, không cần gửi trường `minutes`, server tự dùng toàn bộ số dư khả dụng).*
+  - **Quy tắc Tính Giờ Động (Dynamic Tariff Architecture)**:
+    - `account.remainingMinutes` trong database luôn lưu theo **Số phút chuẩn (Standard Base Minutes)** với mệnh giá chuẩn `BASE_PRICE_PER_HOUR = 10,000 VNĐ/h` (10k = 60 phút chuẩn).
+    - Khi mở máy, Backend tự động tính số phút chơi thực tế tại máy theo tỷ giá:
+      $$\text{playableMinutes} = \left\lfloor \frac{\text{account.remainingMinutes} \times 10,000}{\text{computer.pricePerHour}} \right\rfloor$$
+    - Mốc hết hạn: `expiresAt = LocalDateTime.now().plusMinutes(playableMinutes)`.
+    - Ví dụ: Khách có 300 phút chuẩn: Ngồi máy 10k/h $\rightarrow$ 300 phút (5.0h); Ngồi máy VIP 15k/h $\rightarrow$ 200 phút (3.3h); Ngồi máy VIP Pro 20k/h $\rightarrow$ 150 phút (2.5h).
 - **Response Ví dụ Thực Tế (201 Created):**
 ```json
 {
@@ -522,6 +528,11 @@ sequenceDiagram
 }
 ```
   *(Hiệu ứng phụ: Máy trả về `AVAILABLE`, hoàn lại số phút chưa dùng vào tài khoản khách, xóa toàn bộ refresh token).*
+  - **Quy tắc Hoàn Trả Giờ Động (Dynamic Tariff Refund)**:
+    - Khi kết thúc phiên trước thời hạn, số phút máy trạm còn dư `remainingMachineMinutes = Duration.between(now, expiresAt).toMinutes()`.
+    - Số phút hoàn trả được quy đổi đối xứng về lại **Số phút chuẩn (Standard Base Minutes)** trước khi nạp lại vào tài khoản khách:
+      $$\text{refundStandardMinutes} = \left\lfloor \frac{\text{remainingMachineMinutes} \times \text{computer.pricePerHour}}{10,000} \right\rfloor$$
+    - Bảo toàn 100% tài sản cho khách hàng, không gây sai lệch doanh thu của quán.
 - **Mã lỗi có thể gặp:**
   - `404 SESSION_NOT_FOUND`: Phiên không tồn tại.
   - `409 SESSION_NOT_ACTIVE`: Phiên đã kết thúc từ trước.
@@ -1066,6 +1077,12 @@ sequenceDiagram
   - Method: `PATCH`
   - URL: `/api/time-purchases/{id}/confirm` (ví dụ `/api/time-purchases/208/confirm`)
   - *(Lưu ý: Staff ID tự động lấy từ JWT).*
+  - **Cơ chế Liên Thông Tự Động Gia Hạn Phiên Đang Chơi (Active Session Auto-Extend)**:
+    - Nếu khách hàng đang có phiên chơi đang hoạt động (`SessionStatus.ACTIVE`), Backend sẽ **tự động gia hạn mốc hết hạn `expiresAt`** của phiên chơi theo công thức quy đổi động:
+      $$\text{extraMachineMinutes} = \left\lfloor \frac{\text{purchase.minutes} \times 10,000}{\text{computer.pricePerHour}} \right\rfloor$$
+      $$\text{session.expiresAt} = \text{session.expiresAt}.plusMinutes(\text{extraMachineMinutes})$$
+    - Hệ thống phát sự kiện WebSocket STOMP notification `SESSION_EXTENDED` để màn hình máy trạm và Floor Map của nhân viên cập nhật tức thì mà không cần thao tác tay.
+    - Tài khoản `account.remainingMinutes` được bảo toàn (số phút nạp vào được tiêu dùng ngay vào phiên đang chạy; khi kết thúc phiên sẽ được hoàn trả đối xứng).
 - **Response Ví dụ Thực Tế (200 OK):**
 ```json
 {

@@ -7,7 +7,9 @@ import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.entity.TimePurchase;
 import com.cybernet.internet_cafe_management.entity.TimePurchase.Status;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
+import com.cybernet.internet_cafe_management.entity.Session;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
+import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.repository.TimePurchaseRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -25,14 +28,20 @@ public class TimePurchaseService {
 
     private final TimePurchaseRepository timePurchaseRepository;
     private final AccountRepository accountRepository;
+    private final SessionRepository sessionRepository;
+    private final RealtimeNotificationService realtimeNotificationService;
     private final AuditLogService auditLogService;
 
     // Dependency Injection qua Constructor
     public TimePurchaseService(TimePurchaseRepository timePurchaseRepository,
                                AccountRepository accountRepository,
+                               SessionRepository sessionRepository,
+                               RealtimeNotificationService realtimeNotificationService,
                                AuditLogService auditLogService) {
         this.timePurchaseRepository = timePurchaseRepository;
         this.accountRepository = accountRepository;
+        this.sessionRepository = sessionRepository;
+        this.realtimeNotificationService = realtimeNotificationService;
         this.auditLogService = auditLogService;
     }
 
@@ -106,6 +115,18 @@ public class TimePurchaseService {
         Account customer = timePurchase.getAccount();
         customer.setRemainingMinutes(customer.getRemainingMinutes() + timePurchase.getMinutes());
         accountRepository.save(customer);
+
+        // 2b. NẾU KHÁCH HÀNG ĐANG CÓ PHIÊN CHƠI ACTIVE, TỰ ĐỘNG GIA HẠN PHIÊN CHƠI ĐÓ (DYNAMIC TARIFF)
+        Optional<Session> activeSessionOpt = sessionRepository.findByAccountIdAndStatus(customer.getId(), Session.Status.ACTIVE);
+        if (activeSessionOpt.isPresent()) {
+            Session activeSession = activeSessionOpt.get();
+            long extraMachineMinutes = SessionService.calculatePlayableMinutes(timePurchase.getMinutes(), activeSession.getComputer().getPricePerHour());
+            activeSession.setExpiresAt(activeSession.getExpiresAt().plusMinutes(extraMachineMinutes));
+            sessionRepository.save(activeSession);
+            realtimeNotificationService.broadcastComputerStatus(activeSession.getComputer());
+            log.info("TimePurchase Confirm: Tự động gia hạn thêm {} phút chơi cho phiên active [ID={}] trên máy [{}]",
+                    extraMachineMinutes, activeSession.getId(), activeSession.getComputer().getCode());
+        }
 
         // 3. Lưu giao dịch đã cập nhật
         TimePurchase updated = timePurchaseRepository.save(timePurchase);

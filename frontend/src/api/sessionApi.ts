@@ -61,6 +61,14 @@ export const sessionApi = {
   },
 
   /**
+   * Gia hạn thêm giờ chơi cho phiên đang hoạt động
+   * Endpoint: PATCH /api/sessions/{id}/extend
+   */
+  extendSession(sessionId: number, extraMinutes: number): Promise<SessionResponse> {
+    return axiosClient.patch(`/api/sessions/${sessionId}/extend`, { extraMinutes });
+  },
+
+  /**
    * Chuyển phiên chơi sang máy trạm khác
    * Endpoint: PATCH /api/sessions/{id}/transfer
    */
