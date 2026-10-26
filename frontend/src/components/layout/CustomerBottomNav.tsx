@@ -69,7 +69,7 @@ export const CustomerBottomNav: React.FC = () => {
               <div className="relative">
                 <Icon
                   className={`w-5 h-5 transition-transform duration-200 ${
-                    isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(181,136,99,0.5)]' : ''
+                    isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(189,152,117,0.5)]' : ''
                   }`}
                 />
               </div>

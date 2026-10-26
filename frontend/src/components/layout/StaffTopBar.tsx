@@ -116,13 +116,13 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 bg-midnight/90 backdrop-blur-md border-b border-[rgba(167,158,156,0.12)]">
+    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 bg-midnight/90 backdrop-blur-md border-b border-mist/15">
       {/* 1. Left: Nút Toggle & Breadcrumb Tiêu đề */}
       <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="flex lg:hidden items-center justify-center w-8 h-8 rounded-lg text-mist hover:text-gold hover:bg-[rgba(181,136,99,0.12)] transition-colors cursor-pointer"
+          className="flex lg:hidden items-center justify-center w-8 h-8 rounded-lg text-mist hover:text-gold hover:bg-gold/15 transition-colors cursor-pointer"
           aria-label={collapsed ? 'Mở menu' : 'Đóng menu'}
         >
           <PanelLeft className="w-5 h-5" />
@@ -134,7 +134,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
               <Layers className="w-3.5 h-3.5 text-gold" />
               Staff
             </span>
-            <span className="text-[rgba(167,158,156,0.4)]">/</span>
+            <span className="text-mist/40">/</span>
             <span className="text-gold font-medium">{currentRouteInfo.title}</span>
           </div>
           <span className="text-xs text-mist/80 hidden sm:inline">
@@ -146,7 +146,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
       {/* 2. Right: Trạng thái ca trực, Đồng hồ & Chuông thông báo */}
       <div className="flex items-center gap-4">
         {/* Ca trực Badge */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-[rgba(61,77,85,0.45)] border border-[rgba(167,158,156,0.15)] text-xs text-sand">
+        <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-slate/50 border border-mist/20 text-xs text-sand">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
@@ -155,7 +155,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
         </div>
 
         {/* Đồng hồ hệ thống */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-midnight border border-[rgba(167,158,156,0.12)] text-xs font-mono text-sand">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-midnight border border-mist/15 text-xs font-mono text-sand">
           <ClockIcon className="w-3.5 h-3.5 text-gold shrink-0" />
           <span>{currentTime.format('HH:mm:ss')}</span>
           <span className="text-mist text-[11px] font-sans">
@@ -200,7 +200,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
             onClick={handleToggleSound}
             className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)] ${
               isSoundMuted
-                ? 'bg-midnight/70 border-[rgba(167,158,156,0.15)] text-mist/60 hover:text-sand'
+                ? 'bg-midnight/70 border-mist/20 text-mist/60 hover:text-sand'
                 : 'bg-gold/15 border-gold/40 text-gold hover:bg-gold/25'
             }`}
             aria-label="Bật tắt âm thanh chuông"
@@ -215,16 +215,16 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
           placement="bottomRight"
           styles={{
             content: {
-              backgroundColor: '#10232A',
+              backgroundColor: '#202332',
               padding: '12px',
               borderRadius: '16px',
-              border: '1px solid rgba(181,136,99,0.3)',
+              border: '1px solid rgba(189,152,117,0.3)',
               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             },
           }}
           content={
             <div className="w-72 text-sand select-none">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-[rgba(167,158,156,0.15)]">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-mist/15">
                 <span className="font-bold text-xs flex items-center gap-1.5 text-sand">
                   <Bell className="w-3.5 h-3.5 text-gold" />
                   Đơn hàng chờ duyệt
@@ -244,7 +244,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
                     <div
                       key={order.id}
                       onClick={() => navigate('/staff/orders')}
-                      className="p-2.5 rounded-xl bg-midnight/90 hover:bg-gold/15 border border-[rgba(167,158,156,0.1)] transition-colors cursor-pointer text-xs"
+                      className="p-2.5 rounded-xl bg-midnight/90 hover:bg-gold/15 border border-mist/15 transition-colors cursor-pointer text-xs"
                     >
                       <div className="flex items-center justify-between font-semibold">
                         <span className="text-sand font-mono">
@@ -280,7 +280,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
         >
           <button
             type="button"
-            className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-[rgba(61,77,85,0.4)] hover:bg-[rgba(181,136,99,0.16)] border border-[rgba(167,158,156,0.15)] text-mist hover:text-gold transition-all cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
+            className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-slate/40 hover:bg-gold/15 border border-mist/20 text-mist hover:text-gold transition-all cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
             aria-label="Xem đơn hàng cần duyệt"
           >
             <Badge
@@ -290,10 +290,10 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
               offset={[2, -2]}
               styles={{
                 indicator: {
-                  backgroundColor: pendingCount > 0 ? '#EF5350' : '#B58863',
+                  backgroundColor: pendingCount > 0 ? '#EF5350' : '#bd9875',
                   color: '#ffffff',
                   fontWeight: 'bold',
-                  boxShadow: pendingCount > 0 ? '0 0 10px rgba(239,83,80,0.85)' : '0 0 8px rgba(181,136,99,0.6)',
+                  boxShadow: pendingCount > 0 ? '0 0 10px rgba(239,83,80,0.85)' : '0 0 8px rgba(189,152,117,0.6)',
                 },
               }}
             >

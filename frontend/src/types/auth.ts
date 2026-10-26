@@ -63,6 +63,34 @@ export interface LogoutRequest {
   refreshToken: string;
 }
 
+export interface RegisterCustomerWithDepositRequest {
+  phone: string;
+  name: string;
+  password?: string;
+  initialDeposit: number;
+  paymentMethod: 'CASH' | 'QR';
+}
+
+export interface RegisterCustomerResponse {
+  account: Account;
+  initialPurchase: {
+    id: number;
+    accountId: number;
+    accountName: string;
+    accountPhone: string;
+    minutes: number;
+    amount: number;
+    paymentMethod: 'CASH' | 'QR';
+    status: string;
+    confirmedByStaffId: number | null;
+    confirmedByStaffName: string | null;
+    createdAt: string;
+    confirmedAt: string | null;
+  };
+  initialPassword: string;
+  message: string;
+}
+
 export interface FieldError {
   field: string;
   message: string;

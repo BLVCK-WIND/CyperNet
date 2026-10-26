@@ -44,12 +44,42 @@
 
 ---
 
+- [x] **Frontend MS-3.0: Chuẩn hóa toàn diện Bảng màu Twinkle gốc theo ảnh tham khảo**: Đồng bộ 4 mã màu cốt lõi trên toàn bộ Design Tokens: (1) Nền chính `#202332`, (2) Màu chủ đạo `#bd9875`, (3) Bề mặt thẻ `#434e60`, (4) Màu phụ & viền `#8b9a9f`. Toàn bộ Customer, Staff và Admin đồng bộ tự động qua Design Tokens.
+- [x] **Frontend MS-3.1: Admin Layout, RBAC Guard & Chuẩn Thẻ Hero Flow Vàng Caramel**:
+  - Tạo cấu trúc khung quản trị: `AdminLayout`, `AdminSidebar` (nhóm 4 phân hệ), `AdminTopBar` (breadcrumbs, switch sang POS).
+  - Tinh chỉnh gradient Top-to-Bottom Twinkle Flow: Phân tách rõ ràng giữa Thẻ chủ đề lớn / Banner chính (`.twinkle-hero-flow`, `.twinkle-major-flow`) với Thẻ nhỏ / Card con (`.twinkle-card-flow`, `.glass-panel`).
+  - Tích hợp viền nóc mạ ánh kim phản quang `border-t: 1.5px solid rgba(220, 185, 150, 0.75)` và Vòng tròn mũi tên phát sáng (`.twinkle-arrow-capsule`).
+  - Dọn sạch 100% token cũ hardcode (`181,136,99`, `167,158,156`, `61,77,85`, `16,35,42`, `#10232A`, `#3D4D55`, `#B58863`, `#D3C3B9`) trên toàn bộ codebase frontend (`git grep` 0 kết quả).
+- [x] **Frontend MS-3.2: Admin Dashboard Quick Stats & Overview**:
+  - Khởi tạo `types/report.ts` và `api/reportApi.ts` kết nối backend báo cáo tài chính.
+  - Xây dựng `useAdminStats` hook kết hợp 3 API thời gian thực với chu kỳ tự làm mới 15 giây.
+  - Xây dựng component `AdminStatsCards.tsx` gồm 4 thẻ thống kê trực tuyến (Doanh thu hôm nay, Máy trạm hoạt động & Tỷ lệ lấp đầy, Phiên đang chạy, Đơn món & Lượt nạp giờ POS).
+- [x] **Bugfix & Performance Polish (Bước 1, 2, 3, 4)**:
+  - **Bước 1 (Đã hoàn tất):** Sửa lỗi máy `TEST-PC-02` kẹt trạng thái `IN_USE` không có session và chặn cứng deadlock khôi phục trong `ComputerService.java`. Bổ sung nhánh nhận diện trạng thái desync trong `ComputerDetailDrawer.tsx` và `ComputerCard.tsx`. Đã giải phóng toàn bộ 8 máy về `AVAILABLE`.
+  - **Bước 2 (Đã hoàn tất):** Triệt tiêu 100% hiện tượng giật khựng khi chuyển tab trên Sơ đồ máy (bỏ `mode="popLayout"` và `layout` lồng nhau trên CSS Grid), Hàng đợi đơn hàng và Quản lý phiên chơi (bổ sung `placeholderData: keepPreviousData`, giữ giao diện ổn định không nháy Skeleton).
+  - **Bước 3 (Đã hoàn tất):** Tái thiết kế dải Chỉ số vận hành trực tuyến Admin (`AdminStatsCards.tsx`) theo phong cách **Liquid Glass 3D (Kính Lỏng Nổi Phản Quang)**: 4 thẻ phân định sắc nét: (1) Doanh thu thực thu: Cam cháy hoàng hôn & Đỏ san hô ấm (`.liquid-glass-sunset`), (2) Công suất phòng máy: Vàng cát ngà & Xám slate (`.liquid-glass-sand`), (3) Phiên chơi trực tiếp: Xanh Cyan điện tử & Lam ngọc sống động (`.liquid-glass-cyan`), (4) Giao dịch hôm nay: Hổ phách đậm & Kem sữa ấm (`.liquid-glass-amber`). Viền khúc xạ ánh sáng 3D, vệt lóa sáng radial góc trên trái, quầng sáng neon mềm nở tỏa bên dưới và chân thẻ frosted pill, `cursor-default` không nút bấm.
+  - **Bước 4 (Đã hoàn tất):** Chuẩn hóa nghiệp vụ Đăng Ký Hội Viên & Nạp Đầu Tại Quầy (Staff POS): Endpoint nguyên tử `POST /api/accounts/register-with-deposit` kiểm tra SĐT, nạp tối thiểu 10.000đ, quy đổi phút chuẩn, tạo giao dịch `TimePurchase` CONFIRMED và ghi log kiểm toán; siết chặt chống leo thang đặc quyền (Staff chỉ tạo CUSTOMER); Frontend modal `RegisterCustomerModal.tsx` tích hợp mượt mà vào `StartSessionModal.tsx`, `SellTimePage.tsx`, `SellTimeModal.tsx` với cơ chế auto-select ngay sau khi tạo. Bổ sung trang Quản lý tài khoản hội viên (`AccountManagerPage.tsx`) và menu **Tài khoản** trên Sidebar Staff & Admin.
+  - **Đồng bộ Liquid Glass 3D toàn diện cho Staff (Đã hoàn tất):** Nâng cấp toàn bộ thẻ thống kê `div.rounded` trên cả 4 trang Staff (Sơ đồ máy, Đơn hàng, Phiên chơi, Tài khoản) sang hiệu ứng kính lỏng nổi 3D (Liquid Glass) với chân thẻ Frosted Glass Pill; đặc biệt đã bổ sung mới dải Telemetry 4 thẻ báo cáo nhanh tại trang Hàng đợi đơn hàng (Chờ duyệt, Đã xong, Tổng lượt gọi, Doanh thu F&B).
+  - **Khắc phục lỗ hổng đổi mật khẩu & RBAC Hội viên (Đã hoàn tất):**
+    - Chặn cứng lỗ hổng leo thang đặc quyền: Nhân viên (`STAFF`) tuyệt đối không thể sửa thông tin hoặc đổi mật khẩu của `ADMIN` hoặc đồng nghiệp `STAFF` khác (trả về 403 Forbidden kèm thông báo nghiệp vụ rõ ràng).
+    - Tối ưu nghiệp vụ đổi mật khẩu tại quầy POS: Thao tác 1-click `[⚡ Điền nhanh 4 số cuối SĐT]` khi khách quên mật khẩu, cho phép tùy chỉnh gõ mật khẩu mới theo yêu cầu của khách hoặc chỉ đổi họ tên.
+    - Đã xác thực 100% qua JUnit integration tests (`Phase6CrudEndpointsIntegrationTest.java`) và kịch bản thực tế PowerShell end-to-end.
+  - **Tối ưu tương phản cao cho Select & Dropdown Options (Đã hoàn tất):** Sửa triệt để lỗi trùng màu nền và màu text khi các nút/tùy chọn (như lọc vai trò Quản trị, Hội viên...) ở trạng thái `active` hoặc `selected`. Áp dụng phong cách Twinkle đồng bộ: nền Vàng Gold Caramel (`#bd9875`) + chữ Midnight than đậm (`#202332`), hover Trắng Sáng nổi bật.
+  - **Phân luồng Đơn hàng Kép & Tối ưu Bán giờ chơi qua Order (Đã hoàn tất):**
+    - **Dual-Lane Kanban Đồng Bộ Trên Toàn Bộ Tab & Swimlane Track Cá Nhân Hóa:** Phân luồng 2 cột song song (Cột 1: **Bếp & Pha Chế** [F&B Only] | Cột 2: **Thu Ngân & Nạp Giờ** [Playtime & Combo]) được đóng khung trong 2 Panel Kanban lớn độc lập (Amber Lane vs Cyan Lane), triệt tiêu hoàn toàn cảm giác nằm chung hàng ngang; phân biệt thị giác thẻ đơn bằng dải chỉ thị màu (Amber vs Cyan vs Emerald) và nền gradient chuyên biệt.
+    - **Bộ lọc Phương thức thanh toán:** Hỗ trợ lọc tức thì: `Tất cả`, `💵 Tiền mặt (Cash)`, `📱 Chuyển khoản (VietQR)`.
+    - **Huy hiệu phân loại trực quan:** Đính kèm badge phương thức thanh toán và badge phân loại (`[🍜 Món ăn & Uống]`, `[⚡ Nạp giờ chơi]`, `[🎁 Combo Món + Giờ]`) trên cả Order Card và Order Detail Drawer.
+    - **Cảnh báo an toàn thu tiền mặt:** Pop-up Modal xác nhận bắt buộc nhân viên kiểm tra đã thu tiền mặt trước khi duyệt đơn có nạp giờ chơi.
+    - **Backend Dynamic Playtime:** Nâng cấp [OrderService.java](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/src/main/java/com/cybernet/internet_cafe_management/service/OrderService.java) tự động phân tích tên gói cước (ví dụ: "Gói nạp 2 giờ chơi" $\rightarrow$ 120 phút), quy đổi động sang phút chuẩn theo giá máy VIP/Standard của Session đang chạy và gia hạn trực tiếp `session.expiresAt`.
+
+---
+
 ## 🟢 Kế hoạch kế tiếp:
-1. **Bắt tay triển khai Phase 3: Admin Panel (Báo cáo doanh thu, Quản lý Máy trạm, Thực đơn F&B, Tài khoản người dùng)** bắt đầu từ **MS-3.1 (Admin Layout & RBAC Guard)**.
-2. Kế thừa toàn bộ tiêu chuẩn thiết kế: Twinkle Luxury Theme, Badge Counter realtime, 2-column Option Dropdowns, và Kiến trúc Dynamic Tariff đã hoàn thiện.
+1. **Triển khai MS-3.3: Quản lý Máy trạm Admin (`/admin/computers`)**: Bảng quản trị danh sách máy trạm, đổi zone (STANDARD/VIP), thiết lập đơn giá giờ chơi theo zone, bật/tắt chế độ bảo trì máy trạm.
+2. **Triển khai MS-3.4: Quản lý Thực đơn & Dịch vụ Admin (`/admin/items`)**: Bảng quản trị món ăn/đồ uống/gói giờ chơi, tạo món mới kèm tải ảnh món ăn, cập nhật giá và tồn kho.
 
 ---
 
 ## 🎯 Tổng kết chất lượng:
-- **Backend:** 99 Java source files, 78/78 tests PASS 100%, Dynamic Tariff & Session Auto-Extend verified bằng live scripts.
-- **Frontend:** React 19 + TypeScript + Vite + Tailwind 4 + Ant Design 6 (Twinkle CyberLux Theme), `npm run build` PASS 100% (0 errors, 0 warnings).
+- **Backend:** 101 Java source files, 83/83 tests PASS 100%, tích hợp kiểm toán (AuditLog) và chống leo thang đặc quyền.
+- **Frontend:** React 19 + TypeScript + Vite + Tailwind 4 + Ant Design 6 (Twinkle CyberLux Theme), `npm run build` PASS 100% (0 errors, 0 warnings). Đồng bộ 100% Liquid Glass 3D Telemetry Strip trên toàn bộ Staff & Admin.

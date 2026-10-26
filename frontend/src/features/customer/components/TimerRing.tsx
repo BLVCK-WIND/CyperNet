@@ -23,8 +23,8 @@ export const TimerRing: React.FC<TimerRingProps> = ({
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   // Xác định màu sắc chủ đạo theo trạng thái
-  let strokeColor = '#B58863'; // --gold default
-  let glowColor = 'rgba(181, 136, 99, 0.3)';
+  let strokeColor = '#bd9875'; // --gold default
+  let glowColor = 'rgba(189, 152, 117, 0.3)';
   let statusText = 'ĐANG HOẠT ĐỘNG';
   let statusBadgeClass = 'bg-gold/20 text-gold border-gold/30';
   let pulseClass = '';

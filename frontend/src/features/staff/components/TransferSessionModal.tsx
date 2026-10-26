@@ -92,7 +92,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
       width={520}
       styles={{
         body: {
-          backgroundColor: '#10232A',
+          backgroundColor: '#202332',
           padding: 0,
           borderRadius: 16,
         },
@@ -104,8 +104,8 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
     >
       <div className="p-6 space-y-5 text-sand select-none">
         {/* 1. Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-[rgba(167,158,156,0.12)]">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(181,136,99,0.18)] text-gold border border-gold/30 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(181,136,99,0.25)]">
+        <div className="flex items-center gap-3 pb-4 border-b border-mist/15">
+          <div className="w-10 h-10 rounded-xl bg-gold/15 text-gold border border-gold/30 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(189,152,117,0.25)]">
             <ArrowRightLeft className="w-5 h-5 text-gold" />
           </div>
 
@@ -122,7 +122,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
         {/* 2. Sơ đồ chuyển đổi máy: Nguồn -> Đích */}
         <div className="grid grid-cols-2 gap-3 items-center">
           {/* Máy Nguồn (Hiện tại) */}
-          <GlassCard className="p-3 rounded-xl border border-info/30 bg-[rgba(61,77,85,0.4)]">
+          <GlassCard className="p-3 rounded-xl border border-info/30 bg-slate/40">
             <span className="text-[10px] text-mist uppercase font-semibold block mb-1">
               Máy nguồn (Hiện tại)
             </span>
@@ -140,7 +140,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
           </GlassCard>
 
           {/* Máy Đích (Mới) */}
-          <GlassCard className="p-3 rounded-xl border border-gold/40 bg-[rgba(181,136,99,0.08)]">
+          <GlassCard className="p-3 rounded-xl border border-gold/40 bg-gold/10">
             <span className="text-[10px] text-gold uppercase font-semibold block mb-1 flex items-center gap-1">
               <ArrowRight className="w-3 h-3" />
               Máy chuyển đến
@@ -190,7 +190,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
         </div>
 
         {/* 4. Tùy chọn đưa máy cũ vào bảo trì */}
-        <div className="p-3 rounded-xl bg-midnight/70 border border-[rgba(167,158,156,0.15)]">
+        <div className="p-3 rounded-xl bg-midnight/70 border border-mist/20">
           <Checkbox
             checked={markOldAsMaintenance}
             onChange={(e) => setMarkOldAsMaintenance(e.target.checked)}
@@ -216,16 +216,16 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             maxLength={100}
-            className="bg-midnight/70 border-[rgba(167,158,156,0.2)] text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-10"
+            className="bg-midnight/70 border-mist/20 text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-10"
           />
         </div>
 
         {/* 6. Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[rgba(167,158,156,0.12)]">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-mist/15">
           <Button
             onClick={onClose}
             disabled={submitting}
-            className="rounded-xl h-10 text-xs px-5 bg-transparent border-[rgba(167,158,156,0.2)] text-sand hover:text-mist"
+            className="rounded-xl h-10 text-xs px-5 bg-transparent border-mist/20 text-sand hover:text-mist"
           >
             Hủy bỏ
           </Button>
@@ -236,7 +236,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
             loading={submitting}
             disabled={!targetComputerId || availableComputers.length === 0}
             icon={!submitting && <ArrowRightLeft className="w-3.5 h-3.5" />}
-            className="rounded-xl h-10 text-xs px-6 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(181,136,99,0.3)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded-xl h-10 text-xs px-6 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? 'ĐANG CHUYỂN MÁY...' : 'XÁC NHẬN CHUYỂN MÁY'}
           </Button>

@@ -91,17 +91,17 @@ export const StaffLoginPage: React.FC = () => {
       <Sparkles count={25} />
 
       {/* Hiệu ứng hào quang nền mờ trung tâm */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[radial-gradient(circle,rgba(181,136,99,0.12)_0%,transparent_70%)] pointer-events-none blur-2xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[radial-gradient(circle,rgba(189,152,117,0.12)_0%,transparent_70%)] pointer-events-none blur-2xl" />
 
       <PageTransition className="w-full max-w-md z-10">
         <GlassCard
-          className={`p-8 border border-[rgba(167,158,156,0.18)] shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-transform duration-300 ${
+          className={`p-8 border border-mist/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-transform duration-300 ${
             shake ? 'animate-shake' : ''
           }`}
         >
           {/* 1. Header: Logo CyberNet & Huy hiệu Nhân Viên */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-midnight shadow-[0_0_24px_rgba(181,136,99,0.4)] mb-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-midnight shadow-[0_0_24px_rgba(189,152,117,0.4)] mb-4">
               <ShieldCheck className="w-8 h-8 text-midnight" />
             </div>
 
@@ -112,7 +112,7 @@ export const StaffLoginPage: React.FC = () => {
             <div className="flex items-center justify-center gap-2">
               <Tag
                 bordered={false}
-                className="px-3 py-1 rounded-full text-xs font-semibold bg-[rgba(181,136,99,0.15)] text-gold border border-[rgba(181,136,99,0.35)] shadow-[0_0_12px_rgba(181,136,99,0.15)] inline-flex items-center gap-1.5"
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-gold/15 text-gold border border-gold/35 shadow-[0_0_12px_rgba(189,152,117,0.15)] inline-flex items-center gap-1.5"
               >
                 <SparklesIcon className="w-3 h-3 text-gold" />
                 NHÂN VIÊN QUẦY • POS CONSOLE
@@ -135,7 +135,7 @@ export const StaffLoginPage: React.FC = () => {
                 onChange={(e) => setPhone(e.target.value)}
                 disabled={loading}
                 maxLength={10}
-                className="bg-midnight/70 border-[rgba(167,158,156,0.2)] text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-12"
+                className="bg-midnight/70 border-mist/20 text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-12"
               />
             </div>
 
@@ -151,7 +151,7 @@ export const StaffLoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                className="bg-midnight/70 border-[rgba(167,158,156,0.2)] text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-12"
+                className="bg-midnight/70 border-mist/20 text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-12"
               />
             </div>
 
@@ -163,7 +163,7 @@ export const StaffLoginPage: React.FC = () => {
                 size="large"
                 loading={loading}
                 icon={!loading && <LogIn className="w-4 h-4" />}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold tracking-wide shadow-[0_4px_20px_rgba(181,136,99,0.3)] transition-all duration-300 border-none cursor-pointer"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold tracking-wide shadow-[0_4px_20px_rgba(189,152,117,0.3)] transition-all duration-300 border-none cursor-pointer"
               >
                 {loading ? 'ĐANG XÁC THỰC CA TRỰC...' : 'VÀO CA LÀM VIỆC'}
               </Button>
@@ -171,7 +171,7 @@ export const StaffLoginPage: React.FC = () => {
           </form>
 
           {/* 3. Footer Ghi chú an toàn */}
-          <div className="mt-8 pt-4 border-t border-[rgba(167,158,156,0.1)] text-center">
+          <div className="mt-8 pt-4 border-t border-mist/15 text-center">
             <p className="text-[11px] text-mist/70">
               Khu vực bảo mật nội bộ phòng máy CyberNet • Đăng nhập được ghi nhật ký hệ thống (Audit Trail).
             </p>

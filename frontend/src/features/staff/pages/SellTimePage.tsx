@@ -18,6 +18,7 @@ import {
   Calendar,
   Check,
   X,
+  UserPlus,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -28,6 +29,7 @@ import { timePurchaseApi } from '@/api/timePurchaseApi';
 import { sessionApi } from '@/api/sessionApi';
 import { orderApi } from '@/api/orderApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { RegisterCustomerModal } from '../components/RegisterCustomerModal';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { Account } from '@/types/auth';
 import type { TimePurchaseResponse, PaymentMethod } from '@/types/timePurchase';
@@ -61,6 +63,7 @@ export const SellTimePage: React.FC = () => {
 
   // Submit states
   const [submitting, setSubmitting] = useState(false);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [createdPurchase, setCreatedPurchase] = useState<TimePurchaseResponse | null>(null);
   const [vietQrData, setVietQrData] = useState<VietQrResponse | null>(null);
@@ -284,7 +287,7 @@ export const SellTimePage: React.FC = () => {
             type="text"
             icon={<RefreshCw className={`w-4 h-4 text-gold ${isFetchingPurchases ? 'animate-spin' : ''}`} />}
             onClick={() => refetchPurchases()}
-            className="flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[rgba(61,77,85,0.4)] hover:bg-[rgba(181,136,99,0.18)] border border-[rgba(167,158,156,0.15)] text-sand hover:text-gold cursor-pointer"
+            className="flex items-center gap-1.5 h-10 px-3.5 rounded-xl twinkle-btn-secondary cursor-pointer"
           >
             <span className="text-xs font-medium">Làm mới dữ liệu</span>
           </Button>
@@ -295,11 +298,23 @@ export const SellTimePage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* ================= CỘT TRÁI: FORM NẠP GIỜ TRỰC TIẾP (7/12) ================= */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-5">
-          <GlassCard className="p-6 rounded-2xl border border-[rgba(167,158,156,0.18)] bg-gradient-to-br from-[rgba(61,77,85,0.7)] to-[rgba(16,35,42,0.95)]">
-            <h2 className="text-base font-bold text-sand flex items-center gap-2 pb-3 mb-4 border-b border-[rgba(167,158,156,0.12)]">
-              <User className="w-4 h-4 text-gold" />
-              1. Chọn tài khoản khách hàng
-            </h2>
+          <GlassCard className="p-6 rounded-2xl border border-mist/20 twinkle-card-flow">
+            {/* Tiêu đề & Nút đăng ký hội viên mới */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-mist/15">
+              <h2 className="text-base font-bold text-sand flex items-center gap-2">
+                <User className="w-4 h-4 text-gold" />
+                1. Chọn tài khoản khách hàng
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setRegisterModalOpen(true)}
+                className="text-xs font-bold text-gold hover:text-gold-light flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gold/15 hover:bg-gold/25 border border-gold/30 transition-all cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Đăng ký hội viên mới</span>
+              </button>
+            </div>
 
             {/* Ô tìm kiếm khách hàng */}
             <div className="space-y-3">
@@ -322,12 +337,12 @@ export const SellTimePage: React.FC = () => {
                   label: `${acc.phone} — ${acc.name} (${acc.remainingMinutes} phút)`,
                 }))}
                 className="w-full h-11"
-                popupClassName="bg-midnight border border-[rgba(181,136,99,0.3)] rounded-xl"
+                popupClassName="bg-midnight border border-gold/30 rounded-xl"
               />
 
               {/* Thông tin thẻ hội viên sau khi chọn */}
               {selectedAccount ? (
-                <div className="p-4 rounded-xl bg-[rgba(16,35,42,0.7)] border border-gold/30 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-xl bg-midnight/70 border border-gold/30 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-xl bg-gold/15 text-gold flex items-center justify-center font-bold font-mono text-base border border-gold/30 shrink-0">
                       {selectedAccount.name?.charAt(0) || 'K'}
@@ -362,7 +377,7 @@ export const SellTimePage: React.FC = () => {
             </div>
 
             {/* Gói nạp & Mệnh giá tiền */}
-            <div className="mt-6 pt-5 border-t border-[rgba(167,158,156,0.12)]">
+            <div className="mt-6 pt-5 border-t border-mist/15">
               <h2 className="text-base font-bold text-sand flex items-center gap-2 mb-3">
                 <Coins className="w-4 h-4 text-gold" />
                 2. Chọn mệnh giá nạp tiền
@@ -379,8 +394,8 @@ export const SellTimePage: React.FC = () => {
                       onClick={() => handleSelectPreset(preset.amount)}
                       className={`relative p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                         isSelected
-                          ? 'border-gold bg-gold/15 shadow-[0_0_16px_rgba(181,136,99,0.3)] ring-1 ring-gold'
-                          : 'border-[rgba(167,158,156,0.15)] bg-[rgba(16,35,42,0.5)] hover:border-gold/50 hover:bg-gold/5'
+                          ? 'border-gold bg-gold/15 shadow-[0_0_16px_rgba(189,152,117,0.3)] ring-1 ring-gold'
+                          : 'border-mist/20 bg-midnight/60 hover:border-gold/50 hover:bg-gold/10'
                       }`}
                     >
                       {preset.isPopular ? (
@@ -400,7 +415,7 @@ export const SellTimePage: React.FC = () => {
               </div>
 
               {/* Tùy chọn nhập số tiền / số phút tùy ý */}
-              <div className="p-3.5 rounded-xl bg-[rgba(16,35,42,0.4)] border border-[rgba(167,158,156,0.12)]">
+              <div className="p-3.5 rounded-xl bg-midnight/50 border border-mist/15">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-mist">
                     Hoặc nhập số tiền / số phút tùy chỉnh:
@@ -427,7 +442,7 @@ export const SellTimePage: React.FC = () => {
                         setIsCustomAmount(true);
                         handleCustomAmountChange(val);
                       }}
-                      className="w-full rounded-xl bg-midnight border-[rgba(167,158,156,0.2)] text-sand h-10 flex items-center"
+                      className="w-full rounded-xl bg-midnight border-mist/25 text-sand h-10 flex items-center"
                     />
                   </div>
 
@@ -441,7 +456,7 @@ export const SellTimePage: React.FC = () => {
                         setIsCustomAmount(true);
                         handleCustomMinutesChange(val);
                       }}
-                      className="w-full rounded-xl bg-midnight border-[rgba(167,158,156,0.2)] text-sand h-10 flex items-center"
+                      className="w-full rounded-xl bg-midnight border-mist/25 text-sand h-10 flex items-center"
                     />
                   </div>
                 </div>
@@ -449,8 +464,8 @@ export const SellTimePage: React.FC = () => {
             </div>
 
             {/* Bảng tổng kết quy đổi minh bạch */}
-            <div className="mt-5 p-4 rounded-xl bg-gradient-to-r from-gold/10 via-[rgba(61,77,85,0.4)] to-gold/5 border border-gold/25">
-              <div className="flex items-center justify-between text-xs pb-2 border-b border-[rgba(167,158,156,0.15)]">
+            <div className="mt-5 p-4 rounded-xl bg-gradient-to-r from-gold/15 via-slate/40 to-gold/10 border border-gold/30">
+              <div className="flex items-center justify-between text-xs pb-2 border-b border-mist/15">
                 <span className="text-mist">Đơn giá cơ sở:</span>
                 <span className="text-sand font-mono font-semibold">10.000 đ = 60 phút Standard</span>
               </div>
@@ -478,7 +493,7 @@ export const SellTimePage: React.FC = () => {
             </div>
 
             {/* 3. Phương thức thanh toán & Nút xác nhận */}
-            <div className="mt-6 pt-5 border-t border-[rgba(167,158,156,0.12)]">
+            <div className="mt-6 pt-5 border-t border-mist/15">
               <label className="text-xs font-semibold text-mist block mb-2.5">
                 3. Chọn hình thức thu tiền:
               </label>
@@ -489,8 +504,8 @@ export const SellTimePage: React.FC = () => {
                   onClick={() => setPaymentMethod('CASH')}
                   className={`p-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all cursor-pointer ${
                     paymentMethod === 'CASH'
-                      ? 'border-gold bg-gold/15 text-gold ring-1 ring-gold shadow-[0_0_12px_rgba(181,136,99,0.3)]'
-                      : 'border-[rgba(167,158,156,0.2)] bg-[rgba(16,35,42,0.4)] text-mist hover:text-sand'
+                      ? 'border-gold bg-gold/15 text-gold ring-1 ring-gold shadow-[0_0_12px_rgba(189,152,117,0.3)]'
+                      : 'border-mist/20 bg-midnight/50 text-mist hover:text-sand'
                   }`}
                 >
                   <Banknote className="w-4 h-4" />
@@ -502,8 +517,8 @@ export const SellTimePage: React.FC = () => {
                   onClick={() => setPaymentMethod('QR')}
                   className={`p-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all cursor-pointer ${
                     paymentMethod === 'QR'
-                      ? 'border-gold bg-gold/15 text-gold ring-1 ring-gold shadow-[0_0_12px_rgba(181,136,99,0.3)]'
-                      : 'border-[rgba(167,158,156,0.2)] bg-[rgba(16,35,42,0.4)] text-mist hover:text-sand'
+                      ? 'border-gold bg-gold/15 text-gold ring-1 ring-gold shadow-[0_0_12px_rgba(189,152,117,0.3)]'
+                      : 'border-mist/20 bg-midnight/50 text-mist hover:text-sand'
                   }`}
                 >
                   <QrCode className="w-4 h-4" />
@@ -518,7 +533,7 @@ export const SellTimePage: React.FC = () => {
                 loading={submitting}
                 onClick={handleCreatePurchase}
                 disabled={!selectedAccountId || selectedAmount <= 0}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold text-sm tracking-wide border-none shadow-[0_4px_20px_rgba(181,136,99,0.35)] cursor-pointer"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold text-sm tracking-wide border-none shadow-[0_4px_20px_rgba(189,152,117,0.35)] cursor-pointer"
               >
                 {paymentMethod === 'CASH' ? 'THU TIỀN MẶT & NẠP GIỜ NGAY' : 'TẠO MÃ VIETQR THANH TOÁN'}
               </Button>
@@ -528,8 +543,8 @@ export const SellTimePage: React.FC = () => {
 
         {/* ================= CỘT PHẢI: LỊCH SỬ GIAO DỊCH NẠP GIỜ (5/12) ================= */}
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-          <GlassCard className="p-5 rounded-2xl border border-[rgba(167,158,156,0.18)] bg-gradient-to-br from-[rgba(61,77,85,0.7)] to-[rgba(16,35,42,0.95)]">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-[rgba(167,158,156,0.12)]">
+          <GlassCard className="p-5 rounded-2xl border border-mist/20 twinkle-card-flow">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-mist/15">
               <h2 className="text-sm font-bold text-sand flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-gold" />
                 Lịch sử nạp giờ gần đây
@@ -565,7 +580,7 @@ export const SellTimePage: React.FC = () => {
                         isPending
                           ? 'border-warning/50 bg-warning/5'
                           : isConfirmed
-                          ? 'border-[rgba(167,158,156,0.12)] bg-[rgba(16,35,42,0.6)]'
+                          ? 'border-mist/15 bg-midnight/60'
                           : 'border-danger/30 bg-danger/5 opacity-60'
                       }`}
                     >
@@ -604,7 +619,7 @@ export const SellTimePage: React.FC = () => {
                       </div>
 
                       {/* Dòng 3: Số tiền & Số phút */}
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-[rgba(167,158,156,0.1)]">
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-mist/15">
                         <div className="flex items-center gap-1.5 text-xs">
                           <span className="text-mist">{purchase.paymentMethod === 'QR' ? '📱 VietQR' : '💵 Tiền mặt'}:</span>
                           <span className="font-bold font-mono text-gold">
@@ -667,7 +682,7 @@ export const SellTimePage: React.FC = () => {
         width={420}
         styles={{
           body: {
-            backgroundColor: '#10232A',
+            backgroundColor: '#202332',
             borderRadius: '20px',
             padding: '12px',
           },
@@ -684,7 +699,7 @@ export const SellTimePage: React.FC = () => {
           </p>
 
           {/* Khung ảnh QR Code */}
-          <div className="p-3 bg-white rounded-2xl inline-block shadow-[0_0_24px_rgba(181,136,99,0.3)]">
+          <div className="p-3 bg-white rounded-2xl inline-block shadow-[0_0_24px_rgba(189,152,117,0.3)]">
             {vietQrData?.qrUrl ? (
               <img
                 src={vietQrData.qrUrl}
@@ -730,13 +745,23 @@ export const SellTimePage: React.FC = () => {
               type="primary"
               loading={confirmingQr}
               onClick={handleConfirmQrPayment}
-              className="flex-1 h-10 rounded-xl bg-gold text-midnight font-bold border-none shadow-[0_2px_12px_rgba(181,136,99,0.3)]"
+              className="flex-1 h-10 rounded-xl bg-gold text-midnight font-bold border-none shadow-[0_2px_12px_rgba(189,152,117,0.3)]"
             >
               Đã nhận tiền (Xác nhận)
             </Button>
           </div>
         </div>
       </Modal>
+
+      {/* Modal Đăng Ký Hội Viên Mới Tại Quầy */}
+      <RegisterCustomerModal
+        open={registerModalOpen}
+        onCancel={() => setRegisterModalOpen(false)}
+        onSuccess={(newAccount) => {
+          setSelectedAccountId(newAccount.id);
+          setRegisterModalOpen(false);
+        }}
+      />
     </div>
   );
 };

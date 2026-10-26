@@ -7,12 +7,14 @@ import {
   ReceiptText,
   Clock,
   History,
+  Users,
   LogOut,
   User,
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { orderApi } from '@/api/orderApi';
@@ -105,6 +107,24 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
       badge: activeComputers > 0 ? activeComputers : undefined,
       badgeVariant: 'info',
     },
+    {
+      key: 'accounts',
+      label: 'Tài khoản',
+      path: '/staff/accounts',
+      icon: <Users className="w-5 h-5 shrink-0" />,
+    },
+    ...(role === 'ADMIN'
+      ? [
+          {
+            key: 'admin-dashboard',
+            label: 'Trang Quản Trị',
+            path: '/admin/dashboard',
+            icon: <LayoutDashboard className="w-5 h-5 shrink-0 text-gold" />,
+            badge: 'Admin',
+            badgeVariant: 'gold' as const,
+          },
+        ]
+      : []),
   ];
 
   const handleLogout = async () => {
@@ -121,14 +141,14 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
     <aside
       className={`relative flex flex-col justify-between shrink-0 h-screen transition-all duration-300 ease-in-out border-r z-30 select-none
         ${collapsed ? 'w-18' : 'w-60'}
-        bg-midnight border-[rgba(167,158,156,0.15)] shadow-[4px_0_24px_rgba(0,0,0,0.4)]
+        bg-midnight border-mist/20 shadow-[4px_0_24px_rgba(0,0,0,0.4)]
       `}
     >
       {/* 1. Header: Brand Logo & Collapse Toggle */}
       <div>
-        <div className="flex items-center justify-between h-16 px-4 border-b border-[rgba(167,158,156,0.12)]">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-mist/15">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-midnight shadow-[0_0_16px_rgba(181,136,99,0.35)] shrink-0">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-midnight shadow-[0_0_16px_rgba(189,152,117,0.35)] shrink-0">
               <Sparkles className="w-5 h-5 text-midnight" />
             </div>
             {!collapsed && (
@@ -147,7 +167,7 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
             type="button"
             onClick={onToggleCollapse}
             aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
-            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-mist hover:text-gold hover:bg-[rgba(181,136,99,0.12)] transition-colors cursor-pointer"
+            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-mist hover:text-gold hover:bg-gold/15 transition-colors cursor-pointer"
           >
             {collapsed ? (
               <ChevronRight className="w-4 h-4" />
@@ -169,8 +189,8 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
                   ${collapsed ? 'justify-center px-0' : ''}
                   ${
                     isActive
-                      ? 'text-gold bg-[rgba(181,136,99,0.14)] font-semibold shadow-[0_2px_12px_rgba(181,136,99,0.08)]'
-                      : 'text-mist hover:text-sand hover:bg-[rgba(61,77,85,0.45)]'
+                      ? 'text-gold bg-gold/15 font-semibold shadow-[0_2px_12px_rgba(189,152,117,0.1)]'
+                      : 'text-mist hover:text-sand hover:bg-slate/40'
                   }
                 `}
               >
@@ -178,7 +198,7 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
                   <>
                     {/* Active Indicator Bar bên trái */}
                     {isActive && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r bg-gold shadow-[0_0_8px_rgba(181,136,99,0.8)]" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r bg-gold shadow-[0_0_8px_rgba(189,152,117,0.8)]" />
                     )}
 
                     <div className="relative flex items-center justify-center">
@@ -247,14 +267,14 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
       </div>
 
       {/* 3. Footer: Thông tin Nhân viên & Đăng xuất */}
-      <div className="p-3 border-t border-[rgba(167,158,156,0.12)] bg-[rgba(16,35,42,0.6)]">
+      <div className="p-3 border-t border-mist/15 bg-midnight/70">
         <div
-          className={`flex items-center gap-3 p-2 rounded-xl bg-[rgba(61,77,85,0.4)] border border-[rgba(167,158,156,0.1)]
+          className={`flex items-center gap-3 p-2 rounded-xl bg-slate/40 border border-mist/15
             ${collapsed ? 'justify-center p-2' : 'justify-between'}
           `}
         >
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-[rgba(181,136,99,0.18)] text-gold border border-[rgba(181,136,99,0.3)] shrink-0">
+            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gold/20 text-gold border border-gold/40 shrink-0">
               <User className="w-4 h-4" />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-success border-2 border-midnight" />
             </div>

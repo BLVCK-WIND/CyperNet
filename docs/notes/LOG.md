@@ -901,5 +901,471 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 - Mọi thao tác nạp tiền tại quầy phải chủ động kiểm tra phiên chơi đang chạy của khách để gia hạn kịp thời, bảo đảm trải nghiệm không gián đoạn.
 - Trạng thái nhập liệu của Modal chỉ được reset khi `open` thay đổi, không bao giờ đưa các mảng phụ thuộc bên ngoài vào reset hook.
 
+---
+
+### 2026-10-26 — Chuẩn hóa toàn diện Bảng màu Twinkle gốc theo ảnh tham khảo
+
+**Phase**: Phase 3 (Admin Panel Preparation & Foundation Alignment)
+**Thời gian**: ~1 giờ
+**Việc đã làm**:
+- Đính chính và chuẩn hóa toàn bộ Design System của CyberNet theo 4 mã màu gốc từ ảnh tham khảo "Twinkle" do Tech Lead cung cấp:
+  - (1) Nền chính (`--midnight`): `#202332` (Deep Twilight Navy)
+  - (2) Màu chủ đạo (`--gold`): `#bd9875` (Warm Twinkle Caramel Gold)
+  - (3) Bề mặt thẻ (`--slate`): `#434e60` (Slate Denim Navy)
+  - (4) Màu phụ & viền (`--mist`): `#8b9a9f` (Sage Slate Mist)
+- Cập nhật tài liệu thiết kế: `docs/notes/frontend-plan.md`, `docs/notes/frontend-handoff.md`, `docs/context/STATUS.md`.
+- Chuẩn hóa Ambient Gradient: `radial-gradient(ellipse at 50% -10%, rgba(189, 152, 117, 0.16) 0%, rgba(67, 78, 96, 0.12) 50%, #202332 100%)`.
+- Chuẩn hóa Card Surface Gradient: `linear-gradient(145deg, rgba(67, 78, 96, 0.85) 0%, rgba(32, 35, 50, 0.95) 100%)` với viền `1px solid rgba(139, 154, 159, 0.2)`.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Design Tokens Global Mapping | `frontend-plan.md`, `antd-theme.ts`, `index.css` | 🟡 Trung bình |
+| Documentation Integrity Synchronization | `frontend-plan.md`, `frontend-handoff.md`, `STATUS.md` | 🟢 Cơ bản |
+
+**Lỗi gặp phải & cách fix**:
+- *Lỗi sai lệch tông màu*: Trước đây trích xuất ước lượng nhầm sang tông xanh teal đen (`#10232A`, `#3D4D55`, `#B58863`) $\rightarrow$ Fix: Đồng bộ lại 100% theo 4 dải màu gốc Twinkle do Tech Lead cung cấp (`#202332`, `#bd9875`, `#434e60`, `#8b9a9f`). Nhờ kiến trúc Design Tokens, toàn bộ hệ thống sẽ đổi màu tự động qua biến CSS.
+
+**Ghi chú / Bài học rút ra**:
+- Mọi thay đổi nền tảng thiết kế cốt lõi bắt buộc phải được quy chuẩn hóa trong tài liệu trước khi chỉnh sửa mã nguồn.
+
+---
+
+### 2026-10-26 — Áp dụng Phối màu Đảo ngược (Reversed Gold Cards) & Hero Ambient Flow cho Admin Dashboard
+
+**Phase**: Phase 3 (MS-3.1 Admin Layout & Dashboard Polish)
+**Thời gian**: ~30 phút
+**Việc đã làm**:
+- Áp dụng phong cách thiết kế thẻ đảo ngược (Reversed Card Styling) cho các thẻ chức năng (Module Cards) trên trang `AdminDashboardPage.tsx` theo ảnh tham khảo do Tech Lead cung cấp:
+  - Nền thẻ (Card Background): màu vàng caramel chủ đạo (`.twinkle-card-gold` gradient `linear-gradient(145deg, #c5a382 0%, #bd9875 45%, #a8835f 100%)`).
+  - Hộp chứa Icon (Icon Container): Đảo ngược sang màu tối tương phản cao (`bg-midnight` `#202332` viền `border-midnight/40`), icon hiển thị màu vàng hổ phách (`text-gold`).
+  - Chữ hiển thị trên thẻ (Typography): Tiêu đề và nội dung mô tả dùng màu tối đậm (`text-midnight` `#202332` / `text-midnight/80`) tạo độ tương phản cực kỳ rõ nét và nổi bật trên nền vàng.
+  - Welcome Hero Banner: Sử dụng `.twinkle-hero-flow` với dải chuyển màu từ trên xuống (Top-to-Bottom) từ caramel gold `#bd9875` xuống denim slate `#434e60` và midnight navy `#202332`.
+- Kiểm tra build: `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Inverted Surface Contrast Pattern | `AdminDashboardPage.tsx` | 🟡 Trung bình |
+| Ambient Lighting Top-to-Bottom Flow | `index.css`, `AdminDashboardPage.tsx` | 🟢 Cơ bản |
+
+**Lỗi gặp phải & cách fix**:
+- *Lỗi thẻ bị chìm vào nền*: Trước đây thẻ dùng nền tối slate/midnight trùng màu nền khiến không có điểm nhấn phân biệt $\rightarrow$ Fix: Đảo ngược nền thẻ sang màu vàng chủ đạo với hộp icon tối theo đúng ảnh mẫu thực tế của Tech Lead.
+
+**Ghi chú / Bài học rút ra**:
+- Trong thiết kế Dashboard cao cấp, việc đảo ngược nền thẻ sang màu sáng rực rỡ (accent surface) kết hợp chữ và hộp icon tối màu giúp phân tầng thị giác vượt trội so với chỉ dùng viền phát sáng (glow border).
+
+---
+
+### 2026-10-26 — Đợt 1: Chuẩn hóa Lớp móng CSS & Thẻ Admin Dashboard theo chuẩn Hero Flow + Mũi tên phát sáng
+
+**Phase**: Phase 3 (Design System Standardization - Round 1)
+**Thời gian**: ~30 phút
+**Việc đã làm**:
+- Định nghĩa bộ utility classes cốt lõi cho hệ thống thẻ Twinkle trong `index.css`:
+  - `.twinkle-card-flow`: Nền chuyển màu từ trên xuống (Top-to-Bottom Flow: vàng caramel `#bd9875` $\rightarrow$ xanh denim `#434e60` $\rightarrow$ xanh đêm `#202332`), viền nóc mạ ánh kim phản quang `border-t: 1px solid rgba(220, 185, 150, 0.5)`.
+  - `.twinkle-arrow-capsule`: Vòng tròn mũi tên hành động phát sáng ở chân thẻ (mặc định nền kính mờ vàng; khi hover cả thẻ lập tức biến thành khối vàng rực `bg-gold`, mũi tên chuyển màu xanh đêm `text-midnight`, trượt nhẹ sang phải 4px và tỏa quầng sáng).
+  - `.twinkle-icon-box`: Hộp icon kính mờ vàng hổ phách (`bg-gold/15`, viền `border-gold/35`, icon `text-gold-light`, hover scale 1.06 và sáng rực).
+  - `.twinkle-btn-secondary`: Nút bấm phụ / làm mới chuẩn Twinkle (`bg-slate/50`, viền `border-mist/25`, hover ánh vàng).
+- Nâng cấp `.glass-panel` và `.glass-panel-elevated` trong `index.css` & `GlassCard.tsx` kế thừa hiệu ứng ánh sáng rót từ trên xuống và viền nóc phản quang cho toàn bộ hệ thống.
+- Cập nhật trang `AdminDashboardPage.tsx`: áp dụng `.twinkle-card-flow`, `.twinkle-icon-box`, `.twinkle-arrow-capsule` cho toàn bộ 5 thẻ module chức năng.
+- Kiểm tra build: `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| CSS Top-to-Bottom Specular Lighting | `index.css`, `GlassCard.tsx` | 🟡 Trung bình |
+| Interactive Arrow Action Capsule Animation | `index.css`, `AdminDashboardPage.tsx` | 🟢 Cơ bản |
+
+---
+
+### 2026-10-26 — Tinh chỉnh Gradient Vàng Caramel Chảy Đậm Xuống 50% Chiều Cao Thẻ
+
+**Phase**: Phase 3 (Twinkle Design System Refinement)
+**Thời gian**: ~20 phút
+**Việc đã làm**:
+- Tinh chỉnh gradient Top-to-Bottom Flow theo chỉ đạo của Tech Lead:
+  - Tăng độ phủ và độ đậm của màu vàng caramel `#bd9875` từ đỉnh (0%) kéo dài đậm đà xuống ngang 40-50% chiều cao của thẻ (opacity 0.35 - 0.55).
+  - Từ mốc 50% trở xuống, dải vàng bắt đầu nhạt dần và chuyển tiếp êm ái sang xanh denim `#434e60` rồi hạ về nền xanh đêm sâu `#202332`.
+  - Tăng độ sáng viền nóc mạ ánh kim phản quang lên `1.5px solid rgba(220, 185, 150, 0.75)`.
+- Cập nhật đồng bộ vào các class: `.twinkle-hero-flow`, `.twinkle-card-flow`, `.glass-panel`, `.glass-panel-elevated` trong `index.css`.
+- Đồng bộ lại tài liệu thiết kế: `frontend-plan.md`, `frontend-handoff.md`, `STATUS.md`.
+- Kiểm tra build: `npm --prefix frontend run build` PASS 100%.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Rich 5-Stop Vertical Gradient Interpolation | `index.css` | 🟡 Trung bình |
+| Documentation & Plan Synchronization | `frontend-plan.md`, `frontend-handoff.md`, `STATUS.md` | 🟢 Cơ bản |
+
+---
+
+### 2026-10-26 — Hoàn tất Đồng bộ Giao diện Twinkle Design System Toàn Diện & MS-3.2 Admin Stats
+
+**Phase**: Phase 3 (Twinkle Design System & Admin Dashboard MS-3.2)
+**Thời gian**: ~1.5 giờ
+**Việc đã làm**:
+1. **Dọn sạch 100% mã màu cũ (Legacy Tokens Elimination)**:
+   - Thay thế toàn bộ chuỗi hardcode cũ (`rgba(181,136,99,...)`, `rgba(167,158,156,...)`, `rgba(61,77,85,...)`, `rgba(16,35,42,...)`, `#10232A`, `#3D4D55`, `#B58863`, `#D3C3B9`) trên toàn bộ codebase frontend (`frontend/src`).
+   - Các file đã xử lý hoàn tất:
+     - Staff: `ComputerCard.tsx`, `FloorMapPage.tsx`, `StaffOrderCard.tsx`, `SellTimePage.tsx`, `SessionManagerPage.tsx`, `StaffOrderQueuePage.tsx`, `StaffSidebar.tsx`, `StaffTopBar.tsx`, `ComputerDetailDrawer.tsx`, `StaffOrderDetailDrawer.tsx`, `StartSessionModal.tsx`, `SellTimeModal.tsx`, `EndSessionModal.tsx`, `TransferSessionModal.tsx`, `StaffLoginPage.tsx`.
+     - Customer: `CustomerBottomNav.tsx`, `CustomerDashboardPage.tsx`, `CartDrawer.tsx`, `OrderDetailDrawer.tsx`, `QrPaymentModal.tsx`, `SessionExpiredModal.tsx`, `CustomerLoginPage.tsx`, `TimerRing.tsx`.
+     - Admin: `AdminDashboardPage.tsx`.
+   - Kết quả quét kiểm tra: `git grep -E "181,136,99|167,158,156|61,77,85|16,35,42|10232A|3D4D55|B58863|D3C3B9" frontend/src` trả về **0 dòng** (loại bỏ hoàn toàn, không còn sót bất kỳ token cũ nào).
+
+2. **Phân cấp thị giác chuẩn xác (Visual Hierarchy Rules)**:
+   - **Thẻ chủ đề lớn / Banner chính**: áp dụng `.twinkle-hero-flow` và `.twinkle-major-flow` (vàng caramel rót đậm từ đỉnh 0% xuống 50% chiều cao thẻ, rồi chuyển tiếp êm qua xanh slate và xanh đêm) giúp phân biệt rõ ràng tiêu đề/khu vực điều hướng chính.
+   - **Thẻ nhỏ / Card con / Hàng con**: áp dụng `.twinkle-card-flow` và `.glass-panel` với ánh sáng rót nhẹ (`0.18 -> 0.55 -> 0.95`) kèm viền nóc phản quang, tôn vinh thẻ chính mà không làm rối mắt người dùng.
+   - **Hộp icon caramel**: chuẩn hóa `.twinkle-icon-box` mạ ánh kim sang trọng.
+   - **Mũi tên hành động**: chuẩn hóa `.twinkle-arrow-capsule` với hiệu ứng trượt và quầng sáng vàng khi hover.
+
+3. **Hoàn thành Micro-Step MS-3.2 (Chỉ số vận hành trực tuyến Admin)**:
+   - Xây dựng [report.ts](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/types/report.ts): Khai báo kiểu TypeScript đầy đủ cho `RevenueSummaryResponse`, `DailyRevenueResponse`, `ComputerUsageResponse`, `TopItemResponse`.
+   - Xây dựng [reportApi.ts](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/api/reportApi.ts): Kết nối các endpoint báo cáo tài chính backend (`GET /api/reports/revenue/summary`, `GET /api/reports/revenue/daily`, `GET /api/reports/items/top-selling`, `GET /api/reports/computers/usage`).
+   - Xây dựng hook [useAdminStats.ts](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/features/admin/hooks/useAdminStats.ts): Tự động nạp song song 3 nguồn dữ liệu thời gian thực (doanh thu hôm nay, tình trạng máy trạm, phiên đang chạy), auto-refresh chu kỳ 15 giây.
+   - Xây dựng component [AdminStatsCards.tsx](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/features/admin/components/AdminStatsCards.tsx): Gồm 4 thẻ thống kê nhanh (Doanh thu hôm nay, Máy đang phục vụ & Tỷ lệ lấp đầy, Phiên chơi trực tiếp, Đơn hàng & Lượt nạp giờ POS) với nút bấm làm mới `.twinkle-btn-secondary`.
+   - Tích hợp vào [AdminDashboardPage.tsx](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/features/admin/pages/AdminDashboardPage.tsx) nằm ngay dưới Hero Banner.
+
+4. **Kiểm tra chất lượng (Quality Gate)**:
+   - Lệnh `npm --prefix frontend run build` (`tsc -b && vite build`) chạy thành công 100%, **0 error, 0 warning**.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Complete Design Token Elimination & Normalization | Toàn bộ `frontend/src` | 🟢 Cơ bản |
+| Visual Hierarchy Flow Differentiation (Hero vs Subcard) | `index.css`, `AdminDashboardPage.tsx`, `FloorMapPage.tsx` | 🟡 Trung bình |
+| React Query Multi-Endpoint Aggregation Hook | `useAdminStats.ts` | 🟡 Trung bình |
+| Production Build Verification & Type Safety | `npm run build` | 🟢 Cơ bản |
+
+---
+
+### 2026-10-26 — Khắc phục Dứt Điểm Lỗi Máy Kẹt Trạng Thái & Deadlock Khôi Phục (Bước 1)
+
+**Phase**: Bugfix & Production Resilience (Bước 1)
+**Thời gian**: ~25 phút
+**Việc đã làm**:
+1. **Phân tích & Tái hiện Deadlock**:
+   - Máy `TEST-PC-02` (id: 37) trong DB mang cờ `status = IN_USE`, nhưng trong bảng `sessions` không có session nào đang hoạt động.
+   - Frontend không tìm thấy session nên báo *"Đang đồng bộ phiên chơi..."*. Khi mở Drawer chi tiết, nhánh điều kiện bị rớt vào thẻ Bảo trì và nút *"Khôi phục hoạt động"*.
+   - Khi bấm khôi phục, Backend `ComputerService.java` chặn cứng `if (computer.getStatus() == IN_USE)` ném lỗi `IllegalStateException`, khiến thao tác khôi phục bị thất bại hoàn toàn.
+2. **Sửa đổi Backend (`ComputerService.java`)**:
+   - Inject `SessionRepository`.
+   - Cập nhật logic: Kiểm tra `sessionRepository.existsByComputerIdAndStatus(computer.getId(), Session.Status.ACTIVE)`. Chỉ chặn đổi trạng thái khi máy THỰC SỰ có phiên chơi đang hoạt động. Nếu máy bị kẹt trạng thái (dangling `IN_USE`), cho phép Staff/Admin giải phóng máy về `AVAILABLE` hoặc `MAINTENANCE`.
+   - Tự động broadcast WebSocket thông báo trạng thái mới của máy trạm.
+3. **Cập nhật Frontend**:
+   - [`ComputerDetailDrawer.tsx`](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/features/staff/components/ComputerDetailDrawer.tsx): Bổ sung nhánh hiển thị máy bị kẹt trạng thái desync (`status === 'IN_USE' && !activeSession`), cảnh báo rõ ràng cho nhân viên và hiển thị nút hành động nổi bật: *"GIẢI PHÓNG MÁY VỀ SẴN SÀNG"*.
+   - [`ComputerCard.tsx`](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/features/staff/components/ComputerCard.tsx): Thay text mơ hồ bằng nhãn cảnh báo: *"Kẹt trạng thái (Bấm để gỡ)"*.
+4. **Kiểm tra & Nghiệm thu**:
+   - Khởi động lại Spring Boot backend (`task-945`).
+   - Gọi API giải phóng thành công máy `TEST-PC-02` về `AVAILABLE`.
+   - Toàn bộ 8/8 máy trạm trên hệ thống đã trở về trạng thái `AVAILABLE` (Sẵn sàng) sạch sẽ.
+   - Build frontend `npm run build` PASS 100%.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Desynchronized Entity State Recovery Pattern | `ComputerService.java` | 🔴 Tier 1 |
+| Explicit Fallback Branching for State Machine | `ComputerDetailDrawer.tsx` | 🟢 Cơ bản |
+| Spring Boot Hot Recovery & Zero Downtime Restart | Backend CLI | 🟢 Cơ bản |
+
+---
+
+### 2026-10-26 — Tối Ưu Triệt Tiêu Giật Khựng Khi Chuyển Tab (Bước 2)
+
+**Phase**: Performance & Smooth UX (Bước 2)
+**Thời gian**: ~20 phút
+**Việc đã làm**:
+1. **Triệt tiêu Layout Thrashing trên Sơ Đồ Máy (`FloorMapPage.tsx` & `ComputerCard.tsx`)**:
+   - Loại bỏ `motion.div layout` và `AnimatePresence mode="popLayout"` trên Grid máy trạm vốn gây ra tính toán FLIP layout đè lên CSS Grid.
+   - Loại bỏ `layout` prop trên `ComputerCard.tsx`, giữ lại micro-interaction `whileHover` và `whileTap` nhẹ nhàng.
+   - Thao tác chuyển tab trạng thái (Tất cả, Trống, Đang chơi, Bảo trì) và phân khu (Toàn bộ, Standard, VIP) phản hồi tức thì 0ms, mượt mà 60fps/144fps.
+2. **Loại bỏ hiện tượng nháy giật Skeleton trên Hàng Đợi Đơn Hàng (`useOrderQueue.ts` & `StaffOrderQueuePage.tsx`)**:
+   - Bổ sung `placeholderData: keepPreviousData` vào `useQuery`.
+   - Chuyển Grid đơn hàng thành container tĩnh mượt mà, không giật FLIP.
+   - Khi chuyển tab giữa các trạng thái đơn hàng (Chờ thanh toán, Đang làm, Hoàn tất, Hủy), dữ liệu cũ được giữ nguyên trên màn hình cho đến khi dữ liệu mới trả về, loại bỏ hoàn toàn việc chớp giật khung Skeleton xám.
+3. **Loại bỏ hiện tượng nháy Skeleton trên Quản Lý Phiên Chơi (`SessionManagerPage.tsx`)**:
+   - Bổ sung `placeholderData: keepPreviousData` vào `useQuery` của `staff-sessions-page`.
+   - Chuyển đổi giữa 3 tab "Đang chơi", "Lịch sử kết thúc", "Tất cả phiên" êm ái, danh sách không bị hủy bỏ giữa chừng.
+4. **Kiểm tra chất lượng**:
+   - `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Zero-Jank React Query `keepPreviousData` Pattern | `useOrderQueue.ts`, `SessionManagerPage.tsx` | 🟡 Trung bình |
+| Layout Thrashing Elimination on CSS Grid | `FloorMapPage.tsx`, `ComputerCard.tsx`, `StaffOrderQueuePage.tsx` | 🟡 Trung bình |
+
+---
+
+### 2026-10-26 — Tái Thiết Kế Chỉ Số Vận Hành Trực Tuyến Admin (Bước 3)
+
+**Phase**: Admin Dashboard Refinement (Bước 3)
+**Thời gian**: ~20 phút
+**Việc đã làm**:
+1. **Tách biệt hoàn toàn khỏi thẻ điều hướng chuyển trang**:
+   - Loại bỏ class `.twinkle-card-flow` và `cursor-pointer`, loại bỏ hiệu ứng hover nhảy thẻ (`hover:-translate-y-1`, shadow jump) trên 4 thẻ chỉ số.
+   - Định hình class mới `.twinkle-kpi-card`: Nền sẫm cao cấp (`linear-gradient(180deg, rgba(67, 78, 96, 0.42), rgba(32, 35, 50, 0.94))`), `cursor-default`, `user-select: none`.
+2. **Thiết kế dải Telemetry KPI Báo Cáo Nhanh (Executive KPI Strip)**:
+   - Header: Huy hiệu nhấp nháy `BÁO CÁO NHANH VẬN HÀNH` + nhãn thời gian thực hôm nay + đồng hồ thời gian cập nhật gần nhất (`HH:mm:ss`) + nút làm mới nhỏ gọn `.twinkle-btn-secondary`.
+   - 4 thẻ KPI với viền LED nóc (Accent Top Border) phân định theo nghiệp vụ:
+     - **Doanh thu thực thu**: Viền vàng caramel `border-t-gold`, số tiền nổi bật `text-gold font-black`, chia tách Tiền mặt vs VietQR.
+     - **Công suất phòng máy**: Viền xanh lục `border-t-[#4ADE80]`, hiển thị số máy online / tổng máy + tag phần trăm lấp đầy.
+     - **Phiên chơi trực tiếp**: Viền xanh băng `border-t-[#85C1DC]`, hiển thị số phiên chơi live + số máy trống sẵn sàng.
+     - **Giao dịch hôm nay**: Viền cát ấm `border-t-sand`, hiển thị số đơn món F&B + lượt nạp giờ tại quầy POS.
+3. **Kiểm tra chất lượng**:
+   - `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Glanceable Executive Telemetry Strip UI | `AdminStatsCards.tsx`, `index.css` | 🟢 Cơ bản |
+| Affordance Separation (Navigation vs Informational) | `AdminStatsCards.tsx` | 🟡 Trung bình |
+
+---
+
+### 2026-10-26 — Áp Dụng Phong Cách Kính Lỏng (Liquid Glass 3D) Cho 4 Thẻ KPI Admin
+
+**Phase**: UI/UX Innovation & Advanced Visual Effects
+**Thời gian**: ~25 phút
+**Việc đã làm**:
+1. **Phân tích thiết kế Liquid Glass theo ảnh tham khảo**:
+   - Đặc trưng: Khối kính lỏng nổi 3D, vệt phản quang khúc xạ ánh sáng ở góc trên trái (`radial-gradient`), viền kính kép nổi khối (`inset 0 1.5px 2px`, `inset 0 -2px 4px`), và quầng sáng neon mềm nở tỏa bên dưới (`box-shadow: 0 16px 36px -8px ...`).
+2. **Xây dựng 4 sắc thái Liquid Glass trong cùng dải màu vàng đất / caramel / xám khói / cát ngà**:
+   - `.liquid-glass-caramel`: *Rich Caramel & Midnight Obsidian* (Đen tuyền đổ sang vàng caramel óng ánh, hào quang hổ phách).
+   - `.liquid-glass-sand`: *Sand & Platinum Slate* (Xám denim pha vàng cát ngà thanh lịch, hào quang cát sáng).
+   - `.liquid-glass-smoke`: *Deep Smoked Charcoal & Bronze Gold* (Đen khói sâu thẳm điểm ánh đồng, hào quang khói xám sâu).
+   - `.liquid-glass-amber`: *Dark Amber & Frosted Cream* (Hổ phách đậm pha kem sữa ấm, hào quang mật ong).
+3. **Chân thẻ Frosted Glass Pill**:
+   - Tái hiện khung thẻ mờ bên dưới giống các swatch trong ảnh tham khảo: `backdrop-blur-md bg-black/20 rounded-xl px-3 py-1.5 border-t border-white/10`.
+4. **Kiểm tra chất lượng**:
+   - `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| CSS 3D Liquid Glass with Inset Specular & Ambient Bloom | `index.css`, `AdminStatsCards.tsx` | 🔴 Nâng cao |
+| Monochromatic Tonal Harmonies (Earth/Caramel Family) | `AdminStatsCards.tsx` | 🟡 Trung bình |
+
+---
+
+### 2026-10-26 — Tinh Chỉnh Bảng Màu Liquid Glass: Cam Cháy & Xanh Cyan Điện Tử (Bước 3)
+
+**Phase**: UI/UX Refinement & Visual Distinction
+**Thời gian**: ~15 phút
+**Việc đã làm**:
+1. **Phối màu mới theo feedback**:
+   - **Thẻ 1 (Doanh thu thực thu)**: Chuyển sang `.liquid-glass-sunset` (Cam cháy hoàng hôn phối đỏ san hô `rgba(234, 88, 12, ...)` & `rgba(225, 29, 72, ...)`, điểm nhấn `text-[#fed7aa]`, TM `#fb923c`, QR `#fdba74`). Nổi bật vị thế doanh số tài chính hàng đầu.
+   - **Thẻ 2 (Công suất phòng máy)**: Giữ nguyên `.liquid-glass-sand` (Vàng cát ngà & xám slate denim thanh lịch, điểm nhấn xanh lá `#4ADE80`).
+   - **Thẻ 3 (Phiên chơi trực tiếp)**: Đổi sang `.liquid-glass-cyan` (Xanh Cyan điện tử & Lam ngọc sống động `rgba(6, 182, 212, ...)`, điểm nhấn `text-[#38bdf8]`, số máy trống `#4ade80`). Nổi bật tính chất máy tính gaming kết nối trực tiếp.
+   - **Thẻ 4 (Giao dịch hôm nay)**: Giữ nguyên `.liquid-glass-amber` (Hổ phách đậm & kem sữa ấm).
+2. **Kiểm tra chất lượng**:
+   - `npm --prefix frontend run build` PASS 100% (0 errors).
+
+---
+
+### 2026-10-26 — Chuẩn Hóa Nghiệp Vụ Đăng Ký Hội Viên & Nạp Đầu Tại Quầy POS (Bước 4)
+
+**Phase**: Domain Integrity, RBAC Hardening & Fast Onboarding
+**Thời gian**: ~30 phút
+**Việc đã làm**:
+1. **Lập luận nghiệp vụ thực tế quán net**:
+   - Loại bỏ tự đăng ký online ẩn danh để tránh rửa tiền, tài khoản rác và gian lận.
+   - Khách muốn mở tài khoản phải đến trực tiếp quầy POS, nạp tiền lần đầu tối thiểu $\ge 10.000$đ, có camera an ninh đối soát giữa nhân viên nhận tiền và khách hàng.
+   - Chống leo thang đặc quyền (Anti-Privilege Escalation): Nhân viên quầy chỉ được phép tạo tài khoản có vai trò `ROLE_CUSTOMER`.
+2. **Backend Architecture**:
+   - DTOs: `RegisterCustomerWithDepositRequest` (phone, name, optional password, initialDeposit $\ge 10.000$đ, paymentMethod), `RegisterCustomerResponse`.
+   - Service: `AccountService.registerCustomerWithDeposit`:
+     - Validate SĐT duy nhất.
+     - Tự động sinh mật khẩu: Nếu không nhập, lấy 4 số cuối của SĐT làm mật khẩu khởi tạo.
+     - Quy đổi số tiền nạp sang phút chuẩn (@ 10.000đ = 60 phút) và gán trực tiếp vào `account.remainingMinutes`.
+     - Tạo ngay bản ghi `TimePurchase` với trạng thái `CONFIRMED`, liên kết `staffId` của nhân viên ca trực.
+     - Ghi vết kiểm toán tự động qua `AuditLogService` (`REGISTER_CUSTOMER_WITH_DEPOSIT`).
+   - Controller: `POST /api/accounts/register-with-deposit` (PreAuthorize `ADMIN`, `STAFF`).
+   - Siết chặt `POST /api/accounts`: Nếu người gọi không phải ADMIN, bắt buộc role = `CUSTOMER`.
+3. **Frontend Architecture**:
+   - Component modal: `RegisterCustomerModal.tsx` chuẩn Twinkle Glassmorphism với presets mệnh giá (10k, 20k, 50k, 100k, 200k + số khác), preview thời gian quy đổi, checkbox "Mật khẩu 4 số cuối SĐT", chọn phương thức thu tiền (Tiền mặt / VietQR).
+   - Tích hợp nút `+ Hội viên mới` vào:
+     - `StartSessionModal.tsx` (Mở máy quầy).
+     - `SellTimePage.tsx` (POS nạp giờ).
+     - `SellTimeModal.tsx` (Popup nạp giờ).
+   - Cơ chế tự động chọn (Auto-Select): Sau khi tạo thành công, tự động chọn ngay khách hàng mới vào trường chọn khách và sẵn sàng mở máy trong 1 click.
+4. **Kiểm thử & Nghiệm thu toàn diện**:
+   - Integration Test: `CustomerRegistrationWithDepositIntegrationTest.java` (5/5 tests PASS).
+   - Toàn bộ backend test suite: 83/83 tests PASS 100%.
+   - Live script test `test_register_customer.ps1`: Chạy thành công toàn bộ luồng tạo khách -> nạp giờ -> mở máy PC-01 -> khách quét QR login -> nhân viên kết thúc phiên -> kiểm tra chống trùng SĐT.
+   - Frontend `npm run build`: PASS 100% (0 errors).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Domain-Driven Design (In-person Counter Onboarding with Deposit) | `AccountService.java`, `AccountController.java` | 🔴 Nâng cao |
+| Anti-Privilege Escalation RBAC Guard | `AccountController.java` | 🔴 Nâng cao |
+| Atomic Member Creation with Time Purchase & Audit Trail | `AccountService.java` | 🔴 Nâng cao |
+| Fast Onboarding Modal with Twinkle Design Tokens | `RegisterCustomerModal.tsx` | 🟡 Trung bình |
+
+---
+
+### 2026-10-26 — Đồng Bộ Phong Cách Liquid Glass 3D Sang Toàn Bộ Phân Hệ Staff & Tạo Telemetry Đơn Hàng
+
+**Phase**: UI/UX Architecture & Executive Telemetry System
+**Thời gian**: ~25 phút
+**Việc đã làm**:
+1. **Mở rộng hệ thống CSS Liquid Glass 3D (`index.css`)**:
+   - Thêm `.liquid-glass-emerald`: *Emerald Mint & Cyber Jade* (`rgba(16, 185, 129, ...)` & `rgba(34, 197, 94, ...)`), đại diện cho trạng thái *Sẵn sàng, Đã hoàn tất*.
+   - Thêm `.liquid-glass-ruby`: *Ruby Crimson & Flame Rose* (`rgba(225, 29, 72, ...)` & `rgba(239, 68, 68, ...)`), đại diện cho *Máy bảo trì, Cảnh báo*.
+2. **Nâng cấp Sơ đồ máy (`FloorMapPage.tsx`)**:
+   - Chuyển 4 thẻ thống kê sang Liquid Glass 3D:
+     - Tổng số máy: `.liquid-glass-sand` (Vàng cát ngà & slate, phân chia STD/VIP).
+     - Máy sẵn sàng: `.liquid-glass-emerald` (Xanh lục ngọc bích sáng, số máy trống đón khách).
+     - Đang hoạt động: `.liquid-glass-cyan` (Xanh Cyan điện tử gaming, % công suất phòng).
+     - Máy bảo trì: `.liquid-glass-ruby` (Đỏ ruby san hô cảnh báo).
+3. **Bổ sung dải Telemetry Báo Cáo Nhanh Đơn Hàng (`StaffOrderQueuePage.tsx`)**:
+   - Tạo mới dải 4 thẻ Liquid Glass 3D cho hàng đợi đơn hàng:
+     - **Chờ xác nhận**: `.liquid-glass-sunset` (Cam cháy hoàng hôn, đèn pulse nhấp nháy khi có đơn chờ duyệt, tổng tiền tạm tính).
+     - **Đã hoàn thành**: `.liquid-glass-emerald` (Xanh lục, số đơn đã giao & thu tiền).
+     - **Tổng lượt gọi món**: `.liquid-glass-cyan` (Cyan điện tử, tổng số đơn gọi hôm nay).
+     - **Doanh thu F&B**: `.liquid-glass-amber` (Hổ phách đậm, tổng doanh thu đồ ăn thức uống).
+   - Nâng cấp hook `useOrderQueue.ts` truy vấn thống kê song song thời gian thực.
+4. **Nâng cấp Quản lý phiên chơi (`SessionManagerPage.tsx`)**:
+   - Chuyển 3 thẻ tổng quan sang Liquid Glass 3D:
+     - Phiên đang hoạt động: `.liquid-glass-cyan`.
+     - Máy trạm sẵn sàng: `.liquid-glass-emerald`.
+     - Tổng lượt phiên: `.liquid-glass-amber`.
+5. **Nâng cấp Quản lý tài khoản (`AccountManagerPage.tsx`)**:
+   - Chuyển 3 thẻ mini sang Liquid Glass 3D:
+     - Tổng số hội viên: `.liquid-glass-sand`.
+     - Tổng giờ khả dụng: `.liquid-glass-emerald`.
+     - Quy định nạp đầu quầy POS: `.liquid-glass-amber`.
+6. **Kiểm tra chất lượng**:
+   - `npm run build` PASS 100% (0 errors, 0 warnings).
+   - HMR tự động cập nhật ngay trên giao diện trình duyệt.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Universal 3D Liquid Glass Theming System | `index.css`, cả 4 trang Staff | 🔴 Nâng cao |
+| Order Queue Executive Telemetry Strip & Aggregations | `StaffOrderQueuePage.tsx`, `useOrderQueue.ts` | 🟡 Trung bình |
+
+---
+
+### 2026-10-26 — Khắc phục lỗ hổng bảo mật & Tối ưu nghiệp vụ đổi mật khẩu tại quầy
+
+**Phase**: Domain Security & Counter Operations Optimization
+**Thời gian**: ~20 phút
+**Việc đã làm**:
+1. **Khắc phục lỗ hổng leo thang đặc quyền (Privilege Escalation & Account Takeover)**:
+   - File: `AccountController.java` (`PUT /api/accounts/{id}`)
+   - Trước đây: Nếu nhân viên (`STAFF`) gọi `PUT /api/accounts/{id}` vào ID của Admin hoặc Staff khác, controller chỉ đơn thuần gán `request.setRole(CUSTOMER)` rồi cập nhật mật khẩu, vô tình cho phép Staff chiếm đoạt tài khoản Admin và giáng role Admin thành Customer.
+   - Sửa: Truy vấn `target = accountRepository.findById(id)`. Nếu caller không phải `ROLE_ADMIN` mà target có role `ADMIN` hoặc `STAFF`, lập tức chặn lại và ném `AccessDeniedException("Nhân viên chỉ có quyền cập nhật và đổi mật khẩu cho tài khoản Hội viên (CUSTOMER)!")`.
+2. **Cải thiện thông báo lỗi tại `GlobalExceptionHandler.java`**:
+   - Tùy biến `handleAccessDeniedException`: Nếu ngoại lệ chứa custom message (khác message mặc định `"Access Denied"`), trả về đúng custom message đó thay vì câu thông báo chung chung, giúp giao diện hiển thị thông báo rõ ràng cho nhân viên.
+3. **Tối ưu trải nghiệm đặt lại mật khẩu tại quầy (`AccountManagerPage.tsx`)**:
+   - Thao tác nhanh trong bảng: Chỉ hiển thị icon đổi mật khẩu/chỉnh sửa cho dòng hội viên (`role === 'CUSTOMER'`) đối với nhân viên (Admin vẫn thấy toàn bộ).
+   - Modal đổi mật khẩu:
+     - Hiển thị thông tin trực quan: Tên khách hàng, SĐT, nhãn Hội viên.
+     - Nút 1-click: `[⚡ Điền nhanh {4 số cuối SĐT}]` (sử dụng 4 số cuối SĐT của khách làm mật khẩu mặc định khi khách quên).
+     - Ô nhập mật khẩu: Cho phép nhân viên tự gõ mật khẩu mới theo yêu cầu của khách hoặc bấm nút điền nhanh. Có nút ẩn/hiện mật khẩu để đối chiếu đọc lại cho khách tại quầy.
+4. **Kiểm thử tự động & Nghiệm thu**:
+   - Bổ sung 2 test case vào `Phase6CrudEndpointsIntegrationTest.java`:
+     - `testStaffUpdateCustomerAccount_Success`: Staff đổi mật khẩu hội viên thành công (200 OK).
+     - `testStaffUpdateAdminAccount_Forbidden`: Staff cố ý sửa tài khoản Admin bị chặn ngay (403 Forbidden).
+   - Chạy JUnit test: 5/5 test pass 100%.
+   - Chạy kịch bản PowerShell end-to-end với backend đang chạy:
+     - Staff login -> thử sửa Admin -> Bị chặn 403 Forbidden.
+     - Staff login -> thử sửa đồng nghiệp Staff -> Bị chặn 403 Forbidden.
+     - Staff login -> đổi mật khẩu Customer sang 4 số cuối SĐT -> Thành công 200 OK.
+     - Customer đăng nhập máy trạm (Client PC) bằng mật khẩu mới -> Thành công tạo session.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Anti-Privilege Escalation & Access Control | `AccountController.java` | 🔴 Tier 1 (Security) |
+| Fine-Grained Exception Handling | `GlobalExceptionHandler.java` | 🟡 Tier 2 |
+| Quick Reset UX (4 last digits) | `AccountManagerPage.tsx` | 🟢 Tier 3 (UX) |
+| Integration Testing & Live Verification | `Phase6CrudEndpointsIntegrationTest.java`, PowerShell | 🔴 Tier 1 |
+
+---
+
+### 2026-10-26 — Khắc phục lỗi trùng màu nền & text khi Select Option active/selected
+
+**Phase**: UI/UX High-Contrast Polish (Ant Design Select Dropdown)
+**Thời gian**: ~10 phút
+**Việc đã làm**:
+1. **Phân tích nguyên nhân**:
+   - Khi tùy chọn trong Ant Design `<Select>` (ví dụ bộ lọc vai trò: "Quản trị", "Hội viên"...) được chọn hoặc active (`.ant-select-item-option-selected.ant-select-item-option-active`), mặc định Ant Design áp dụng màu nền sáng (light cream/tint), trùng với màu text sáng `--sand` (`#f0ebe5`). Hậu quả: chữ bị chìm hoàn toàn vào nền, không đọc được và không phân biệt được mục nào đang chọn.
+2. **Cập nhật Design Tokens (`antd-theme.ts`)**:
+   - Khai báo token component chuẩn cho `Select`: `colorBgElevated: '#202332'`, `optionSelectedBg: '#bd9875'`, `optionSelectedColor: '#202332'`, `optionActiveBg: 'rgba(189, 152, 117, 0.18)'`.
+   - Bổ sung cấu hình cho `Dropdown` menu.
+3. **Viết quy tắc CSS tương phản cao (High-Contrast AAA) (`index.css`)**:
+   - Dropdown container: Nền Midnight `#202332` sâu, viền mạ vàng `border-top: 1.5px solid rgba(220, 185, 150, 0.55)`, đổ bóng 3D.
+   - Trạng thái chưa chọn: Text Sand `#f0ebe5` sáng rõ trên nền tối.
+   - Trạng thái Hover / Active: Nền kính mạ vàng `rgba(189, 152, 117, 0.18)`, text chuyển Trắng Sáng `#ffffff` (font-semibold).
+   - Trạng thái Đang Chọn (`Selected`): Nền vàng Gold Caramel đặc trưng Twinkle (`#bd9875`), chữ Midnight đen than đậm nét (`#202332`, font-bold 700), checkmark đen than `#202332`.
+   - Trạng thái Vừa Chọn Vừa Active (`Selected + Active`): Nền Gold sáng hơn (`#d4b595`), chữ Đen Than Sâu (`#151722`, font-black 800), đổ bóng nổi 3D `box-shadow: 0 6px 16px rgba(189, 152, 117, 0.5)`.
+4. **Kiểm tra chất lượng**:
+   - `npm run build` PASS 100% (0 errors, 0 warnings). HMR cập nhật tức thì trên trình duyệt.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| High-Contrast Option Styling & Specificity Overrides | `index.css`, `antd-theme.ts` | 🟡 Trung bình |
+
+---
+
+### 2026-10-26 — Tái thiết kế Máng Cột Swimlane Kanban & Phân biệt Nhận diện Thẻ Đơn
+
+**Phase**: Order Queue UX/UI Refinement & Visual Hierarchy
+**Thời gian**: ~20 phút
+**Việc đã làm**:
+1. **Thiết kế Khung Máng Trượt Độc Lập (Swimlane Column Panels - `StaffOrderQueuePage.tsx`)**:
+   - Triệt tiêu hoàn toàn cảm giác "nằm chung hàng ngang rồi xuống dòng" bằng cách đóng khung Cột 1 và Cột 2 vào 2 Panel Kanban lớn độc lập:
+     - **Máng Bếp (F&B Lane):** Panel bo tròn `rounded-3xl`, viền mạ hổ phách ấm `border-amber-500/30`, nền kính tối sâu `from-amber-950/25 via-[#1c1f2e]/70 to-[#141622]/95`, header gắn liền đỉnh panel, có rãnh trượt đơn hàng riêng.
+     - **Máng Thu Ngân (Playtime & Combo Lane):** Panel bo tròn `rounded-3xl`, viền mạ xanh cyan điện tử `border-cyan-500/30`, nền kính Cyber Gaming `from-cyan-950/25 via-[#1c1f2e]/70 to-[#141622]/95`, header gắn liền đỉnh panel.
+2. **Cá nhân hóa Ngoại hình Thẻ Đơn Hàng (`StaffOrderCard.tsx`)**:
+   - **Đơn Bếp (🍜 Món ăn & Nước uống):**
+     - Vạch chỉ thị bên trái màu Cam Hổ Phách `border-l-4 border-l-amber-500`.
+     - Nền thẻ gradient ấm áp `from-[#27201b]/90 via-[#1e202c]/95 to-[#141622]/95`, viền `border-amber-500/35`.
+     - Huy hiệu `[🍜 MÓN ĂN & UỐNG]` với icon `Utensils` màu vàng cam.
+   - **Đơn Thu Ngân Nạp Giờ (⚡ Nạp giờ chơi):**
+     - Vạch chỉ thị bên trái màu Xanh Cyan Neon `border-l-4 border-l-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)]`.
+     - Nền thẻ gradient Cyber Gaming `from-[#122433]/90 via-[#18202e]/95 to-[#131622]/95`, viền `border-cyan-500/35`.
+     - Huy hiệu `[⚡ NẠP GIỜ CHƠI]` với icon `Zap` nhấp nháy.
+     - Box nạp giờ chuyên biệt với cảnh báo thu tiền mặt và làm nổi bật dòng gói nạp giờ màu cyan phát sáng.
+   - **Đơn Combo (🎁 Món + Giờ chơi):**
+     - Vạch chỉ thị màu xanh lục ngọc `border-l-4 border-l-emerald-400`.
+     - Nền thẻ ánh ngọc bích `from-[#132724]/90`, huy hiệu `[🎁 COMBO MÓN + GIỜ]`.
+3. **Kiểm thử chất lượng**:
+   - `npm run build`: PASS 100% (0 errors, 0 warnings).
+
+---
+
+### 2026-10-26 — Đồng bộ Bố cục 2 Cột (Dual-Lane) trên TẤT CẢ các Tab Hàng đợi đơn hàng
+
+**Phase**: Order Management & Staff UX Refinement
+**Thời gian**: ~15 phút
+**Việc đã làm**:
+1. **Đồng bộ Bố cục 2 Luồng (Cột 1: Bếp & Pha Chế | Cột 2: Thu Ngân & Nạp Giờ) trên Toàn bộ các Tab (`StaffOrderQueuePage.tsx`)**:
+   - Xóa bỏ điều kiện giới hạn chỉ hiển thị 2 cột ở tab `PENDING_PAYMENT`. Áp dụng thống nhất cho cả 4 tab: `Chờ xử lý`, `Đã xác nhận`, `Đã hủy`, và `Tất cả`.
+   - Nhân viên khi chuyển sang bất kỳ tab nào cũng đều theo dõi được 2 luồng phân định rõ ràng (Bếp F&B vs Thu ngân Nạp giờ).
+2. **Ngữ cảnh hóa Tiêu đề & Thông báo Rỗng (Contextual Empty States)**:
+   - Tùy biến phụ đề cột và thông báo placeholder khi không có đơn phù hợp cho từng tab (`Chờ xử lý` $\rightarrow$ "Bếp chế biến & giao bàn", `Đã xác nhận` $\rightarrow$ "Đã chế biến & hoàn tất giao bàn", `Đã hủy` $\rightarrow$ "Lịch sử đơn đã hủy", `Tất cả` $\rightarrow$ "Toàn bộ lịch sử hệ thống").
+   - Giữ vững cấu trúc khung 2 cột ổn định trên màn hình, không bị giật hay co giãn layout khi chuyển tab.
+3. **Nâng cấp Hook `useOrderQueue.ts`**:
+   - Thêm query `cancelledSummaryData` (`status = 'CANCELLED'`) và xuất ra `cancelledCount`.
+   - Hiển thị đầy đủ số đếm cho cả 4 tab trên thanh điều hướng Segmented: `Chờ xử lý (X)`, `Đã xác nhận (Y)`, `Đã hủy (Z)`, `Tất cả (W)`.
+4. **Kiểm thử chất lượng**:
+   - `npm run build`: PASS 100% (0 errors, 0 warnings).
+
+---
+
+
+
+
+
+
+
+
+
+
 
 

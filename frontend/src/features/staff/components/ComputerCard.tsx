@@ -8,6 +8,7 @@ import {
   Wrench,
   Sparkles,
   Zap,
+  ArrowRight,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import type { FloorMapComputerItem } from '@/types/computer';
@@ -43,8 +44,8 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
       badgeText: 'SẴN SÀNG',
       badgeClass: 'bg-success/20 text-[#4ADE80] border-success/40 shadow-[0_0_12px_rgba(74,222,128,0.25)]',
       borderClass: isSelected
-        ? 'border-gold shadow-[0_0_24px_rgba(181,136,99,0.5)] ring-2 ring-gold'
-        : 'border-success/45 hover:border-success/90 hover:shadow-[0_4px_24px_rgba(76,175,80,0.25)] bg-gradient-to-br from-[rgba(61,77,85,0.7)] to-[rgba(76,175,80,0.08)]',
+        ? 'border-gold shadow-[0_0_24px_rgba(189,152,117,0.5)] ring-2 ring-gold'
+        : 'border-success/45 hover:border-success/90 hover:shadow-[0_4px_24px_rgba(76,175,80,0.25)] bg-gradient-to-br from-slate/75 to-success/10',
       dotClass: 'bg-success shadow-[0_0_10px_rgba(76,175,80,0.9)] animate-pulse',
       iconContainer: 'bg-success/20 text-[#4ADE80] border border-success/40 shadow-[0_0_10px_rgba(76,175,80,0.3)]',
     },
@@ -56,12 +57,12 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
         ? 'bg-warning/25 text-warning border-warning/60 shadow-[0_0_12px_rgba(255,183,77,0.35)]'
         : 'bg-info/25 text-[#85C1DC] border-info/50 shadow-[0_0_12px_rgba(91,143,168,0.25)]',
       borderClass: isSelected
-        ? 'border-gold shadow-[0_0_24px_rgba(181,136,99,0.5)] ring-2 ring-gold'
+        ? 'border-gold shadow-[0_0_24px_rgba(189,152,117,0.5)] ring-2 ring-gold'
         : isCriticalExpiring
-        ? 'border-danger shadow-[0_0_24px_rgba(239,83,80,0.5)] ring-2 ring-danger/80 animate-pulse bg-gradient-to-br from-[rgba(61,77,85,0.85)] to-[rgba(239,83,80,0.2)]'
+        ? 'border-danger shadow-[0_0_24px_rgba(239,83,80,0.5)] ring-2 ring-danger/80 animate-pulse bg-gradient-to-br from-slate/85 to-danger/20'
         : isExpiringSoon
-        ? 'border-warning/80 hover:border-warning hover:shadow-[0_4px_24px_rgba(255,183,77,0.35)] animate-pulse bg-gradient-to-br from-[rgba(61,77,85,0.8)] to-[rgba(255,183,77,0.12)]'
-        : 'border-info/50 hover:border-info/90 hover:shadow-[0_4px_24px_rgba(91,143,168,0.3)] bg-gradient-to-br from-[rgba(61,77,85,0.8)] to-[rgba(91,143,168,0.1)]',
+        ? 'border-warning/80 hover:border-warning hover:shadow-[0_4px_24px_rgba(255,183,77,0.35)] animate-pulse bg-gradient-to-br from-slate/80 to-warning/15'
+        : 'border-info/50 hover:border-info/90 hover:shadow-[0_4px_24px_rgba(91,143,168,0.3)] bg-gradient-to-br from-slate/80 to-info/10',
       dotClass: isCriticalExpiring
         ? 'bg-danger shadow-[0_0_12px_rgba(239,83,80,1)] animate-ping'
         : isExpiringSoon
@@ -73,8 +74,8 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
       badgeText: 'BẢO TRÌ',
       badgeClass: 'bg-danger/20 text-danger border-danger/40',
       borderClass: isSelected
-        ? 'border-gold shadow-[0_0_24px_rgba(181,136,99,0.5)] ring-2 ring-gold'
-        : 'border-danger/40 hover:border-danger/70 bg-gradient-to-br from-[rgba(35,42,46,0.9)] to-[rgba(239,83,80,0.1)]',
+        ? 'border-gold shadow-[0_0_24px_rgba(189,152,117,0.5)] ring-2 ring-gold'
+        : 'border-danger/40 hover:border-danger/70 bg-gradient-to-br from-midnight/90 to-danger/10',
       dotClass: 'bg-danger shadow-[0_0_8px_rgba(239,83,80,0.8)]',
       iconContainer: 'bg-danger/20 text-danger border border-danger/40',
     },
@@ -83,13 +84,11 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      whileHover={{ y: -4, transition: { duration: 0.15 } }}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.15 }}
       className="h-full"
     >
       <GlassCard
@@ -133,7 +132,7 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
           ) : (
             <Tag
               bordered={false}
-              className="m-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[rgba(61,77,85,0.6)] text-sand/90 border border-[rgba(167,158,156,0.2)]"
+              className="m-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate/60 text-sand/90 border border-mist/20"
             >
               STD
             </Tag>
@@ -141,7 +140,7 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
         </div>
 
         {/* 2. Body: Trạng thái & Thông tin khách chơi (nếu có) */}
-        <div className="min-h-[64px] py-2 border-t border-[rgba(167,158,156,0.12)] flex flex-col justify-center">
+        <div className="min-h-[64px] py-2 border-t border-mist/15 flex flex-col justify-center">
           {status === 'IN_USE' ? (
             activeSession ? (
               <div className="space-y-1.5">
@@ -179,12 +178,12 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-xs text-[#85C1DC] font-semibold py-1">
+              <div className="flex items-center gap-2 text-xs text-warning font-semibold py-1">
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#5B8FA8] opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#5B8FA8]" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-warning" />
                 </span>
-                <span className="truncate">Đang đồng bộ phiên chơi...</span>
+                <span className="truncate">Kẹt trạng thái (Bấm để gỡ)</span>
               </div>
             )
           ) : status === 'AVAILABLE' ? (
@@ -206,7 +205,7 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
         </div>
 
         {/* 3. Footer: Status Badge & Pulse Indicator */}
-        <div className="flex items-center justify-between pt-2.5 border-t border-[rgba(167,158,156,0.1)] mt-1">
+        <div className="flex items-center justify-between pt-2.5 border-t border-mist/15 mt-1">
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
             <span className={`pill-badge text-[10px] font-extrabold tracking-wider ${statusConfig.badgeClass}`}>
@@ -214,8 +213,8 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
             </span>
           </div>
 
-          <span className="text-[11px] text-mist/70 group-hover:text-gold transition-colors font-semibold">
-            Chi tiết →
+          <span className="text-[11px] text-mist/80 group-hover:text-gold transition-colors font-semibold flex items-center gap-1">
+            Chi tiết <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </span>
         </div>
       </GlassCard>

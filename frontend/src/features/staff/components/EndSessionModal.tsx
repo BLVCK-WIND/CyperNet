@@ -68,7 +68,7 @@ export const EndSessionModal: React.FC<EndSessionModalProps> = ({
       width={480}
       styles={{
         body: {
-          backgroundColor: '#10232A',
+          backgroundColor: '#202332',
           padding: 0,
           borderRadius: 16,
         },
@@ -80,7 +80,7 @@ export const EndSessionModal: React.FC<EndSessionModalProps> = ({
     >
       <div className="p-6 space-y-5 text-sand select-none">
         {/* 1. Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-[rgba(167,158,156,0.12)]">
+        <div className="flex items-center gap-3 pb-4 border-b border-mist/15">
           <div className="w-10 h-10 rounded-xl bg-danger/15 text-danger border border-danger/30 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(239,83,80,0.25)]">
             <Square className="w-5 h-5 text-danger" />
           </div>
@@ -104,7 +104,7 @@ export const EndSessionModal: React.FC<EndSessionModalProps> = ({
         </div>
 
         {/* 3. Tóm tắt thông tin phiên */}
-        <GlassCard className="p-4 rounded-xl border border-[rgba(167,158,156,0.15)] space-y-3">
+        <GlassCard className="p-4 rounded-xl border border-mist/20 space-y-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-mist flex items-center gap-1.5">
               <Monitor className="w-3.5 h-3.5 text-gold" />
@@ -146,7 +146,7 @@ export const EndSessionModal: React.FC<EndSessionModalProps> = ({
           </div>
 
           {/* Cơ chế hoàn giờ */}
-          <div className="flex items-center justify-between text-xs pt-2 border-t border-[rgba(167,158,156,0.1)]">
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-mist/15">
             <span className="text-success font-medium flex items-center gap-1.5">
               <RotateCcw className="w-3.5 h-3.5" />
               Hoàn trả tài khoản:
@@ -158,11 +158,11 @@ export const EndSessionModal: React.FC<EndSessionModalProps> = ({
         </GlassCard>
 
         {/* 4. Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[rgba(167,158,156,0.12)]">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-mist/15">
           <Button
             onClick={onClose}
             disabled={submitting}
-            className="rounded-xl h-10 text-xs px-5 bg-transparent border-[rgba(167,158,156,0.2)] text-sand hover:text-mist"
+            className="rounded-xl h-10 text-xs px-5 bg-transparent border-mist/20 text-sand hover:text-mist"
           >
             Hủy bỏ
           </Button>

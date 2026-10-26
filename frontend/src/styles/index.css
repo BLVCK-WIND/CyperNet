@@ -5,28 +5,28 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --color-midnight: #10232A;
-  --color-slate: #3D4D55;
-  --color-mist: #A79E9C;
-  --color-sand: #D3C3B9;
-  --color-gold: #B58863;
-  --color-gold-light: #D4A574;
-  --color-gold-dark: #8B6B47;
-  --color-obsidian: #161616;
+  --color-midnight: #202332;
+  --color-slate: #434e60;
+  --color-mist: #8b9a9f;
+  --color-sand: #f0ebe5;
+  --color-gold: #bd9875;
+  --color-gold-light: #d4b595;
+  --color-gold-dark: #a6815e;
+  --color-obsidian: #151722;
 
   --color-success: #4CAF50;
   --color-warning: #FFB74D;
   --color-danger: #EF5350;
-  --color-info: #5B8FA8;
+  --color-info: #85C1DC;
 }
 
 :root {
   color-scheme: dark;
-  --bg-midnight: #10232A;
-  --bg-slate: #3D4D55;
-  --text-sand: #D3C3B9;
-  --text-mist: #A79E9C;
-  --accent-gold: #B58863;
+  --bg-midnight: #202332;
+  --bg-slate: #434e60;
+  --text-sand: #f0ebe5;
+  --text-mist: #8b9a9f;
+  --accent-gold: #bd9875;
 }
 
 * {
@@ -42,9 +42,9 @@ body {
   margin: 0;
   background-color: var(--color-midnight);
   background-image: 
-    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(181, 136, 99, 0.18) 0%, rgba(61, 77, 85, 0.08) 55%, transparent 100%),
-    radial-gradient(ellipse 65% 45% at 88% 18%, rgba(181, 136, 99, 0.07) 0%, transparent 80%),
-    radial-gradient(ellipse 50% 35% at 12% 70%, rgba(91, 143, 168, 0.05) 0%, transparent 75%);
+    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(189, 152, 117, 0.16) 0%, rgba(67, 78, 96, 0.12) 55%, transparent 100%),
+    radial-gradient(ellipse 65% 45% at 88% 18%, rgba(189, 152, 117, 0.08) 0%, transparent 80%),
+    radial-gradient(ellipse 50% 35% at 12% 70%, rgba(139, 154, 159, 0.06) 0%, transparent 75%);
   background-attachment: fixed;
   color: var(--color-sand);
   font-family: var(--font-sans);
@@ -54,19 +54,246 @@ body {
 
 /* Glassmorphism utility for CyberLux / Twinkle Luxury Theme */
 .glass-panel {
-  background: linear-gradient(145deg, rgba(61, 77, 85, 0.72) 0%, rgba(20, 36, 43, 0.88) 100%);
+  background: linear-gradient(180deg, rgba(189, 152, 117, 0.12) 0%, rgba(67, 78, 96, 0.50) 45%, rgba(32, 35, 50, 0.95) 100%);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(211, 195, 185, 0.12);
-  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(139, 154, 159, 0.2);
+  border-top: 1px solid rgba(220, 185, 150, 0.35);
+  box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.5), 0 0 16px rgba(189, 152, 117, 0.05);
 }
 
 .glass-panel-elevated {
-  background: linear-gradient(145deg, rgba(61, 77, 85, 0.90) 0%, rgba(16, 35, 42, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(189, 152, 117, 0.28) 0%, rgba(67, 78, 96, 0.65) 45%, rgba(32, 35, 50, 0.96) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(181, 136, 99, 0.32);
-  box-shadow: 0 10px 36px -4px rgba(0, 0, 0, 0.65), 0 0 20px rgba(181, 136, 99, 0.10);
+  border: 1px solid rgba(189, 152, 117, 0.35);
+  border-top: 1.5px solid rgba(220, 185, 150, 0.65);
+  box-shadow: 0 14px 40px -6px rgba(0, 0, 0, 0.65), 0 0 24px rgba(189, 152, 117, 0.15);
+}
+
+/* Twinkle Card Flow - Thẻ con/chức năng vừa vặn, thanh lịch */
+.twinkle-card-flow {
+  background: linear-gradient(180deg, rgba(189, 152, 117, 0.18) 0%, rgba(67, 78, 96, 0.55) 45%, rgba(32, 35, 50, 0.95) 100%);
+  border: 1px solid rgba(139, 154, 159, 0.2);
+  border-top: 1px solid rgba(220, 185, 150, 0.45);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 16px rgba(189, 152, 117, 0.06);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.twinkle-card-flow:hover {
+  border-color: rgba(189, 152, 117, 0.5);
+  border-top-color: rgba(220, 185, 150, 0.85);
+  box-shadow: 0 16px 36px -6px rgba(189, 152, 117, 0.35), 0 0 24px rgba(189, 152, 117, 0.15);
+}
+
+/* Twinkle Major Header / Banner Flow - Thẻ chính, Tiêu đề lớn, Thanh lọc tổng quan */
+.twinkle-major-flow {
+  background: linear-gradient(180deg, rgba(189, 152, 117, 0.45) 0%, rgba(189, 152, 117, 0.28) 32%, rgba(189, 152, 117, 0.14) 50%, rgba(67, 78, 96, 0.65) 75%, rgba(32, 35, 50, 0.96) 100%);
+  border: 1px solid rgba(189, 152, 117, 0.30);
+  border-top: 1.5px solid rgba(220, 185, 150, 0.70);
+  box-shadow: 0 14px 36px -8px rgba(0, 0, 0, 0.55), 0 0 20px rgba(189, 152, 117, 0.15);
+}
+
+/* Twinkle Glowing Arrow Action Capsule */
+.twinkle-arrow-capsule {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 9999px;
+  background-color: rgba(189, 152, 117, 0.15);
+  border: 1px solid rgba(189, 152, 117, 0.35);
+  color: #bd9875;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group:hover .twinkle-arrow-capsule {
+  background-color: #bd9875;
+  color: #202332;
+  border-color: #bd9875;
+  transform: translateX(4px);
+  box-shadow: 0 0 14px rgba(189, 152, 117, 0.6);
+}
+
+/* Twinkle Icon Box (Kính mờ vàng hổ phách) */
+.twinkle-icon-box {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background-color: rgba(189, 152, 117, 0.15);
+  border: 1px solid rgba(189, 152, 117, 0.35);
+  color: #d4b595;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group:hover .twinkle-icon-box {
+  background-color: rgba(189, 152, 117, 0.28);
+  border-color: rgba(189, 152, 117, 0.65);
+  color: #f0ebe5;
+  transform: scale(1.06);
+  box-shadow: 0 0 18px rgba(189, 152, 117, 0.35);
+}
+
+/* Twinkle Secondary Button (Nút làm mới, nút phụ chuẩn Twinkle) */
+.twinkle-btn-secondary {
+  background-color: rgba(67, 78, 96, 0.45);
+  border: 1px solid rgba(139, 154, 159, 0.25);
+  color: #f0ebe5;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.twinkle-btn-secondary:hover {
+  background-color: rgba(189, 152, 117, 0.18);
+  border-color: rgba(189, 152, 117, 0.45);
+  color: #bd9875;
+  box-shadow: 0 0 12px rgba(189, 152, 117, 0.2);
+}
+
+/* Twinkle Executive Telemetry KPI Card (Báo Cáo Nhanh Vận Hành - Non-clickable telemetry) */
+.twinkle-kpi-card {
+  background: linear-gradient(180deg, rgba(67, 78, 96, 0.42) 0%, rgba(32, 35, 50, 0.94) 100%);
+  border: 1px solid rgba(139, 154, 159, 0.22);
+  border-radius: 1rem;
+  padding: 1.15rem 1.25rem;
+  cursor: default;
+  user-select: none;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   LIQUID GLASS TELEMETRY CARDS (Hiệu ứng kính lỏng nổi 3D, viền khúc xạ & hào quang tỏa)
+   4 sắc thái tinh tế trong cùng dải màu vàng đất / caramel / cát / xám khói
+   ========================================================================== */
+
+/* Thẻ 1: Sunset Orange & Fiery Coral (Cam cháy hoàng hôn phối đỏ san hô & đen tuyền) */
+.liquid-glass-sunset {
+  background: 
+    radial-gradient(at 0% 0%, rgba(255, 180, 140, 0.35) 0%, transparent 55%),
+    linear-gradient(165deg, rgba(28, 31, 46, 0.95) 0%, rgba(35, 30, 42, 0.88) 35%, rgba(234, 88, 12, 0.48) 80%, rgba(225, 29, 72, 0.35) 100%);
+  border: 1px solid rgba(251, 146, 60, 0.40);
+  border-top: 1.5px solid rgba(255, 200, 170, 0.85);
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.50),
+    0 16px 36px -8px rgba(234, 88, 12, 0.45),
+    0 4px 12px 0 rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  cursor: default;
+  user-select: none;
+}
+
+/* Thẻ 2: Sand & Platinum Slate (Vàng cát ngà phối xám denim thanh lịch) */
+.liquid-glass-sand {
+  background: 
+    radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.28) 0%, transparent 55%),
+    linear-gradient(165deg, rgba(67, 78, 96, 0.75) 0%, rgba(45, 52, 68, 0.88) 50%, rgba(212, 181, 149, 0.35) 100%);
+  border: 1px solid rgba(212, 181, 149, 0.35);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.80);
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.50),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.45),
+    0 16px 36px -8px rgba(212, 181, 149, 0.30),
+    0 4px 12px 0 rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  cursor: default;
+  user-select: none;
+}
+
+/* Thẻ 3: Electric Azure Cyan & Cyber Blue (Xanh cyan điện tử / Lam ngọc sáng sống động) */
+.liquid-glass-cyan {
+  background: 
+    radial-gradient(at 0% 0%, rgba(207, 250, 254, 0.40) 0%, transparent 55%),
+    linear-gradient(165deg, rgba(15, 23, 42, 0.95) 0%, rgba(20, 35, 55, 0.88) 35%, rgba(6, 182, 212, 0.45) 80%, rgba(14, 165, 233, 0.38) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.45);
+  border-top: 1.5px solid rgba(165, 243, 252, 0.90);
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.50),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.50),
+    0 16px 36px -8px rgba(6, 182, 212, 0.45),
+    0 4px 12px 0 rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  cursor: default;
+  user-select: none;
+}
+
+/* Thẻ 4: Dark Amber & Frosted Cream (Hổ phách đậm pha kem sữa ấm) */
+.liquid-glass-amber {
+  background: 
+    radial-gradient(at 0% 0%, rgba(255, 240, 220, 0.25) 0%, transparent 50%),
+    linear-gradient(165deg, rgba(38, 35, 46, 0.95) 0%, rgba(52, 48, 62, 0.85) 45%, rgba(189, 138, 92, 0.42) 100%);
+  border: 1px solid rgba(189, 138, 92, 0.38);
+  border-top: 1.5px solid rgba(255, 225, 195, 0.75);
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.50),
+    0 16px 36px -8px rgba(189, 138, 92, 0.35),
+    0 4px 12px 0 rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  cursor: default;
+  user-select: none;
+}
+
+/* Thẻ 5: Emerald Mint & Cyber Jade (Xanh lục ngọc bích & Mint gaming sống động) */
+.liquid-glass-emerald {
+  background: 
+    radial-gradient(at 0% 0%, rgba(209, 250, 229, 0.38) 0%, transparent 55%),
+    linear-gradient(165deg, rgba(15, 30, 26, 0.95) 0%, rgba(18, 42, 35, 0.88) 35%, rgba(16, 185, 129, 0.45) 80%, rgba(5, 150, 105, 0.38) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  border-top: 1.5px solid rgba(167, 243, 208, 0.90);
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.50),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.50),
+    0 16px 36px -8px rgba(16, 185, 129, 0.42),
+    0 4px 12px 0 rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  cursor: default;
+  user-select: none;
+}
+
+/* Thẻ 6: Ruby Crimson & Flame Rose (Đỏ ruby & san hô cảnh báo nổi bật) */
+.liquid-glass-ruby {
+  background: 
+    radial-gradient(at 0% 0%, rgba(254, 205, 211, 0.35) 0%, transparent 55%),
+    linear-gradient(165deg, rgba(38, 20, 26, 0.95) 0%, rgba(48, 25, 32, 0.88) 35%, rgba(225, 29, 72, 0.48) 80%, rgba(190, 18, 60, 0.40) 100%);
+  border: 1px solid rgba(251, 113, 133, 0.45);
+  border-top: 1.5px solid rgba(254, 205, 211, 0.90);
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.50),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.50),
+    0 16px 36px -8px rgba(225, 29, 72, 0.45),
+    0 4px 12px 0 rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  cursor: default;
+  user-select: none;
 }
 
 /* Twinkle Pill-shaped Utilities */
@@ -90,13 +317,28 @@ body {
 }
 
 .twinkle-gradient-surface {
-  background: linear-gradient(145deg, rgba(61, 77, 85, 0.85) 0%, rgba(22, 38, 46, 0.95) 100%);
+  background: linear-gradient(145deg, rgba(67, 78, 96, 0.85) 0%, rgba(32, 35, 50, 0.95) 100%);
 }
 
 .twinkle-gradient-gold {
-  background: linear-gradient(135deg, #B58863 0%, #D4A574 50%, #8B6B47 100%);
+  background: linear-gradient(135deg, #bd9875 0%, #d4b595 50%, #a6815e 100%);
 }
 
+/* Twinkle Featured Gold Card (Reversed design matching image 2) */
+.twinkle-card-gold {
+  background: linear-gradient(145deg, #c5a382 0%, #bd9875 45%, #a8835f 100%);
+  color: #202332;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 30px -5px rgba(189, 152, 117, 0.32), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Twinkle Hero Flow (Top to Bottom Caramel into Slate & Midnight - Richer Gold Flow) */
+.twinkle-hero-flow {
+  background: linear-gradient(180deg, rgba(189, 152, 117, 0.55) 0%, rgba(189, 152, 117, 0.38) 32%, rgba(189, 152, 117, 0.20) 50%, rgba(67, 78, 96, 0.70) 72%, rgba(32, 35, 50, 0.96) 100%);
+  border: 1px solid rgba(189, 152, 117, 0.35);
+  border-top: 1.5px solid rgba(220, 185, 150, 0.75);
+  box-shadow: 0 18px 44px -10px rgba(0, 0, 0, 0.60), 0 0 28px rgba(189, 152, 117, 0.20);
+}
 
 /* Fix Tailwind 4 svg display:block in Ant Design buttons */
 .ant-btn svg {
@@ -106,6 +348,144 @@ body {
 
 /* CyberLux Focus-visible ring for accessibility */
 :focus-visible {
-  outline: 2px solid #B58863;
+  outline: 2px solid #bd9875;
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   ANT DESIGN SELECT, DROPDOWN & ACTIVE STATE THEME (Twinkle CyberLux)
+   Khắc phục triệt để lỗi trùng màu nền và text khi các tùy chọn / nút được chọn hoặc active
+   ========================================================================== */
+
+/* 1. Dropdown Container chung của Ant Design Select */
+.ant-select-dropdown {
+  background-color: #202332 !important;
+  border: 1px solid rgba(139, 154, 159, 0.28) !important;
+  border-top: 1.5px solid rgba(220, 185, 150, 0.55) !important;
+  border-radius: 14px !important;
+  padding: 6px !important;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(189, 152, 117, 0.15) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* Từng Option bình thường (Chưa chọn, Chưa hover) */
+.ant-select-dropdown .ant-select-item-option {
+  border-radius: 8px !important;
+  margin: 2px 0 !important;
+  padding: 8px 12px !important;
+  background-color: transparent !important;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.ant-select-dropdown .ant-select-item-option .ant-select-item-option-content {
+  color: #f0ebe5 !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+}
+
+/* 2. Khi HOVER hoặc DI CHUYỂN PHÍM (Active) nhưng CHƯA CHỌN:
+   Nền kính mờ vàng nâu nhẹ, chữ chuyển màu Trắng Sáng nổi bật */
+.ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-selected) {
+  background-color: rgba(189, 152, 117, 0.18) !important;
+}
+
+.ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-selected) .ant-select-item-option-content {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* 3. Khi ĐANG ĐƯỢC CHỌN (Selected):
+   Nền Vàng Gold Caramel Twinkle (#bd9875), Chữ Midnight Than Đậm (#202332)
+   Tạo độ tương phản tối đa (High-contrast AAA), hoàn toàn không thể bị chìm màu */
+.ant-select-dropdown .ant-select-item-option-selected {
+  background-color: #bd9875 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(189, 152, 117, 0.35) !important;
+}
+
+.ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content {
+  color: #202332 !important;
+  font-weight: 700 !important;
+}
+
+.ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-state {
+  color: #202332 !important;
+  font-weight: bold !important;
+}
+
+/* 4. Khi VỪA ĐƯỢC CHỌN VỪA HOVER/ACTIVE (Selected + Active):
+   Trường hợp người dùng đưa chuột/phím vào mục đã chọn
+   Nền Gold sáng rực rỡ hơn (#d4b595), Chữ Đen Than Sâu (#151722) siêu sắc nét */
+.ant-select-dropdown .ant-select-item-option-selected.ant-select-item-option-active {
+  background-color: #d4b595 !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 6px 16px rgba(189, 152, 117, 0.5) !important;
+}
+
+.ant-select-dropdown .ant-select-item-option-selected.ant-select-item-option-active .ant-select-item-option-content {
+  color: #151722 !important;
+  font-weight: 800 !important;
+}
+
+.ant-select-dropdown .ant-select-item-option-selected.ant-select-item-option-active .ant-select-item-option-state {
+  color: #151722 !important;
+  font-weight: bold !important;
+}
+
+/* 5. Khung ô chọn ngoài (Select selector) */
+.ant-select:not(.ant-select-customize-input) .ant-select-selector {
+  background-color: rgba(32, 35, 50, 0.75) !important;
+  border: 1px solid rgba(139, 154, 159, 0.3) !important;
+  border-radius: 12px !important;
+  color: #f0ebe5 !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: rgba(189, 152, 117, 0.65) !important;
+  box-shadow: 0 0 10px rgba(189, 152, 117, 0.15) !important;
+}
+
+.ant-select-focused:not(.ant-select-disabled) .ant-select-selector {
+  border-color: #bd9875 !important;
+  box-shadow: 0 0 0 2px rgba(189, 152, 117, 0.25) !important;
+}
+
+.ant-select-selection-item {
+  color: #f0ebe5 !important;
+  font-weight: 600 !important;
+}
+
+.ant-select-arrow {
+  color: #bd9875 !important;
+}
+
+/* 6. Đồng bộ cho Ant Design Menu Dropdown (.ant-dropdown) */
+.ant-dropdown .ant-dropdown-menu {
+  background-color: #202332 !important;
+  border: 1px solid rgba(139, 154, 159, 0.28) !important;
+  border-top: 1.5px solid rgba(220, 185, 150, 0.55) !important;
+  border-radius: 14px !important;
+  padding: 6px !important;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(189, 152, 117, 0.15) !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item {
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  color: #f0ebe5 !important;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item:hover,
+.ant-dropdown .ant-dropdown-menu-item-active {
+  background-color: rgba(189, 152, 117, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item-selected {
+  background-color: #bd9875 !important;
+  color: #202332 !important;
+  font-weight: 700 !important;
 }

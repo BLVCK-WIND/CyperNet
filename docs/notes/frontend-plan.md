@@ -7,18 +7,22 @@
 
 ## 1. Design Foundation — Bảng màu & Ngôn ngữ thiết kế
 
-### 1.1 Color Palette
+### 1.1 Color Palette (Chuẩn hóa 100% theo ảnh tham khảo gốc Twinkle)
 
-![Bảng màu CyberNet](C:/Users/phong/.gemini/antigravity/brain/ff5604f6-e335-42f7-958c-15cb7eb2ee6a/color-palette.png)
+> **Ghi chú đính chính:** Bảng màu hệ thống đã được đồng bộ chuẩn xác theo ảnh thiết kế gốc "Twinkle" gồm 4 dải màu cốt lõi (được đánh số từ trên xuống dưới):  
+> - **(1) Nền chính:** `#202332` (Deep Twilight Navy)  
+> - **(2) Màu chủ đạo:** `#bd9875` (Warm Twinkle Caramel Gold)  
+> - **(3) Bề mặt thẻ:** `#434e60` (Slate Denim Navy)  
+> - **(4) Màu phụ & viền:** `#8b9a9f` (Sage Slate Mist)  
 
-| Token | Hex | Vai trò |
+| Token | Hex | Vai trò trong hệ thống Twinkle |
 |---|---|---|
-| `--midnight` | `#10232A` | **Background chính** — nền trang, sidebar, header |
-| `--slate` | `#3D4D55` | **Card / Surface** — nền card, input, panel phụ |
-| `--mist` | `#A79E9C` | **Text phụ / Border** — placeholder, divider, icon mờ |
-| `--sand` | `#D3C3B9` | **Text chính** — body text, label, breadcrumb |
-| `--gold` | `#B58863` | **Accent / Primary** — CTA button, highlight, badge, link hover, chart accent |
-| `--obsidian` | `#161616` | **Deep shadow** — overlay, modal backdrop, footer |
+| `--midnight` | `#202332` | **(1) Nền chính toàn hệ thống** — nền trang, sidebar, header, topbar |
+| `--gold` | `#bd9875` | **(2) Màu chủ đạo (Primary & Accent)** — CTA button, highlight, timer, badge active, chart accent |
+| `--slate` | `#434e60` | **(3) Card / Surface** — nền card, panel phụ, container |
+| `--mist` | `#8b9a9f` | **(4) Text phụ / Border / Chuyển tiếp** — placeholder, divider, icon mờ, màu gradient chuyển tiếp |
+| `--sand` | `#f0ebe5` | **Text chính** — body text, label, breadcrumb sáng rõ |
+| `--obsidian` | `#151722` | **Deep shadow** — overlay, modal backdrop, footer |
 
 **Màu bổ sung (semantic):**
 
@@ -27,23 +31,23 @@
 | `--success` | `#4CAF50` | Trạng thái thành công, máy Available |
 | `--warning` | `#FFB74D` | Cảnh báo sắp hết giờ |
 | `--danger` | `#EF5350` | Lỗi, hủy đơn, máy Maintenance |
-| `--info` | `#5B8FA8` | Thông tin, máy In Use (blend tông xanh slate) |
-| `--gold-light` | `#D4A574` | Gold sáng hơn cho hover state |
-| `--gold-dark` | `#8B6B47` | Gold tối cho pressed state |
+| `--info` | `#85C1DC` | Thông tin, máy In Use (blend tông xanh denim sáng) |
+| `--gold-light` | `#d4b595` | Gold sáng hơn cho hover state |
+| `--gold-dark` | `#a6815e` | Gold tối cho pressed state |
 
 ### 1.2 UI Reference
 
-![UI tham khảo — Dark Luxury Interface](C:/Users/phong/.gemini/antigravity/brain/ff5604f6-e335-42f7-958c-15cb7eb2ee6a/ui-reference.png)
+![UI tham khảo — Twinkle Dark Luxury Interface](C:/Users/phong/.gemini/antigravity/brain/ff5604f6-e335-42f7-958c-15cb7eb2ee6a/ui-reference.png)
 
 ### 1.3 Design Language — "CyberLux / Twinkle Luxury Theme"
 
-| Thuộc tính | Quy tắc Chuẩn Hóa Theo Ảnh Mẫu "Twinkle" |
+| Thuộc tính | Quy tắc Chuẩn Hóa Theo Ảnh Mẫu "Twinkle" Gốc |
 |---|---|
-| **Ambient Lighting** | `radial-gradient(ellipse at 50% 0%, rgba(181, 136, 99, 0.15) 0%, rgba(61, 77, 85, 0.08) 50%, #10232A 100%)` tạo ánh sáng hoàng hôn/đêm sao ấm áp |
+| **Ambient Lighting** | `radial-gradient(ellipse at 50% -10%, rgba(189, 152, 117, 0.16) 0%, rgba(67, 78, 96, 0.12) 50%, #202332 100%)` tạo ánh sáng hoàng hôn/đêm sao ấm áp |
 | **Border Radius** | `16px - 20px` cho card/modal, `rounded-full` (dạng viên thuốc pill-shaped) cho input, nút bấm và badge |
-| **Card Surface** | Gradient mềm mại: `linear-gradient(145deg, rgba(61, 77, 85, 0.85) 0%, rgba(16, 35, 42, 0.95) 100%)`, viền mỏng ánh cát `1px solid rgba(211, 195, 185, 0.12)` |
-| **Shadow** | Subtle warm glow: `0 4px 24px rgba(181, 136, 99, 0.08)` cho hover state |
-| **Typography** | Font: `Inter` (body) + `Space Grotesk` (chữ số to, số đếm, countdown timer, giá tiền). Chữ chính màu cát sáng `--sand` (`#D3C3B9`) |
+| **Card Surface & Flow** | Top-to-Bottom Twinkle Flow: Gradient rót ánh sáng vàng caramel đậm từ đỉnh thẻ xuống qua 40-50% chiều cao (`rgba(189, 152, 117, 0.35-0.55)`), sau đó nhạt dần từ 50% trở xuống và chuyển tiếp êm sang xanh denim `#434e60` và xanh đêm `#202332`. Viền nóc mạ ánh kim phản quang `border-t: 1.5px solid rgba(220, 185, 150, 0.65-0.75)`, viền thân `1px solid rgba(139, 154, 159, 0.2)`. |
+| **Shadow** | Subtle warm glow: `0 12px 32px -5px rgba(0, 0, 0, 0.55), 0 0 18px rgba(189, 152, 117, 0.12)` |
+| **Typography** | Font: `Inter` (body) + `Space Grotesk` (chữ số to, số đếm, countdown timer, giá tiền). Chữ chính màu cát sáng `--sand` (`#f0ebe5`) |
 | **Icon Style** | Lucide React — outline style, stroke-width 1.5, color `--mist` default, `--gold` on active |
 | **Spacing** | Base unit `4px`, section gap `24px`, card padding `20px` |
 | **Decorative** | ✨ Subtle particle/sparkle dots (CSS only) trên hero sections |
@@ -144,23 +148,23 @@ frontend/
 // styles/antd-theme.ts
 const cyberLuxTheme = {
   token: {
-    // === Colors ===
-    colorPrimary: '#B58863',           // --gold
-    colorBgBase: '#10232A',            // --midnight
-    colorBgContainer: '#3D4D55',       // --slate (card, input, table)
-    colorBgElevated: '#3D4D55',        // --slate (modal, dropdown)
-    colorBgLayout: '#10232A',          // --midnight
-    colorText: '#D3C3B9',             // --sand
-    colorTextSecondary: '#A79E9C',     // --mist
-    colorTextPlaceholder: '#A79E9C80', // --mist 50%
-    colorBorder: 'rgba(167,158,156,0.2)',  // --mist 20%
-    colorBorderSecondary: 'rgba(167,158,156,0.1)',
-    colorLink: '#B58863',
-    colorLinkHover: '#D4A574',         // --gold-light
+    // === Colors (Twinkle Palette #202332, #bd9875, #434e60, #8b9a9f) ===
+    colorPrimary: '#bd9875',           // (2) --gold chủ đạo
+    colorBgBase: '#202332',            // (1) --midnight nền chính
+    colorBgContainer: '#434e60',       // (3) --slate (card, input, table)
+    colorBgElevated: '#434e60',        // (3) --slate (modal, dropdown)
+    colorBgLayout: '#202332',          // (1) --midnight nền layout
+    colorText: '#f0ebe5',             // --sand chữ chính sáng rõ
+    colorTextSecondary: '#8b9a9f',     // (4) --mist chữ phụ
+    colorTextPlaceholder: 'rgba(139, 154, 159, 0.5)', // --mist 50%
+    colorBorder: 'rgba(139, 154, 159, 0.2)',  // (4) --mist 20%
+    colorBorderSecondary: 'rgba(139, 154, 159, 0.1)',
+    colorLink: '#bd9875',
+    colorLinkHover: '#d4b595',         // --gold-light
     colorSuccess: '#4CAF50',
     colorWarning: '#FFB74D',
     colorError: '#EF5350',
-    colorInfo: '#5B8FA8',
+    colorInfo: '#85C1DC',
 
     // === Shape ===
     borderRadius: 8,
@@ -179,36 +183,37 @@ const cyberLuxTheme = {
     margin: 16,
 
     // === Effects ===
-    boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
-    boxShadowSecondary: '0 4px 24px rgba(181,136,99,0.08)',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.35)',
+    boxShadowSecondary: '0 4px 24px rgba(189,152,117,0.12)',
   },
   components: {
     Button: {
-      primaryColor: '#10232A',         // Text trên nút gold
-      borderRadiusLG: 10,
+      primaryColor: '#202332',         // Text trên nút gold
+      borderRadiusLG: 9999,
     },
     Card: {
-      colorBgContainer: 'rgba(61,77,85,0.6)',
-      borderRadiusLG: 12,
+      colorBgContainer: 'rgba(67, 78, 96, 0.75)',
+      borderRadiusLG: 16,
     },
     Table: {
-      colorBgContainer: 'rgba(61,77,85,0.4)',
-      headerBg: 'rgba(16,35,42,0.8)',
-      rowHoverBg: 'rgba(181,136,99,0.08)',
+      colorBgContainer: 'rgba(67, 78, 96, 0.45)',
+      headerBg: 'rgba(32, 35, 50, 0.85)',
+      rowHoverBg: 'rgba(189, 152, 117, 0.1)',
     },
     Input: {
-      colorBgContainer: 'rgba(16,35,42,0.6)',
-      activeBorderColor: '#B58863',
-      hoverBorderColor: '#D4A574',
+      colorBgContainer: 'rgba(32, 35, 50, 0.7)',
+      activeBorderColor: '#bd9875',
+      hoverBorderColor: '#d4b595',
+      borderRadius: 9999,
     },
     Modal: {
-      contentBg: '#3D4D55',
-      headerBg: '#3D4D55',
+      contentBg: '#2C3442',
+      headerBg: '#2C3442',
     },
     Menu: {
-      darkItemBg: '#10232A',
-      darkItemSelectedBg: 'rgba(181,136,99,0.15)',
-      darkItemSelectedColor: '#B58863',
+      darkItemBg: '#202332',
+      darkItemSelectedBg: 'rgba(189, 152, 117, 0.18)',
+      darkItemSelectedColor: '#bd9875',
     },
   },
 };

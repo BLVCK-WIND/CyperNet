@@ -2,23 +2,23 @@ import type { ThemeConfig } from 'antd';
 
 export const cyberLuxTheme: ThemeConfig = {
   token: {
-    // === Colors ===
-    colorPrimary: '#B58863',           // --gold
-    colorBgBase: '#10232A',            // --midnight
-    colorBgContainer: '#3D4D55',       // --slate (card, input, table)
-    colorBgElevated: '#3D4D55',        // --slate (modal, dropdown)
-    colorBgLayout: '#10232A',          // --midnight
-    colorText: '#D3C3B9',             // --sand
-    colorTextSecondary: '#A79E9C',     // --mist
-    colorTextPlaceholder: 'rgba(167, 158, 156, 0.5)', // --mist 50%
-    colorBorder: 'rgba(167, 158, 156, 0.2)',  // --mist 20%
-    colorBorderSecondary: 'rgba(167, 158, 156, 0.1)',
-    colorLink: '#B58863',
-    colorLinkHover: '#D4A574',         // --gold-light
+    // === Colors (Twinkle Palette: #202332, #bd9875, #434e60, #8b9a9f) ===
+    colorPrimary: '#bd9875',           // (2) --gold chủ đạo
+    colorBgBase: '#202332',            // (1) --midnight nền chính
+    colorBgContainer: '#434e60',       // (3) --slate (card, input, table)
+    colorBgElevated: '#434e60',        // (3) --slate (modal, dropdown)
+    colorBgLayout: '#202332',          // (1) --midnight nền layout
+    colorText: '#f0ebe5',             // --sand chữ chính sáng rõ
+    colorTextSecondary: '#8b9a9f',     // (4) --mist chữ phụ
+    colorTextPlaceholder: 'rgba(139, 154, 159, 0.5)', // --mist 50%
+    colorBorder: 'rgba(139, 154, 159, 0.2)',  // (4) --mist 20%
+    colorBorderSecondary: 'rgba(139, 154, 159, 0.1)',
+    colorLink: '#bd9875',
+    colorLinkHover: '#d4b595',         // --gold-light
     colorSuccess: '#4CAF50',
     colorWarning: '#FFB74D',
     colorError: '#EF5350',
-    colorInfo: '#5B8FA8',
+    colorInfo: '#85C1DC',
 
     // === Shape ===
     borderRadius: 10,
@@ -38,49 +38,64 @@ export const cyberLuxTheme: ThemeConfig = {
 
     // === Effects ===
     boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
-    boxShadowSecondary: '0 8px 32px rgba(0,0,0,0.55), 0 0 20px rgba(181,136,99,0.12)',
+    boxShadowSecondary: '0 8px 32px rgba(0,0,0,0.55), 0 0 20px rgba(189,152,117,0.15)',
   },
   components: {
     Button: {
-      primaryColor: '#10232A',         // Text trên nút gold
+      primaryColor: '#202332',         // Text trên nút gold
       borderRadius: 9999,              // Pill button chuẩn ảnh twinkle
       borderRadiusLG: 9999,
       fontWeight: 600,
     },
     Card: {
-      colorBgContainer: 'rgba(61, 77, 85, 0.7)',
+      colorBgContainer: 'rgba(67, 78, 96, 0.75)',
       borderRadiusLG: 18,
     },
     Table: {
-      colorBgContainer: 'rgba(61, 77, 85, 0.4)',
-      headerBg: 'rgba(16, 35, 42, 0.85)',
-      rowHoverBg: 'rgba(181, 136, 99, 0.1)',
+      colorBgContainer: 'rgba(67, 78, 96, 0.45)',
+      headerBg: 'rgba(32, 35, 50, 0.85)',
+      rowHoverBg: 'rgba(189, 152, 117, 0.1)',
     },
     Input: {
-      colorBgContainer: 'rgba(16, 35, 42, 0.7)',
-      activeBorderColor: '#B58863',
-      hoverBorderColor: '#D4A574',
+      colorBgContainer: 'rgba(32, 35, 50, 0.7)',
+      activeBorderColor: '#bd9875',
+      hoverBorderColor: '#d4b595',
       borderRadius: 9999,              // Pill input chuẩn ảnh twinkle
       borderRadiusLG: 9999,
     },
     Modal: {
-      contentBg: '#2A383F',
-      headerBg: '#2A383F',
+      contentBg: '#2C3442',
+      headerBg: '#2C3442',
       borderRadiusLG: 20,
     },
     Tag: {
       borderRadiusSM: 9999,            // Pill tags
     },
     Segmented: {
-      itemSelectedBg: '#B58863',
-      itemSelectedColor: '#10232A',
-      trackBg: 'rgba(16, 35, 42, 0.65)',
+      itemSelectedBg: '#bd9875',
+      itemSelectedColor: '#202332',
+      trackBg: 'rgba(32, 35, 50, 0.7)',
       borderRadius: 9999,
     },
     Menu: {
-      darkItemBg: '#10232A',
-      darkItemSelectedBg: 'rgba(181, 136, 99, 0.18)',
-      darkItemSelectedColor: '#B58863',
+      darkItemBg: '#202332',
+      darkItemSelectedBg: 'rgba(189, 152, 117, 0.18)',
+      darkItemSelectedColor: '#bd9875',
+    },
+    Select: {
+      selectorBg: 'rgba(32, 35, 50, 0.75)',
+      colorBgElevated: '#202332',
+      colorText: '#f0ebe5',
+      colorTextPlaceholder: 'rgba(139, 154, 159, 0.5)',
+      optionSelectedBg: '#bd9875',
+      optionSelectedColor: '#202332',
+      optionActiveBg: 'rgba(189, 152, 117, 0.18)',
+      borderRadius: 12,
+    },
+    Dropdown: {
+      colorBgElevated: '#202332',
+      colorText: '#f0ebe5',
+      borderRadiusLG: 14,
     },
   },
 };

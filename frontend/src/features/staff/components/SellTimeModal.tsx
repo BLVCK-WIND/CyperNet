@@ -10,6 +10,7 @@ import {
   User,
   ShieldCheck,
   Monitor,
+  UserPlus,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -17,6 +18,7 @@ import { accountApi } from '@/api/accountApi';
 import { timePurchaseApi } from '@/api/timePurchaseApi';
 import { orderApi } from '@/api/orderApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { RegisterCustomerModal } from './RegisterCustomerModal';
 import type { Account } from '@/types/auth';
 import type { FloorMapComputerItem } from '@/types/computer';
 import type { TimePurchaseResponse, PaymentMethod } from '@/types/timePurchase';
@@ -59,6 +61,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
 
   const [submitting, setSubmitting] = useState(false);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [confirmingQr, setConfirmingQr] = useState(false);
   const [createdPurchase, setCreatedPurchase] = useState<TimePurchaseResponse | null>(null);
   const [vietQrData, setVietQrData] = useState<VietQrResponse | null>(null);
@@ -215,7 +218,8 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       open={open}
       onCancel={onClose}
       footer={null}
@@ -224,7 +228,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
       destroyOnClose
       styles={{
         body: {
-          backgroundColor: '#10232A',
+          backgroundColor: '#202332',
           padding: '28px',
           borderRadius: '24px',
           color: '#E0D8D0',
@@ -241,8 +245,8 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
       {step === 'FORM' && (
         <div className="space-y-5 select-none">
           {/* Header */}
-          <div className="flex items-center gap-3 border-b border-[rgba(167,158,156,0.15)] pb-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/40 flex items-center justify-center text-gold shadow-[0_0_16px_rgba(181,136,99,0.3)]">
+          <div className="flex items-center gap-3 border-b border-mist/20 pb-4">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/40 flex items-center justify-center text-gold shadow-[0_0_16px_rgba(189,152,117,0.3)]">
               <ClockPlus className="w-6 h-6" />
             </div>
             <div>
@@ -257,10 +261,21 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
 
           {/* 1. Chọn tài khoản khách hàng */}
           <div>
-            <label className="text-xs font-semibold text-mist uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-gold" />
-              Khách hàng nạp tiền <span className="text-danger">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-mist uppercase tracking-wider flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-gold" />
+                Khách hàng nạp tiền <span className="text-danger">*</span>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setRegisterModalOpen(true)}
+                className="text-[11px] font-bold text-gold hover:text-gold-light flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-gold/15 hover:bg-gold/25 border border-gold/30 transition-all cursor-pointer"
+              >
+                <UserPlus className="w-3 h-3" />
+                <span>+ Hội viên mới</span>
+              </button>
+            </div>
 
             {isLoadingAccounts ? (
               <Skeleton.Input active block className="h-11 rounded-xl" />
@@ -345,7 +360,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                 </Tag>
               </GlassCard>
             ) : (
-              <GlassCard className="p-3 rounded-xl border border-[rgba(167,158,156,0.15)] bg-midnight/60 flex items-center justify-between text-xs">
+              <GlassCard className="p-3 rounded-xl border border-mist/20 bg-midnight/60 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-gold" />
                   <div>
@@ -381,8 +396,8 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                     onClick={() => handleSelectAmount(item.amount)}
                     className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center relative ${
                       isSelected
-                        ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)] ring-1 ring-gold'
-                        : 'border-[rgba(167,158,156,0.15)] bg-midnight/50 text-mist hover:border-gold/50 hover:text-sand'
+                        ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(189,152,117,0.3)] ring-1 ring-gold'
+                        : 'border-mist/20 bg-midnight/50 text-mist hover:border-gold/50 hover:text-sand'
                     }`}
                   >
                     {item.isPopular && (
@@ -402,7 +417,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
             </div>
 
             {/* Khung Tùy chỉnh nếu muốn nhập số tiền khác */}
-            <div className="p-3 rounded-xl bg-midnight/60 border border-[rgba(167,158,156,0.15)]">
+            <div className="p-3 rounded-xl bg-midnight/60 border border-mist/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-medium text-mist">
                   Hoặc tự nhập số tiền / số phút tùy ý:
@@ -464,8 +479,8 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                 onClick={() => setPaymentMethod('CASH')}
                 className={`h-11 rounded-xl flex items-center justify-center gap-2 border text-xs font-bold transition-all cursor-pointer ${
                   paymentMethod === 'CASH'
-                    ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)]'
-                    : 'border-[rgba(167,158,156,0.15)] bg-midnight/50 text-mist hover:text-sand hover:border-gold/30'
+                    ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(189,152,117,0.3)]'
+                    : 'border-mist/20 bg-midnight/50 text-mist hover:text-sand hover:border-gold/30'
                 }`}
               >
                 <Banknote className="w-4 h-4 text-success" />
@@ -476,8 +491,8 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                 onClick={() => setPaymentMethod('QR')}
                 className={`h-11 rounded-xl flex items-center justify-center gap-2 border text-xs font-bold transition-all cursor-pointer ${
                   paymentMethod === 'QR'
-                    ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(181,136,99,0.3)]'
-                    : 'border-[rgba(167,158,156,0.15)] bg-midnight/50 text-mist hover:text-sand hover:border-gold/30'
+                    ? 'border-gold bg-gold/15 text-sand shadow-[0_0_12px_rgba(189,152,117,0.3)]'
+                    : 'border-mist/20 bg-midnight/50 text-mist hover:text-sand hover:border-gold/30'
                 }`}
               >
                 <QrCode className="w-4 h-4 text-[#85C1DC]" />
@@ -487,7 +502,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
           </div>
 
           {/* 5. Tóm tắt thanh toán & Quy đổi phút */}
-          <GlassCard className="p-4 rounded-xl border border-[rgba(167,158,156,0.15)] bg-midnight/90 flex items-center justify-between">
+          <GlassCard className="p-4 rounded-xl border border-mist/20 bg-midnight/90 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-xs text-mist block">
                 Số tiền nạp: <strong className="text-sand font-mono">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedAmount)}</strong>
@@ -519,7 +534,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
             <Button
               onClick={onClose}
               disabled={submitting}
-              className="h-11 rounded-xl text-xs bg-[rgba(61,77,85,0.4)] border border-[rgba(167,158,156,0.2)] text-sand hover:text-white cursor-pointer"
+              className="h-11 rounded-xl text-xs bg-slate/40 border border-mist/25 text-sand hover:text-white cursor-pointer"
             >
               Hủy bỏ
             </Button>
@@ -529,7 +544,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
               loading={submitting}
               onClick={handleCreatePurchase}
               disabled={!selectedAccountId || selectedMinutes <= 0}
-              className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(181,136,99,0.3)] cursor-pointer"
+              className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer"
             >
               {paymentMethod === 'CASH' ? 'Thu tiền mặt & Nạp ngay' : 'Tạo mã VietQR'}
             </Button>
@@ -542,7 +557,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
       {/* ========================================================= */}
       {step === 'QR_PAYMENT' && vietQrData && createdPurchase && (
         <div className="space-y-5 text-center select-none">
-          <div className="border-b border-[rgba(167,158,156,0.15)] pb-3">
+          <div className="border-b border-mist/20 pb-3">
             <Tag color="cyan" className="font-bold text-xs px-2.5 py-0.5 rounded-full mb-1">
               VietQR Chuyển Khoản Nhanh 24/7
             </Tag>
@@ -565,7 +580,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
           </div>
 
           {/* Chi tiết chuyển khoản */}
-          <GlassCard className="p-3.5 rounded-xl border border-[rgba(167,158,156,0.15)] text-xs text-mist space-y-1.5 max-w-sm mx-auto">
+          <GlassCard className="p-3.5 rounded-xl border border-mist/20 text-xs text-mist space-y-1.5 max-w-sm mx-auto">
             <div className="flex justify-between">
               <span>Số tiền:</span>
               <strong className="text-gold font-mono text-sm">
@@ -585,7 +600,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
             <Button
               onClick={() => setStep('FORM')}
               disabled={confirmingQr}
-              className="h-11 rounded-xl text-xs bg-[rgba(61,77,85,0.4)] border border-[rgba(167,158,156,0.2)] text-sand cursor-pointer"
+              className="h-11 rounded-xl text-xs bg-slate/40 border border-mist/25 text-sand cursor-pointer"
             >
               Quay lại
             </Button>
@@ -595,7 +610,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
               loading={confirmingQr}
               onClick={handleConfirmQr}
               icon={<CheckCircle2 className="w-4 h-4 text-midnight" />}
-              className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(181,136,99,0.3)] cursor-pointer"
+              className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer"
             >
               Khách đã chuyển khoản
             </Button>
@@ -623,7 +638,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
           <div className="p-5 rounded-2xl bg-midnight/90 border border-gold/30 shadow-[0_4px_24px_rgba(0,0,0,0.4)] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gold via-sand to-gold" />
 
-            <div className="flex items-center justify-between pb-3 border-b border-[rgba(167,158,156,0.15)] mb-3">
+            <div className="flex items-center justify-between pb-3 border-b border-mist/20 mb-3">
               <span className="font-mono text-xs text-mist">
                 PHIẾU NẠP: <strong className="text-sand">#TP-{createdPurchase.id}</strong>
               </span>
@@ -686,7 +701,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                   <strong className="text-sand">{createdPurchase.confirmedByStaffName}</strong>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-[rgba(167,158,156,0.1)] text-[11px]">
+              <div className="flex justify-between pt-2 border-t border-mist/15 text-[11px]">
                 <span>Thời gian:</span>
                 <span className="font-mono">
                   {dayjs(createdPurchase.confirmedAt || createdPurchase.createdAt).format(
@@ -702,7 +717,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
             <Button
               icon={<Printer className="w-4 h-4" />}
               onClick={handlePrint}
-              className="h-11 rounded-xl text-xs bg-[rgba(61,77,85,0.4)] border border-[rgba(167,158,156,0.2)] text-sand hover:text-white cursor-pointer"
+              className="h-11 rounded-xl text-xs bg-slate/40 border border-mist/25 text-sand hover:text-white cursor-pointer"
             >
               In biên lai
             </Button>
@@ -710,7 +725,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
             <Button
               type="primary"
               onClick={onClose}
-              className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(181,136,99,0.3)] cursor-pointer"
+              className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer"
             >
               Hoàn tất
             </Button>
@@ -718,5 +733,16 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
         </div>
       )}
     </Modal>
+
+    {/* Modal Đăng Ký Hội Viên Mới Tại Quầy */}
+    <RegisterCustomerModal
+      open={registerModalOpen}
+      onCancel={() => setRegisterModalOpen(false)}
+      onSuccess={(newAccount) => {
+        setSelectedAccountId(newAccount.id);
+        setRegisterModalOpen(false);
+      }}
+    />
+  </>
   );
 };

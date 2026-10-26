@@ -133,17 +133,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       }
       styles={{
         header: {
-          backgroundColor: '#10232A',
-          borderBottom: '1px solid rgba(167, 158, 156, 0.15)',
+          backgroundColor: '#202332',
+          borderBottom: '1px solid rgba(139, 154, 159, 0.2)',
         },
         body: {
-          backgroundColor: '#10232A',
-          color: '#D3C3B9',
+          backgroundColor: '#202332',
+          color: '#f0ebe5',
           padding: 16,
         },
         footer: {
-          backgroundColor: '#10232A',
-          borderTop: '1px solid rgba(167, 158, 156, 0.15)',
+          backgroundColor: '#202332',
+          borderTop: '1px solid rgba(139, 154, 159, 0.2)',
           padding: 16,
         },
       }}

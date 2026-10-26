@@ -21,7 +21,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     : 'glass-panel shadow-lg';
 
   const hoverClasses = glowOnHover
-    ? 'transition-all duration-300 hover:border-gold/50 hover:shadow-[0_8px_30px_rgba(181,136,99,0.22)] hover:-translate-y-0.5'
+    ? 'transition-all duration-300 hover:border-gold/50 hover:border-t-[rgba(220,185,150,0.8)] hover:shadow-[0_12px_32px_-4px_rgba(189,152,117,0.30)] hover:-translate-y-0.5'
     : 'transition-all duration-300';
 
   const roundedClasses = pill ? 'rounded-full' : 'rounded-2xl';

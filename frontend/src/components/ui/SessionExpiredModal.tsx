@@ -27,7 +27,7 @@ export const SessionExpiredModal: React.FC<SessionExpiredModalProps> = ({
       width={400}
       styles={{
         body: {
-          backgroundColor: '#10232A',
+          backgroundColor: '#202332',
           padding: '24px',
           borderRadius: '16px',
         },

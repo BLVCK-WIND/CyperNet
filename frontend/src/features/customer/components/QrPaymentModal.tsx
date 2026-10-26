@@ -46,11 +46,11 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
       }
       styles={{
         body: {
-          backgroundColor: '#3D4D55',
+          backgroundColor: '#202332',
         },
         header: {
-          backgroundColor: '#3D4D55',
-          borderBottom: '1px solid rgba(167, 158, 156, 0.15)',
+          backgroundColor: '#202332',
+          borderBottom: '1px solid rgba(139, 154, 159, 0.2)',
           paddingBottom: 12,
         },
       }}

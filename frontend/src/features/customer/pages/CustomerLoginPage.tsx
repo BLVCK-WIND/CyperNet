@@ -164,7 +164,7 @@ export const CustomerLoginPage: React.FC = () => {
               ) : computerError ? (
                 <Tag color="error" className="text-xs">Lỗi mã máy</Tag>
               ) : (
-                <Tag color={computerInfo?.zone === 'VIP' ? '#B58863' : '#5B8FA8'} className="font-semibold px-2 py-0.5 border-0">
+                <Tag color={computerInfo?.zone === 'VIP' ? '#bd9875' : '#8b9a9f'} className="font-semibold px-2 py-0.5 border-0">
                   {computerInfo?.zone || 'STANDARD'}
                 </Tag>
               )

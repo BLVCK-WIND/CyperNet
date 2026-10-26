@@ -140,6 +140,40 @@ public class OrderService {
     }
 
     /**
+     * Trích xuất số phút chuẩn của món thuộc loại PLAYTIME (Gói giờ chơi)
+     * Ưu tiên phân tích từ tên món (vd: "Gói nạp 2 giờ chơi" -> 120 phút, "Gói nạp 5 giờ" -> 300 phút)
+     * Nếu không nhận diện được chữ số thì quy đổi theo giá chuẩn: 10.000 VNĐ = 60 phút
+     */
+    public static int extractPackageMinutes(Item item) {
+        if (item == null || item.getType() != Item.Type.PLAYTIME) {
+            return 0;
+        }
+
+        String name = item.getName().toLowerCase();
+        // Regex tìm số giờ: "2 giờ", "2h", "2 hour"
+        java.util.regex.Pattern hourPattern = java.util.regex.Pattern.compile("(\\d+)\\s*(giờ|giờ|h|hour)");
+        java.util.regex.Matcher hourMatcher = hourPattern.matcher(name);
+        if (hourMatcher.find()) {
+            int hours = Integer.parseInt(hourMatcher.group(1));
+            return hours * 60;
+        }
+
+        // Regex tìm số phút: "30 phút", "30p", "30 min"
+        java.util.regex.Pattern minPattern = java.util.regex.Pattern.compile("(\\d+)\\s*(phút|phút|p|min)");
+        java.util.regex.Matcher minMatcher = minPattern.matcher(name);
+        if (minMatcher.find()) {
+            return Integer.parseInt(minMatcher.group(1));
+        }
+
+        // Fallback: Quy đổi theo đơn giá chuẩn 10.000đ = 60 phút chuẩn
+        if (item.getPrice() != null && item.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return (int) Math.round(item.getPrice().doubleValue() / 10000.0 * 60.0);
+        }
+
+        return 60; // Mặc định an toàn
+    }
+
+    /**
      * 2. NHÂN VIÊN DUYỆT ĐƠN HÀNG (confirmOrder)
      * Sau khi nhận đủ tiền (mặt hoặc chuyển khoản), nhân viên bấm xác nhận.
      * Nếu trong đơn có món thuộc loại PLAYTIME (thêm giờ), hệ thống tự cộng giờ vào Session.
@@ -165,33 +199,45 @@ public class OrderService {
         order.setConfirmedByStaff(staff);
         order.setConfirmedAt(LocalDateTime.now());
 
-        // KIỂM TRA TỰ ĐỘNG CỘNG GIỜ NẾU ĐƠN CÓ MÓN PLAYTIME
+        // KIỂM TRA TỰ ĐỘNG CỘNG GIỜ NẾU ĐƠN CÓ MÓN PLAYTIME (DYNAMIC TARIFF ARCHITECTURE)
         Session session = order.getSession();
-        int extraMinutes = 0;
+        int totalStandardMinutes = 0;
 
         for (OrderItem orderItem : order.getOrderItems()) {
             if (orderItem.getItem().getType() == Item.Type.PLAYTIME) {
-                // Giả định mỗi đơn vị món PLAYTIME tương ứng 60 phút
-                extraMinutes += (60 * orderItem.getQuantity());
+                int packageMinutes = extractPackageMinutes(orderItem.getItem());
+                totalStandardMinutes += (packageMinutes * orderItem.getQuantity());
             }
         }
 
-        if (extraMinutes > 0 && session.getStatus() == Session.Status.ACTIVE) {
-            // Gia hạn thời điểm hết hạn của phiên
-            session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMinutes));
-            sessionRepository.save(session);
-
-            // Cộng thêm phút vào tài khoản khách
+        long extraMachineMinutes = 0;
+        if (totalStandardMinutes > 0) {
+            // 1. Cộng thêm phút chuẩn vào tài khoản khách hàng
             Account customer = session.getAccount();
-            customer.setRemainingMinutes(customer.getRemainingMinutes() + extraMinutes);
-            accountRepository.save(customer);
+            if (customer != null) {
+                customer.setRemainingMinutes(customer.getRemainingMinutes() + totalStandardMinutes);
+                accountRepository.save(customer);
+            }
+
+            // 2. Nếu phiên chơi đang ACTIVE, gia hạn thời điểm hết hạn theo đơn giá máy đang ngồi
+            if (session.getStatus() == Session.Status.ACTIVE && session.getComputer() != null) {
+                extraMachineMinutes = SessionService.calculatePlayableMinutes(
+                        totalStandardMinutes,
+                        session.getComputer().getPricePerHour()
+                );
+                session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMachineMinutes));
+                sessionRepository.save(session);
+                realtimeNotificationService.broadcastComputerStatus(session.getComputer());
+            }
         }
 
         Order updatedOrder = orderRepository.save(order);
         realtimeNotificationService.broadcastOrderEvent(updatedOrder, "CONFIRMED", "Đã xác nhận thanh toán đơn #" + updatedOrder.getId());
-        auditLogService.log("CONFIRM_ORDER", "Order", orderId, "Xác nhận đơn #" + orderId + " bởi staffId=" + staffId + " (cộng giờ: " + extraMinutes + " phút)");
-        log.info("Order Confirm: Nhân viên [ID={}] xác nhận đơn hàng [ID={}]. Cộng thêm: {} phút",
-                staffId, orderId, extraMinutes);
+        auditLogService.log("CONFIRM_ORDER", "Order", orderId,
+                String.format("Xác nhận đơn #%d bởi staffId=%d (cộng giờ chuẩn: %d phút, gia hạn máy: %d phút)",
+                        orderId, staffId, totalStandardMinutes, extraMachineMinutes));
+        log.info("Order Confirm: Nhân viên [ID={}] xác nhận đơn hàng [ID={}]. Cộng chuẩn: {}p, Gia hạn máy: {}p",
+                staffId, orderId, totalStandardMinutes, extraMachineMinutes);
         return OrderResponse.fromEntity(updatedOrder);
     }
 

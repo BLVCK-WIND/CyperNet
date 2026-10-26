@@ -58,3 +58,26 @@
    - **Tóm tắt thiết kế:** 2–3 gạch đầu dòng giải thích tại sao lại viết như vậy.
    - **Gợi ý Review cho User:** Nêu 1–2 câu hỏi hoặc điểm then chốt cần chú ý (edge cases, concurrency, transaction).
 3. **Không tạo dependencies thừa:** Chỉ dùng các thư viện đã khai báo trong `pom.xml`.
+
+---
+
+## 6. Frontend UI/UX & Design System Conventions (Bắt buộc cho React 19 + Vite)
+1. **Bảng màu Twinkle gốc:**
+   - Nền chính: `#202332` (Midnight than sâu).
+   - Màu chủ đạo: `#bd9875` (Vàng Gold Caramel Twinkle).
+   - Bề mặt thẻ: `#434e60` (Xanh Slate/Denim trầm).
+   - Màu phụ & viền: `#8b9a9f` (Khói bạc Mist).
+2. **Chuẩn Thẻ Thống Kê Nổi Liquid Glass 3D:**
+   - Mọi khối chỉ số KPI/Telemetry bắt buộc dùng 4 class Liquid Glass: `.liquid-glass-sunset`, `.liquid-glass-emerald`, `.liquid-glass-cyan`, `.liquid-glass-amber`.
+   - Có viền phản xạ khúc xạ 3D, vệt lóa sáng radial góc trên trái, chân thẻ frosted pill và `cursor-default`.
+3. **Chuẩn Bố Cục Máng Cột Swimlane (Kanban Panels):**
+   - Không thả các thẻ lơ lửng trên nền trang. Bắt buộc có khung panel máng cột (`rounded-3xl border shadow-xl`) bao quanh từng cột, header tích hợp trên đỉnh, rãnh trượt thẻ bên trong có `min-h-[280px]`.
+4. **Chuẩn Nhận Diện Thẻ Đơn Hàng (Visual Card Identity):**
+   - Vạch chỉ thị bên trái `border-l-4`: Cam Hổ Phách cho F&B (`border-l-amber-500`), Xanh Cyan Neon cho Nạp Giờ (`border-l-cyan-400`), Xanh Ngọc Bích cho Combo (`border-l-emerald-400`).
+   - Nền thẻ gradient riêng biệt phản ánh đúng tính chất nghiệp vụ.
+5. **Chuẩn Tương Phản Cao Cho Form Controls:**
+   - `Select` & `Dropdown`: Selected = Nền Gold `#bd9875` + Chữ Midnight `#202332` (font-bold); Active/Hover = Nền kính vàng mờ + Chữ Trắng Sáng `#ffffff`.
+6. **Chuẩn Trình Bày & Clickable Links:**
+   - Mọi đường dẫn file và code symbol trong phản hồi bắt buộc dùng link clickable định dạng `file:///path/to/file` với dấu gạch chéo `/`.
+7. **Quy Tắc Tối Thượng:**
+   - **Luôn đưa ra kế hoạch chi tiết trước, chờ người dùng duyệt ("OK") rồi mới thực hiện từng bước.** Không tự ý sửa code khi chưa được phê duyệt.

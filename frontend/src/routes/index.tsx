@@ -5,11 +5,14 @@ import { CustomerMenuPage } from '@/features/customer/pages/CustomerMenuPage';
 import { CustomerOrderHistoryPage } from '@/features/customer/pages/CustomerOrderHistoryPage';
 import { CustomerLayout } from '@/components/layout/CustomerLayout';
 import { StaffLayout } from '@/components/layout/StaffLayout';
+import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage';
 import { StaffLoginPage } from '@/features/staff/pages/StaffLoginPage';
 import { FloorMapPage } from '@/features/staff/pages/FloorMapPage';
 import { StaffOrderQueuePage } from '@/features/staff/pages/StaffOrderQueuePage';
 import { SellTimePage } from '@/features/staff/pages/SellTimePage';
 import { SessionManagerPage } from '@/features/staff/pages/SessionManagerPage';
+import { AccountManagerPage } from '@/features/staff/pages/AccountManagerPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RouteErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
@@ -94,6 +97,38 @@ export const router = createBrowserRouter([
           {
             path: 'sessions',
             element: <SessionManagerPage />,
+          },
+          {
+            path: 'accounts',
+            element: <AccountManagerPage />,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: '/admin',
+    element: <ProtectedRoute redirectPath="/staff/login" />,
+    errorElement: <RouteErrorBoundary />,
+    children: [
+      {
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            <AdminLayout />
+          </RoleGuard>
+        ),
+        children: [
+          {
+            path: '',
+            element: <Navigate to="/admin/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: <AdminDashboardPage />,
+          },
+          {
+            path: 'accounts',
+            element: <AccountManagerPage />,
           },
         ],
       },

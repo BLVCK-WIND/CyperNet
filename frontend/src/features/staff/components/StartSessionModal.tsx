@@ -7,11 +7,13 @@ import {
   Zap,
   Sparkles,
   ShieldAlert,
+  UserPlus,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { accountApi } from '@/api/accountApi';
 import { sessionApi } from '@/api/sessionApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { RegisterCustomerModal } from './RegisterCustomerModal';
 import type { FloorMapComputerItem } from '@/types/computer';
 import type { Account, ErrorResponse, SessionResponse } from '@/types/auth';
 
@@ -34,6 +36,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
   const [selectedComputerId, setSelectedComputerId] = useState<number | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
 
   // Chỉ khởi tạo state khi modal mở lên (open = true)
   useEffect(() => {
@@ -124,7 +127,8 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       open={open}
       onCancel={onClose}
       footer={null}
@@ -133,7 +137,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
       width={520}
       styles={{
         body: {
-          backgroundColor: '#10232A',
+          backgroundColor: '#202332',
           padding: 0,
           borderRadius: 16,
         },
@@ -145,8 +149,8 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
     >
       <div className="p-6 space-y-5 text-sand select-none">
         {/* 1. Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-[rgba(167,158,156,0.12)]">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-midnight flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(181,136,99,0.3)]">
+        <div className="flex items-center gap-3 pb-4 border-b border-mist/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-midnight flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(189,152,117,0.3)]">
             <PlayCircle className="w-5 h-5 text-midnight" />
           </div>
 
@@ -181,7 +185,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
 
         {/* 3. Thẻ Thông Tin Máy Trạm Được Chọn */}
         {activeComputer && (
-          <GlassCard className="p-3.5 rounded-xl border border-success/30 bg-[rgba(61,77,85,0.35)] flex items-center justify-between">
+          <GlassCard className="p-3.5 rounded-xl border border-success/30 bg-slate/40 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-success/15 text-success flex items-center justify-center font-bold">
                 <Monitor className="w-4 h-4" />
@@ -196,7 +200,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
                       VIP
                     </Tag>
                   ) : (
-                    <Tag bordered={false} className="m-0 text-[10px] font-medium bg-[rgba(61,77,85,0.6)] text-sand">
+                    <Tag bordered={false} className="m-0 text-[10px] font-medium bg-slate/60 text-sand">
                       STANDARD
                     </Tag>
                   )}
@@ -219,10 +223,21 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
 
         {/* 4. Chọn Khách Hàng (Search by Phone & Name) */}
         <div>
-          <label className="block text-xs font-semibold text-mist uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-gold" />
-            Chọn khách hàng (Tìm theo SĐT hoặc Tên)
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold text-mist uppercase tracking-wider flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-gold" />
+              Chọn khách hàng (Tìm theo SĐT hoặc Tên)
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setRegisterModalOpen(true)}
+              className="text-[11px] font-bold text-gold hover:text-gold-light flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-gold/15 hover:bg-gold/25 border border-gold/30 transition-all cursor-pointer"
+            >
+              <UserPlus className="w-3 h-3" />
+              <span>+ Hội viên mới</span>
+            </button>
+          </div>
 
           {isLoadingAccounts ? (
             <Skeleton.Input active className="w-full h-11 rounded-xl" />
@@ -279,7 +294,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
             className={`p-4 rounded-xl border transition-all ${
               isInsufficient
                 ? 'border-danger/40 bg-danger/10'
-                : 'border-gold/30 bg-[rgba(181,136,99,0.08)]'
+                : 'border-gold/30 bg-gold/10'
             }`}
           >
             <div className="flex items-center justify-between mb-2">
@@ -306,7 +321,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
                 </span>
               </div>
             ) : (
-              <div className="space-y-1.5 pt-1.5 border-t border-[rgba(181,136,99,0.15)] text-xs">
+              <div className="space-y-1.5 pt-1.5 border-t border-gold/20 text-xs">
                 <div className="flex items-center justify-between text-mist">
                   <span>
                     Đơn giá máy ({activeComputer?.code || 'Máy'} - {activeComputer?.zone || 'STANDARD'}):
@@ -332,7 +347,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
         )}
 
         {/* 6. Ghi chú nghiệp vụ Phương án A */}
-        <div className="p-3 rounded-xl bg-midnight border border-[rgba(167,158,156,0.12)] text-[11px] text-mist/80 space-y-1">
+        <div className="p-3 rounded-xl bg-midnight/70 border border-mist/20 text-[11px] text-mist/80 space-y-1">
           <div className="flex items-center gap-1.5 text-sand font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-gold" />
             Cơ chế hoàn giờ chơi tự động (Phương án A):
@@ -343,11 +358,11 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
         </div>
 
         {/* 7. Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[rgba(167,158,156,0.12)]">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-mist/20">
           <Button
             onClick={onClose}
             disabled={submitting}
-            className="rounded-xl h-10 text-xs px-5 bg-transparent border-[rgba(167,158,156,0.2)] text-sand hover:text-mist"
+            className="rounded-xl h-10 text-xs px-5 bg-transparent border-mist/25 text-sand hover:text-mist"
           >
             Hủy bỏ
           </Button>
@@ -358,12 +373,22 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
             loading={submitting}
             disabled={!activeComputer || !selectedAccountId || isInsufficient}
             icon={!submitting && <PlayCircle className="w-4 h-4" />}
-            className="rounded-xl h-10 text-xs px-6 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(181,136,99,0.3)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded-xl h-10 text-xs px-6 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? 'ĐANG MỞ MÁY...' : 'XÁC NHẬN MỞ MÁY'}
           </Button>
         </div>
       </div>
     </Modal>
+
+    <RegisterCustomerModal
+      open={registerModalOpen}
+      onCancel={() => setRegisterModalOpen(false)}
+      onSuccess={(newAccount) => {
+        setSelectedAccountId(newAccount.id);
+        setRegisterModalOpen(false);
+      }}
+    />
+  </>
   );
 };

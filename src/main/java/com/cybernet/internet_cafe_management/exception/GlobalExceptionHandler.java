@@ -68,10 +68,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
         log.warn("AccessDenied: {}", ex.getMessage());
+        String message = (ex.getMessage() != null && !ex.getMessage().isBlank() && !ex.getMessage().equalsIgnoreCase("Access Denied"))
+                ? ex.getMessage()
+                : "Bạn không có quyền truy cập tài nguyên này!";
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.FORBIDDEN.value(),
                 ErrorCode.FORBIDDEN,
-                "Bạn không có quyền truy cập tài nguyên này!"
+                message
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }

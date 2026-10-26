@@ -618,16 +618,52 @@ Biên dịch thành công 69 files source code (`mvn clean test` BUILD SUCCESS).
 
 ---
 
-### 6. Xây Dựng Hoàn Chỉnh Màn Hình Bán Giờ (`SellTimePage`) & Quản Lý Phiên Chơi (`SessionManagerPage`)
+### 7. Bố Cục Máng Trượt Swimlane Trong Kanban Đa Luồng (Khắc Phục Ảo Giác Thị Giác "Cùng Hàng Ngang Rồi Rớt Dòng")
 
-1. **`SellTimePage.tsx` (MS-2.9 POS Bán Giờ)**:
-   - Cung cấp trải nghiệm bán giờ tương tự máy POS siêu thị: Ô tìm kiếm SĐT khách hàng tự động focus, 6 nút preset mệnh giá thông dụng (10.000đ, 20.000đ, 50.000đ, 100.000đ, 200.000đ, 500.000đ).
-   - Tự động tính toán số phút quy đổi chuẩn theo công thức $M = \frac{\text{amount}}{10,000} \times 60$.
-   - Tích hợp thanh toán kép: **Tiền mặt (CASH)** với 1 click xác nhận và **Chuyển khoản (VietQR)** tự động sinh mã QR Napas247 động theo đúng cú pháp tài khoản ngân hàng của quán.
-2. **`SessionManagerPage.tsx` (MS-2.6 & MS-2.7 Quản Lý Phiên)**:
-   - Chia 2 Tab chuyên biệt:
-     - **Tab 1: Phiên đang chạy (Active Sessions Grid)**: Thẻ phiên chơi hiển thị mã máy, tên khách hàng, SĐT, mốc bắt đầu, mốc hết hạn, đồng hồ đếm ngược thời gian thực, thanh tiến trình (progress bar) % thời gian đã chơi, cảnh báo vàng khi $\le 15$ phút, cảnh báo đỏ khi $\le 5$ phút. Tích hợp trực tiếp 3 nút tác vụ: Nạp thêm giờ, Đổi máy, Kết thúc phiên.
-     - **Tab 2: Lịch sử phiên chơi (Session History Table)**: Bảng dữ liệu tra cứu các phiên đã kết thúc trong ngày, kèm số phút thực tế đã chơi và lý do kết thúc.
+- **Hiện tượng**: Khi phân chia giao diện thành 2 cột (Cột Bếp vs Cột Thu ngân) bằng CSS Grid (`grid grid-cols-2`), nếu chỉ đặt 2 Header nhỏ ở trên và thả các thẻ đơn tự do trên nền tối chung của trang, mắt người dùng sẽ tự động gom nhóm các thẻ theo trục ngang: Thẻ 1 cột trái và Thẻ 1 cột phải nằm ngang nhau (thành Hàng 1), Thẻ 2 cột trái nằm bên dưới (thành Hàng 2). Người dùng nhìn vào có cảm giác đây là một danh sách lưới thông thường bị flex-wrap rớt dòng, hoàn toàn mất đi cảm giác của 2 luồng công việc độc lập.
+- **Bài học & Giải pháp kiến trúc**:
+  - **Bắt buộc đóng khung Panel Máng Trượt (Swimlane Column Container)**:
+    - Mỗi cột phải là một Panel container khép kín có viền (`border`), nền gradient đổ bóng (`shadow-2xl`) và sắc thái màu riêng (Lane Bếp = viền mạ hổ phách ấm, Lane Thu ngân = viền mạ cyan điện tử).
+    - Header của cột phải gắn liền vào đỉnh Panel thành một khối duy nhất.
+    - Bên trong là rãnh trượt đơn hàng (Lane Track) có chiều cao tối thiểu (`min-h-[280px]`).
+  - Nhờ vậy, người dùng từ khoảng cách xa ngay lập tức nhận diện được đây là 2 Máng Xử Lý Chuyên Biệt (như 2 băng chuyền độc lập), triệt tiêu hoàn toàn ảo giác thị giác xếp hàng ngang.
+
+---
+
+### 8. Phân Biệt Ngoại Hình Thẻ Tác Vụ Theo Nghiệp Vụ (Card Identity with Left Accent Stripe)
+
+- **Vấn đề**: Khi các thẻ có nghiệp vụ khác nhau (đơn chỉ làm đồ ăn/nước uống vs đơn nạp giờ chơi vs đơn combo) dùng chung một màu nền và viền, nhân viên thu ngân và nhân viên bếp rất dễ nhầm lẫn, phải đọc từng chữ mới biết thẻ này thuộc về ai.
+- **Giải pháp chuẩn hóa**:
+  1. **Vạch chỉ thị màu bên trái (Left Accent Stripe):**
+     - Đơn Bếp F&B: `border-l-4 border-l-amber-500` (Cam Hổ Phách).
+     - Đơn Thu ngân Nạp giờ: `border-l-4 border-l-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)]` (Cyan Neon phát sáng).
+     - Đơn Combo: `border-l-4 border-l-emerald-400` (Xanh ngọc bích).
+  2. **Gradient nền & Viền phản ánh tính chất nghiệp vụ**:
+     - F&B: Gradient ấm mang hơi hướng ẩm thực (`from-[#27201b]/90 via-[#1e202c]/95 to-[#141622]/95`).
+     - Playtime: Gradient Cyber Gaming công nghệ cao (`from-[#122433]/90 via-[#18202e]/95 to-[#131622]/95`).
+  3. **Huy hiệu & Khối gọi nạp giờ**:
+     - Huy hiệu to rõ: `[🍜 MÓN ĂN & UỐNG]` vs `[⚡ NẠP GIỜ CHƠI]` vs `[🎁 COMBO MÓN + GIỜ]`.
+     - Với đơn có giờ chơi, box nạp giờ được highlight viền cyan phát sáng, hiển thị tên gói nạp và lưu ý tự động nạp giờ khi duyệt.
+
+---
+
+### 9. Nghiệp Vụ An Toàn Giao Dịch Tiền Mặt & Quản Lý Thời Gian Chơi
+
+- **Không hỗ trợ ví tiền:** Hệ thống tiệm net chỉ quản lý thời gian chơi (phút chuẩn), không có khái niệm số dư tiền ví (`ACCOUNT_BALANCE`). Chỉ có 2 phương thức thanh toán: `CASH` và `QR`.
+- **Cảnh báo an toàn thu tiền mặt:** Khi khách đặt đơn nạp giờ hoặc combo bằng tiền mặt từ máy trạm, nhân viên có thể bấm duyệt nhầm khi chưa thu tiền khách. Do đó, hệ thống bắt buộc hiển thị Pop-up Modal xác nhận an toàn: *"Đã thu tiền mặt từ khách chưa?"* trước khi gọi API gia hạn giờ chơi trên máy.
+- **Dynamic Tariff trong OrderService:** Khi phân tích tên gói nạp từ đơn hàng (ví dụ: "Gói nạp 2 giờ chơi"), không bao giờ gán cứng `60 * quantity`. Hệ thống dùng regex trích xuất số giờ/phút thực tế (120 phút) và quy đổi động theo giá máy của Session đang mở (VIP vs Standard), gia hạn chính xác `session.expiresAt` và cập nhật phút chuẩn vào tài khoản hội viên.
+
+---
+
+### 10. Tối Ưu Tương Phản Cao Cho Form Controls (Select & Dropdown) Trong Dark Mode
+
+- **Vấn đề**: Trong theme tối Ant Design 5/6, các thuộc tính mặc định của `Select` dropdown options thường dùng màu xanh nhạt hoặc xám mờ. Khi kết hợp với dark background `#202332`, màu nền của option khi active/hover hoặc selected trùng với màu chữ khiến người dùng không đọc được nội dung (như chữ "Quản trị", "Hội viên" biến mất).
+- **Giải pháp**:
+  - Override trực tiếp CSS và Ant Design Component Tokens:
+    - Selected: Nền vàng Gold Caramel (`#bd9875`), chữ Midnight than sâu (`#202332`, font-bold 700), checkmark đen than `#202332`.
+    - Active/Hover: Nền kính vàng mờ (`rgba(189, 152, 117, 0.18)`), chữ chuyển sang màu Trắng Sáng (`#ffffff`, font-semibold).
+  - Tăng độ đặc hiệu (specificity) trên `.ant-select-item-option-selected` và `.ant-select-item-option-active` để không bị CSS mặc định của Ant Design ghi đè.
+
 
 
 

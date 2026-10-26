@@ -43,6 +43,13 @@ export const CustomerDashboardPage: React.FC = () => {
     },
   });
 
+  // Dynamic Tariff: Quy đổi số dư theo đơn giá máy trạm đang ngồi
+  const baseTariff = 10000;
+  const computerPrice = Number(session?.pricePerHour) || baseTariff;
+  const rawRemainingMinutes = user?.remainingMinutes ?? session?.accountRemainingMinutes ?? 0;
+  const isDifferentTariff = computerPrice !== baseTariff;
+  const convertedMinutes = Math.floor((rawRemainingMinutes * baseTariff) / computerPrice);
+
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
@@ -91,7 +98,7 @@ export const CustomerDashboardPage: React.FC = () => {
             </div>
 
             <Tag
-              color={session?.computerZone === 'VIP' ? '#B58863' : '#5B8FA8'}
+              color={session?.computerZone === 'VIP' ? '#bd9875' : '#434e60'}
               className="font-semibold text-xs border-0 px-2 py-0.5 m-0"
             >
               {session?.computerZone || 'STANDARD'}
@@ -200,11 +207,21 @@ export const CustomerDashboardPage: React.FC = () => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-mist border-t border-mist/10 pt-2">
-                <span>Số dư tài khoản:</span>
-                <span className="font-mono font-bold text-gold text-sm">
-                  {user?.remainingMinutes ?? session?.accountRemainingMinutes ?? 0} phút
-                </span>
+              <div className="border-t border-mist/10 pt-2 space-y-1">
+                <div className="flex items-center justify-between text-mist">
+                  <span>Số dư khả dụng tại máy:</span>
+                  <span className="font-mono font-bold text-gold text-sm">
+                    {convertedMinutes} phút
+                  </span>
+                </div>
+                {isDifferentTariff && (
+                  <div className="flex items-center justify-between text-[11px] text-mist/70">
+                    <span>Gốc trong tài khoản:</span>
+                    <span className="font-mono text-sand">
+                      {rawRemainingMinutes} phút chuẩn (@10k/h)
+                    </span>
+                  </div>
+                )}
               </div>
             </GlassCard>
           </>

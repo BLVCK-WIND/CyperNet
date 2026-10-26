@@ -74,11 +74,79 @@ Lập trình viên khi tiếp nhận cần đọc theo đúng thứ tự sau:
 
 ---
 
-## 6. Trạng Thái Hiện Tại & Quy Chuẩn UI/UX Mới (MS-2.12b)
+## 6. Trạng Thái Hiện Tại & Quy Chuẩn UI/UX Mới
 - **Phase 1: Customer UI:** ĐÃ HOÀN THÀNH 100% (kèm tích hợp ảnh món ăn `imageUrl`).
 - **Phase 2: Staff Dashboard:** ĐÃ HOÀN THÀNH 100% (MS-2.1 đến MS-2.12).
-- **⚠️ 2 NGUYÊN TẮC UI/UX BẮT BUỘC CHO MỌI PHÂN HỆ (STAFF, CUSTOMER & ADMIN):**
-  1. **Quy tắc Badge Counter:** Mọi menu điều hướng chứa tác vụ chờ (Đơn hàng chờ duyệt, máy đang chạy, phiên hoạt động, máy bảo trì) **bắt buộc phải có badge số đếm realtime**. Không bao giờ bắt người dùng tự click vào từng trang để kiểm tra công việc phát sinh.
-  2. **Quy tắc Grouped Categories:** Bất kỳ danh mục tổng hợp đa chủng loại nào (như Thực đơn gọi món tab "Tất cả") **tuyệt đối không để dạng phẳng (flat list) trộn lẫn**. Bắt buộc phải nhóm thành các Section riêng biệt có Section Header (Đồ ăn, Đồ uống, Gói giờ chơi) kèm badge đếm số lượng.
-  3. **Quy tắc Phân cấp thị giác & Theme Twinkle:** Tuân thủ triệt để bảng màu Soft Twilight (#10232A, #3D4D55, #A79E9C, #D3C3B9, #B58863), áp dụng Ambient Gradient trên nền, bo góc dạng viên thuốc (pill shapes) và rành mạch màu sắc - font chữ cho từng trạng thái máy và đơn hàng.
-- 👉 **Công việc trước mắt:** Triển khai đợt tinh chỉnh **MS-2.12b (Twinkle Theme Refinement)** trước khi chuyển sang **Phase 3: Admin Panel**.
+- **Phân hệ Quản trị Admin & Chuẩn Hóa Toàn Diện Hệ Thống (Đang triển khai):** Đã hoàn tất Layout Admin, RBAC Guard, Đổi mật khẩu POS, Đăng ký hội viên nạp đầu, Nâng cấp toàn diện Order Queue Dual-Lane Swimlane.
+
+---
+
+## 7. 🌟 BỘ QUY CHUẨN UI/UX & KỸ THUẬT BẮT BUỘC (CẨM NANG BÀN GIAO CHO MỌI PHIÊN LÀM VIỆC)
+
+> [!IMPORTANT]
+> Bất kỳ AI Assistant hoặc Lập trình viên nào tiếp nhận dự án CyberNet ở các phiên làm việc tiếp theo **BẮT BUỘC PHẢI TUÂN THỦ NGHIÊM NGẶT 8 NGUYÊN TẮC VÀNG DƯỚI ĐÂY** để đảm bảo tính nhất quán tuyệt đối về cả nghiệp vụ lẫn thẩm mỹ giao diện:
+
+### 1. Nguyên Tắc "Kế Hoạch Trước, Duyệt Rồi Mới Làm" (Quy tắc tối thượng)
+- **Tuyệt đối không tự ý viết code hay sửa file khi chưa trình bày kế hoạch.**
+- Quy trình chuẩn: Lắng nghe yêu cầu $\rightarrow$ Phân tích nguyên nhân $\rightarrow$ Đưa ra Kế hoạch các bước rõ ràng $\rightarrow$ Chờ người dùng phê duyệt ("OK" / đồng ý) $\rightarrow$ Triển khai từng bước một cách cẩn trọng $\rightarrow$ Biên dịch kiểm thử sạch sẽ $\rightarrow$ Báo cáo tổng kết.
+
+### 2. Chuẩn Thẻ Thống Kê Nổi Liquid Glass 3D (Kính Lỏng Nổi Phản Quang)
+- **Tất cả các dải chỉ số vận hành / Telemetry Stats Strip** trên mọi trang (Admin, Staff Sơ đồ máy, Đơn hàng, Phiên chơi, Hội viên, Khách hàng) **bắt buộc dùng chuẩn Liquid Glass 3D**, không dùng thẻ phẳng bo góc đơn điệu:
+  - 4 biến thể màu định danh:
+    1. **`.liquid-glass-sunset` (Cam cháy hoàng hôn & Đỏ san hô):** Dành cho Đơn chờ duyệt, Cảnh báo khẩn cấp, Chi phí tồn đọng.
+    2. **`.liquid-glass-emerald` (Xanh lục ngọc bích):** Dành cho Doanh thu thực thu, Đơn đã hoàn tất, Tác vụ thành công.
+    3. **`.liquid-glass-cyan` (Xanh Cyan điện tử & Lam ngọc):** Dành cho Máy trạm online, Phiên chơi trực tiếp, Lượt gọi món realtime.
+    4. **`.liquid-glass-amber` (Hổ phách đậm & Kem sữa ấm):** Dành cho Tổng giao dịch, Doanh thu F&B, Điểm tích lũy.
+  - Cấu trúc 3 lớp vật lý:
+    - Lớp viền khúc xạ 3D (`border-white/20`, đổ bóng sâu `shadow-[0_8px_32px_rgba(0,0,0,0.5)]`).
+    - Vệt lóa sáng phản xạ góc trên trái (`radial-gradient` lóa sáng nhẹ).
+    - Chân thẻ Frosted Glass Pill (`backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-sand/80`) chứa chỉ số so sánh phụ.
+    - Con trỏ `cursor-default` (thẻ hiển thị số liệu thuần túy, không click nhầm như nút bấm).
+
+### 3. Chuẩn Bố Cục Máng Cột Độc Lập (Swimlane Kanban Track)
+- Khi chia luồng công việc nhiều cột (ví dụ: Cột Bếp F&B vs Cột Thu Ngân Nạp Giờ):
+  - **Tuyệt đối không để các thẻ trôi tự do trên nền trang:** Nếu chỉ có 2 header rồi thả thẻ bên dưới, mắt người dùng sẽ bị ảo giác các thẻ nằm cùng một hàng ngang rồi xuống dòng.
+  - **Bắt buộc đóng khung Panel Máng Cột (Swimlane Container):**
+    - Mỗi cột phải được bọc trong một Panel lớn riêng biệt (`rounded-3xl p-4 sm:p-5 border shadow-2xl`).
+    - Nền panel có sắc thái gradient riêng (Lane Bếp = viền mạ hổ phách `border-amber-500/30` + nền ánh hổ phách; Lane Thu Ngân = viền mạ cyan `border-cyan-500/30` + nền ánh cyan).
+    - Header cột gắn liền trên đỉnh Panel thành một khối vững chắc.
+    - Bên trong là rãnh chứa thẻ (Lane Track) có chiều cao tối thiểu (`min-h-[280px]`) và vùng Empty State dạng nét đứt mờ riêng biệt.
+
+### 4. Chuẩn Nhận Diện Ngoại Hình Thẻ Đơn Hàng (Card Identity & Left Accent Stripe)
+- Các thẻ tác vụ mang tính chất khác nhau **tuyệt đối không được dùng chung một kiểu nền/viền đồng điệu**:
+  - **Đơn Bếp (🍜 F&B Only):** Vạch chỉ thị trái màu Cam Hổ Phách `border-l-4 border-l-amber-500`, nền gradient ấm áp `from-[#27201b]/90 via-[#1e202c]/95 to-[#141622]/95`, badge `[🍜 MÓN ĂN & UỐNG]`.
+  - **Đơn Thu Ngân (⚡ Nạp Giờ Chơi):** Vạch chỉ thị trái màu Xanh Cyan Neon phát sáng `border-l-4 border-l-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)]`, nền Cyber Gaming `from-[#122433]/90 via-[#18202e]/95 to-[#131622]/95`, badge `[⚡ NẠP GIỜ CHƠI]`, khối nạp giờ phát sáng nổi bật.
+  - **Đơn Combo (🎁 Món + Giờ):** Vạch chỉ thị trái màu Xanh Ngọc Bích `border-l-4 border-l-emerald-400`, badge `[🎁 COMBO MÓN + GIỜ]`.
+
+### 5. Chuẩn Tương Phản Cao Cho Form Controls (Select, Dropdown, Menu)
+- **Tập tin quy chuẩn:** `frontend/src/styles/antd-theme.ts` và `frontend/src/styles/index.css`.
+- Trạng thái `Selected`: Nền vàng Gold Caramel (`#bd9875`), chữ Midnight than đậm (`#202332`, font-bold 700), checkmark đen than `#202332`.
+- Trạng thái `Active / Hover`: Nền hổ phách mờ (`rgba(189, 152, 117, 0.18)`), chữ chuyển sang màu Trắng Sáng (`#ffffff`, font-semibold).
+- Triệt tiêu 100% tình trạng màu nền trùng màu chữ khiến người dùng không đọc được tùy chọn.
+
+### 6. Kiến Trúc Dynamic Tariff & Chuẩn Phút Tiệm Net
+- **Đơn vị lưu trữ cốt lõi:** `account.remainingMinutes` **LUÔN LÀ PHÚT CHUẨN (Standard Base Minutes @ 10k/h)**.
+- **Quy đổi đối xứng 2 chiều:**
+  $$\text{playableMinutes} = \left\lfloor \text{remainingMinutes} \times \frac{10000}{\text{pricePerHour}} \right\rfloor$$
+- Khi khách đang chơi máy VIP nạp thêm giờ tại quầy hoặc qua đơn hàng, hệ thống tự động gia hạn `session.expiresAt` theo đơn giá máy VIP và cộng số phút chuẩn tương ứng vào tài khoản. Khi đóng máy, toàn bộ thời gian dư được hoàn trả chính xác về phút chuẩn mà không thất thoát của khách.
+- **Tự động phân tích tên gói nạp:** Trong [OrderService.java](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/src/main/java/com/cybernet/internet_cafe_management/service/OrderService.java), hệ thống dùng biểu thức chính quy (Regex) để trích xuất số phút thực tế từ tên gói (vd: "Gói nạp 2 giờ chơi" $\rightarrow$ 120 phút), không được gán cứng `60 * quantity`.
+
+### 7. Nghiệp Vụ Tiền Mặt & An Toàn Thu Ngân
+- Hệ thống **KHÔNG HỖ TRỢ VÍ TIỀN / SỐ DƯ TÀI KHOẢN** (`ACCOUNT_BALANCE`). Chỉ có 2 phương thức thanh toán: `CASH` (Tiền mặt) và `QR` (Chuyển khoản VietQR Banking).
+- Mọi thao tác xác nhận đơn hàng hoặc nạp giờ chơi bằng **Tiền mặt** (`paymentMethod === 'CASH'`): Bắt buộc phải có **Modal cảnh báo an toàn** màu hổ phách yêu cầu nhân viên xác nhận *"Đã thu tiền mặt từ khách chưa?"* trước khi thực thi cập nhật DB.
+
+### 8. Phân Quyền Bảo Mật (RBAC) & Chống Leo Thang Đặc Quyền
+- Nhân viên thu ngân (`STAFF`) **tuyệt đối không được phép xem thông tin nhạy cảm, chỉnh sửa hoặc đổi mật khẩu của `ADMIN` hoặc đồng nghiệp `STAFF` khác**.
+- Chỉ cho phép `STAFF` đổi mật khẩu cho hội viên (`CUSTOMER`) tại quầy POS với tính năng hỗ trợ 1-click `[⚡ Điền nhanh 4 số cuối SĐT]` hoặc gõ mật khẩu mới theo yêu cầu của khách.
+
+---
+
+## 8. Hướng Dẫn Kế Tiếp Cho Phiên Làm Việc Mới (Next Steps)
+1. **Triển khai MS-3.3: Quản lý Máy trạm Admin (`/admin/computers`)**:
+   - Bảng quản trị danh sách máy trạm (DataTable kèm tìm kiếm & lọc zone STANDARD/VIP).
+   - Thao tác thêm máy mới, sửa IP, chuyển zone, cấu hình đơn giá theo zone và bật/tắt chế độ bảo trì máy.
+   - Áp dụng đầy đủ: Dải chỉ số Liquid Glass 3D, Card Twinkle Flow mạ viền vàng, Modal tương phản cao.
+2. **Triển khai MS-3.4: Quản lý Thực đơn & Dịch vụ Admin (`/admin/items`)**:
+   - Bảng quản trị món ăn, đồ uống và các gói nạp giờ chơi.
+   - Thao tác thêm món mới kèm tải ảnh món ăn (`FileUploadController`), cập nhật giá bán, trạng thái còn/hết hàng.
+   - Đảm bảo các gói nạp giờ ghi rõ số giờ/phút quy đổi trong tên hoặc mô tả để `OrderService` phân tích tự động.

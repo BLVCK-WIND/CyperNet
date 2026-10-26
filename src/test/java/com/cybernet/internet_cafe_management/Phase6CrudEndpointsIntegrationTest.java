@@ -155,6 +155,53 @@ public class Phase6CrudEndpointsIntegrationTest {
     }
 
     @Test
+    @DisplayName("TC-CRUD-2b: PUT /api/accounts/{id} - Staff đổi mật khẩu hội viên thành công")
+    void testStaffUpdateCustomerAccount_Success() throws Exception {
+        Account testCustomer = accountRepository.findByPhone("0912345678").orElseGet(() -> {
+            Account acc = new Account();
+            acc.setPhone("0912345678");
+            acc.setName("Customer Old Name");
+            acc.setPasswordHash(passwordEncoder.encode("oldpass123"));
+            acc.setRole(Account.Role.CUSTOMER);
+            acc.setRemainingMinutes(60);
+            return accountRepository.save(acc);
+        });
+
+        UpdateAccountRequest request = UpdateAccountRequest.builder()
+                .name("Customer Staff Updated")
+                .password("staffResetPass456")
+                .role(Account.Role.CUSTOMER)
+                .build();
+
+        mockMvc.perform(put("/api/accounts/" + testCustomer.getId())
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Customer Staff Updated"))
+                .andExpect(jsonPath("$.role").value("CUSTOMER"));
+    }
+
+    @Test
+    @DisplayName("TC-CRUD-2c: PUT /api/accounts/{id} - Staff cố tình sửa tài khoản Admin bị chặn 403 Forbidden")
+    void testStaffUpdateAdminAccount_Forbidden() throws Exception {
+        Account admin = accountRepository.findByPhone("0901111111").orElseThrow();
+
+        UpdateAccountRequest request = UpdateAccountRequest.builder()
+                .name("Hacker Staff Modifying Admin")
+                .password("hacked1234")
+                .role(Account.Role.CUSTOMER)
+                .build();
+
+        mockMvc.perform(put("/api/accounts/" + admin.getId())
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Nhân viên chỉ có quyền cập nhật và đổi mật khẩu cho tài khoản Hội viên (CUSTOMER)!"));
+    }
+
+    @Test
     @DisplayName("TC-CRUD-3: GET /api/sessions/computer/{computerId} - Lấy lịch sử phiên của máy trạm")
     void testGetSessionsByComputerId_Success() throws Exception {
         Computer computer = computerRepository.findByCode("PC-01").orElseThrow();

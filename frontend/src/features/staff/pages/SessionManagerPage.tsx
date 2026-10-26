@@ -15,7 +15,7 @@ import {
   User,
   Phone,
 } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { sessionApi } from '@/api/sessionApi';
 import { computerApi } from '@/api/computerApi';
@@ -77,6 +77,7 @@ export const SessionManagerPage: React.FC = () => {
         size: pageSize,
         sort: 'id,desc',
       }),
+    placeholderData: keepPreviousData,
     refetchInterval: 10000,
   });
 
@@ -170,7 +171,7 @@ export const SessionManagerPage: React.FC = () => {
             onClick={() => refetch()}
             loading={isFetching}
             icon={<RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />}
-            className="h-10 rounded-xl bg-[rgba(61,77,85,0.4)] border-[rgba(167,158,156,0.2)] text-sand hover:text-white text-xs cursor-pointer"
+            className="h-10 px-3.5 rounded-xl twinkle-btn-secondary text-xs cursor-pointer"
           >
             Làm mới
           </Button>
@@ -179,59 +180,91 @@ export const SessionManagerPage: React.FC = () => {
             type="primary"
             onClick={() => setIsStartModalOpen(true)}
             icon={<PlayCircle className="w-4 h-4 text-midnight" />}
-            className="h-10 rounded-xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(181,136,99,0.3)] text-xs cursor-pointer"
+            className="h-10 rounded-xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] text-xs cursor-pointer"
           >
             Mở máy tại quầy
           </Button>
         </div>
       </div>
 
-      {/* 2. Quick Overview Stats Cards */}
+      {/* 2. Quick Overview Stats Cards (Liquid Glass 3D Telemetry) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <GlassCard className="p-4 rounded-2xl border border-gold/30 bg-midnight/70 flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-gold/15 text-gold border border-gold/30 flex items-center justify-center shrink-0">
-            <Monitor className="w-5 h-5" />
-          </div>
+        {/* Thẻ 1: Phiên đang hoạt động (Xanh Cyan Điện Tử) */}
+        <div className="liquid-glass-cyan flex flex-col justify-between">
           <div>
-            <div className="text-xs text-mist">Phiên đang hoạt động</div>
-            <div className="text-xl font-extrabold font-heading text-sand mt-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-sand/90 uppercase tracking-wider flex items-center gap-1.5">
+                <Monitor className="w-3.5 h-3.5 text-[#38bdf8]" />
+                Phiên đang hoạt động
+              </span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#06b6d4] shadow-[0_0_10px_rgba(6,182,212,0.9)] animate-pulse" />
+            </div>
+
+            <div className="text-2xl sm:text-3xl font-heading font-black text-[#38bdf8] drop-shadow-[0_2px_8px_rgba(6,182,212,0.5)] tracking-tight">
               {activeCount}{' '}
-              <span className="text-xs font-normal text-gold">phiên</span>
+              <span className="text-xs font-normal text-mist font-sans">phiên online</span>
             </div>
           </div>
-        </GlassCard>
 
-        <GlassCard className="p-4 rounded-2xl border border-success/30 bg-midnight/70 flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-success/15 text-success border border-success/30 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
+          <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-mist">
+            <span>Trạng thái sàn:</span>
+            <span className="text-[#38bdf8] font-bold">Khách đang chơi trực tiếp</span>
           </div>
+        </div>
+
+        {/* Thẻ 2: Máy trạm sẵn sàng (Xanh Lục Ngọc Bích) */}
+        <div className="liquid-glass-emerald flex flex-col justify-between">
           <div>
-            <div className="text-xs text-mist">Máy trạm sẵn sàng (Trống)</div>
-            <div className="text-xl font-extrabold font-heading text-sand mt-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-sand/90 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#34d399]" />
+                Máy trạm sẵn sàng
+              </span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#4ADE80] shadow-[0_0_10px_rgba(74,222,128,0.9)]" />
+            </div>
+
+            <div className="text-2xl sm:text-3xl font-heading font-black text-[#4ADE80] drop-shadow-[0_2px_8px_rgba(16,185,129,0.5)] tracking-tight">
               {availableComputers.length}{' '}
-              <span className="text-xs font-normal text-success">máy</span>
+              <span className="text-xs font-normal text-mist font-sans">máy trống</span>
             </div>
           </div>
-        </GlassCard>
 
-        <GlassCard className="p-4 rounded-2xl border border-blue-500/30 bg-midnight/70 flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-blue-500/15 text-[#85C1DC] border border-blue-500/30 flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5" />
+          <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-mist">
+            <span>Đón khách:</span>
+            <span className="text-[#34d399] font-bold">Sẵn sàng mở phiên ngay</span>
           </div>
+        </div>
+
+        {/* Thẻ 3: Tổng lượt phiên (Hổ Phách Đậm & Kem Sữa) */}
+        <div className="liquid-glass-amber flex flex-col justify-between">
           <div>
-            <div className="text-xs text-mist">Tổng phiên trong bộ lọc</div>
-            <div className="text-xl font-extrabold font-heading text-sand mt-0.5">
-              {totalElements}{' '}
-              <span className="text-xs font-normal text-mist">phiên</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-sand/90 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#e0a96d]" />
+                Tổng phiên ghi nhận
+              </span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#e0a96d] shadow-[0_0_10px_rgba(224,169,109,0.9)]" />
+            </div>
+
+            <div className="text-2xl sm:text-3xl font-heading font-black text-sand drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] tracking-tight">
+              <span className="text-[#f5d0a9]">{totalElements}</span>{' '}
+              <span className="text-xs font-normal text-mist font-sans">lượt phiên</span>
             </div>
           </div>
-        </GlassCard>
+
+          <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-mist">
+            <span>Đang lọc:</span>
+            <span className="text-gold font-bold">
+              {activeTab === 'ACTIVE' ? 'Đang chơi' : activeTab === 'ENDED' ? 'Đã trả máy' : 'Toàn bộ'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* 3. Toolbar: Status Tabs & Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Tab Buttons */}
-        <div className="flex items-center gap-2 p-1 rounded-xl bg-midnight/80 border border-[rgba(167,158,156,0.15)]">
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-midnight/80 border border-mist/20">
           <button
             type="button"
             onClick={() => {
@@ -291,7 +324,7 @@ export const SessionManagerPage: React.FC = () => {
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
             allowClear
-            className="rounded-xl bg-midnight/80 border-[rgba(167,158,156,0.2)] text-sand placeholder:text-mist/50 h-10"
+            className="rounded-xl bg-midnight/80 border-mist/20 text-sand placeholder:text-mist/50 h-10"
           />
         </div>
       </div>
@@ -300,13 +333,13 @@ export const SessionManagerPage: React.FC = () => {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <GlassCard key={idx} className="p-5 rounded-2xl border border-[rgba(167,158,156,0.1)]">
+            <GlassCard key={idx} className="p-5 rounded-2xl border border-mist/15">
               <Skeleton active paragraph={{ rows: 4 }} />
             </GlassCard>
           ))}
         </div>
       ) : filteredSessions.length === 0 ? (
-        <GlassCard className="p-12 text-center rounded-2xl border border-[rgba(167,158,156,0.15)] bg-midnight/50">
+        <GlassCard className="p-12 text-center rounded-2xl border border-mist/20 bg-midnight/50">
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
@@ -336,10 +369,10 @@ export const SessionManagerPage: React.FC = () => {
             return (
               <GlassCard
                 key={session.id}
-                className="p-4.5 rounded-2xl border border-[rgba(167,158,156,0.15)] bg-midnight/80 hover:border-gold/40 transition-all flex flex-col justify-between space-y-4 shadow-sm"
+                className="p-4.5 rounded-2xl border border-mist/20 bg-midnight/80 hover:border-gold/40 transition-all flex flex-col justify-between space-y-4 shadow-sm"
               >
                 {/* Header: Computer Code, Zone & Live Dot */}
-                <div className="flex items-center justify-between pb-3 border-b border-[rgba(167,158,156,0.12)]">
+                <div className="flex items-center justify-between pb-3 border-b border-mist/15">
                   <div className="flex items-center gap-2">
                     <span className="font-heading font-extrabold text-base text-sand tracking-wide">
                       {session.computerCode}
@@ -362,7 +395,7 @@ export const SessionManagerPage: React.FC = () => {
                 </div>
 
                 {/* Body: Customer Details */}
-                <div className="bg-charcoal/50 p-3 rounded-xl border border-[rgba(167,158,156,0.1)] space-y-1.5">
+                <div className="bg-midnight/60 p-3 rounded-xl border border-mist/15 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs text-sand font-bold">
                       <User className="w-3.5 h-3.5 text-gold" />
@@ -374,7 +407,7 @@ export const SessionManagerPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[rgba(167,158,156,0.08)]">
+                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-mist/15">
                     <span className="text-mist">Số dư tài khoản:</span>
                     <span className="font-mono text-gold font-bold">
                       {session.accountRemainingMinutes} phút
@@ -414,7 +447,7 @@ export const SessionManagerPage: React.FC = () => {
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full bg-[rgba(61,77,85,0.4)] h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate/40 h-1.5 rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-500 ${
                         isWarning ? 'bg-warning' : 'bg-gold'
@@ -425,13 +458,13 @@ export const SessionManagerPage: React.FC = () => {
                 </div>
 
                 {/* Actions: Nạp giờ, Chuyển máy, Kết thúc */}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[rgba(167,158,156,0.1)]">
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-mist/15">
                   <Tooltip title="Nạp thêm tiền giờ tại quầy">
                     <Button
                       size="small"
                       onClick={() => handleOpenSellTime(session)}
                       icon={<Coins className="w-3.5 h-3.5 text-gold" />}
-                      className="h-8 rounded-lg text-xs bg-[rgba(181,136,99,0.12)] border-gold/30 text-sand hover:text-white cursor-pointer"
+                      className="h-8 rounded-lg text-xs bg-gold/15 border-gold/30 text-sand hover:text-white cursor-pointer"
                     >
                       Nạp giờ
                     </Button>
@@ -442,7 +475,7 @@ export const SessionManagerPage: React.FC = () => {
                       size="small"
                       onClick={() => handleOpenTransfer(session)}
                       icon={<ArrowRightLeft className="w-3.5 h-3.5 text-[#85C1DC]" />}
-                      className="h-8 rounded-lg text-xs bg-[rgba(61,77,85,0.4)] border-[rgba(167,158,156,0.2)] text-sand hover:text-white cursor-pointer"
+                      className="h-8 rounded-lg text-xs bg-slate/40 border-mist/20 text-sand hover:text-white cursor-pointer"
                     >
                       Chuyển máy
                     </Button>
@@ -470,11 +503,11 @@ export const SessionManagerPage: React.FC = () => {
           {filteredSessions.map((session) => (
             <GlassCard
               key={session.id}
-              className="p-4 rounded-xl border border-[rgba(167,158,156,0.15)] bg-midnight/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+              className="p-4 rounded-xl border border-mist/20 bg-midnight/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
             >
               {/* Cột 1: Thông tin phiên & máy */}
               <div className="flex items-center gap-3 min-w-[200px]">
-                <div className="w-10 h-10 rounded-xl bg-charcoal/80 border border-[rgba(167,158,156,0.15)] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-slate/40 border border-mist/20 flex items-center justify-center shrink-0">
                   <Monitor className="w-5 h-5 text-sand" />
                 </div>
                 <div>
@@ -552,7 +585,7 @@ export const SessionManagerPage: React.FC = () => {
                     </Button>
                   </>
                 ) : (
-                  <Tag className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-[rgba(61,77,85,0.4)] text-mist border-[rgba(167,158,156,0.2)]">
+                  <Tag className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-slate/40 text-mist border-mist/20">
                     ĐÃ KẾT THÚC
                   </Tag>
                 )}

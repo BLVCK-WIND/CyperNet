@@ -13,17 +13,24 @@ import com.cybernet.internet_cafe_management.dto.request.UpdateComputerRequest;
 import com.cybernet.internet_cafe_management.dto.response.ComputerResponse;
 import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.entity.Computer;
+import com.cybernet.internet_cafe_management.entity.Session;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.ComputerRepository;
+import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.repository.specification.ComputerSpecification;
 
 @Service
 public class ComputerService {
     private final ComputerRepository computerRepository;
+    private final SessionRepository sessionRepository;
     private final RealtimeNotificationService realtimeNotificationService;
 
-    public ComputerService(ComputerRepository computerRepository, RealtimeNotificationService realtimeNotificationService) {
+    public ComputerService(
+            ComputerRepository computerRepository,
+            SessionRepository sessionRepository,
+            RealtimeNotificationService realtimeNotificationService) {
         this.computerRepository = computerRepository;
+        this.sessionRepository = sessionRepository;
         this.realtimeNotificationService = realtimeNotificationService;
     }
 
@@ -104,7 +111,12 @@ public class ComputerService {
 
         if (request.getStatus() != null && request.getStatus() != computer.getStatus()) {
             if (computer.getStatus() == Computer.Status.IN_USE) {
-                throw new IllegalStateException("Không thể đổi trạng thái khi máy đang có phiên chơi hoạt động!");
+                boolean hasActiveSession = sessionRepository.existsByComputerIdAndStatus(computer.getId(), Session.Status.ACTIVE);
+                if (hasActiveSession) {
+                    throw new IllegalStateException("Không thể đổi trạng thái khi máy đang có phiên chơi hoạt động!");
+                }
+                // Nếu máy mang cờ IN_USE nhưng không có phiên chơi ACTIVE nào trong DB (kẹt trạng thái / desync),
+                // cho phép giải phóng máy về trạng thái yêu cầu (AVAILABLE hoặc MAINTENANCE)
             }
             computer.setStatus(request.getStatus());
         }
