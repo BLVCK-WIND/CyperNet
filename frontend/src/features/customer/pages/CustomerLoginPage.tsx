@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Input, Button, Tag, App } from 'antd';
 import { Phone, Monitor, AlertTriangle, Sparkles as SparklesIcon, LogIn, ArrowRight } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import { PageTransition } from '@/components/animations/PageTransition';
 import { Sparkles } from '@/components/animations/Sparkles';
 import { authApi } from '@/api/authApi';
@@ -79,10 +80,10 @@ export const CustomerLoginPage: React.FC = () => {
     }
 
     const trimmedPhone = phone.trim();
-    // Validate định dạng số điện thoại Việt Nam (10 chữ số bắt đầu bằng 0)
-    const phoneRegex = /^0\d{9}$/;
+    // Validate định dạng số điện thoại (9 đến 11 chữ số bắt đầu bằng 0, chuẩn viễn thông & backend)
+    const phoneRegex = /^0\d{8,10}$/;
     if (!phoneRegex.test(trimmedPhone)) {
-      message.warning('Vui lòng nhập số điện thoại hợp lệ (10 chữ số, ví dụ 0901234567)');
+      message.warning('Vui lòng nhập số điện thoại hợp lệ (9 đến 11 chữ số, ví dụ 0901234567)');
       triggerShake();
       return;
     }
@@ -164,9 +165,7 @@ export const CustomerLoginPage: React.FC = () => {
               ) : computerError ? (
                 <Tag color="error" className="text-xs">Lỗi mã máy</Tag>
               ) : (
-                <Tag color={computerInfo?.zone === 'VIP' ? '#bd9875' : '#8b9a9f'} className="font-semibold px-2 py-0.5 border-0">
-                  {computerInfo?.zone || 'STANDARD'}
-                </Tag>
+                <ZoneBadge zone={computerInfo?.zone} size="sm" />
               )
             ) : (
               <Tag color="warning" className="text-xs">Thiếu mã máy</Tag>
@@ -206,9 +205,9 @@ export const CustomerLoginPage: React.FC = () => {
                 size="large"
                 type="tel"
                 inputMode="numeric"
-                maxLength={10}
+                maxLength={11}
                 prefix={<Phone className="w-4 h-4 text-mist mr-1" />}
-                placeholder="Nhập 10 chữ số (VD: 0901234567)"
+                placeholder="Nhập số điện thoại (VD: 0901234567)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                 disabled={loading}

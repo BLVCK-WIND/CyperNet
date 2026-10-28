@@ -29,7 +29,12 @@ public enum ErrorCode {
     ACTIVE_SESSION_EXISTS("Tài khoản đang có phiên chơi tại máy khác"),
     TRANSFER_SAME_COMPUTER("Không thể chuyển sang chính máy đang ngồi"),
     OPTIMISTIC_LOCK_CONFLICT("Dữ liệu tài khoản đang được cập nhật bởi giao dịch khác"),
-    PESSIMISTIC_LOCK_CONFLICT("Máy tính đang trong quá trình xử lý bởi người dùng khác");
+    PESSIMISTIC_LOCK_CONFLICT("Máy tính đang trong quá trình xử lý bởi người dùng khác"),
+
+    // === LỖI QUẢN LÝ KHU VỰC (ZONE MANAGEMENT) ===
+    ZONE_NOT_FOUND("Khu vực không tồn tại trong hệ thống"),
+    ZONE_ALREADY_EXISTS("Mã khu vực đã tồn tại trong hệ thống"),
+    ZONE_IN_USE("Không thể xóa khu vực đang có máy trạm hoạt động");
 
     private final String defaultMessage;
 

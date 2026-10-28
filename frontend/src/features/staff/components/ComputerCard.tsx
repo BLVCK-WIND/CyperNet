@@ -1,16 +1,15 @@
 import React from 'react';
-import { Tag } from 'antd';
 import { motion } from 'framer-motion';
 import {
   Monitor,
   User,
   Clock,
   Wrench,
-  Sparkles,
   Zap,
   ArrowRight,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { FloorMapComputerItem } from '@/types/computer';
 
 interface ComputerCardProps {
@@ -120,23 +119,8 @@ export const ComputerCard: React.FC<ComputerCardProps> = ({
             </div>
           </div>
 
-          {/* Zone Badge (VIP vs STANDARD) */}
-          {zone === 'VIP' ? (
-            <Tag
-              bordered={false}
-              className="m-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-purple-900/60 to-purple-800/40 text-purple-300 border border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.25)] inline-flex items-center gap-1"
-            >
-              <Sparkles className="w-2.5 h-2.5 text-purple-300" />
-              VIP
-            </Tag>
-          ) : (
-            <Tag
-              bordered={false}
-              className="m-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate/60 text-sand/90 border border-mist/20"
-            >
-              STD
-            </Tag>
-          )}
+          {/* Zone Badge (Dynamic Short Code + Admin Color) */}
+          <ZoneBadge zone={zone} size="sm" />
         </div>
 
         {/* 2. Body: Trạng thái & Thông tin khách chơi (nếu có) */}

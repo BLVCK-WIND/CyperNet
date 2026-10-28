@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Input, Button, Skeleton, Segmented } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Input, Button, Skeleton, Segmented, Select } from 'antd';
 import {
   Monitor,
   Search,
@@ -10,6 +11,7 @@ import {
   AlertOctagon,
   Filter,
   Coins,
+  ChevronDown,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ComputerCard } from '../components/ComputerCard';
@@ -19,6 +21,7 @@ import { EndSessionModal } from '../components/EndSessionModal';
 import { TransferSessionModal } from '../components/TransferSessionModal';
 import { SellTimeModal } from '../components/SellTimeModal';
 import { useFloorMap } from '../hooks/useFloorMap';
+import { zoneApi } from '@/api/zoneApi';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { FloorMapComputerItem } from '@/types/computer';
 
@@ -43,6 +46,7 @@ export const FloorMapPage: React.FC = () => {
     computers,
     allComputers,
     stats,
+    uniqueZones,
     isLoading,
     isFetching,
     isError,
@@ -52,6 +56,51 @@ export const FloorMapPage: React.FC = () => {
     zoneFilter,
     searchKeyword,
   });
+
+  // Tải danh sách Zone đang active từ backend
+  const { data: zonesData } = useQuery({
+    queryKey: ['active-zones-floormap'],
+    queryFn: () => zoneApi.getActiveZones(),
+  });
+
+  // Danh sách tùy chọn cho Dropdown Lọc Phân Khu (Mũi tên trỏ xuống)
+  const zoneSelectOptions = useMemo(() => {
+    const list: Array<{ value: string; label: string; name: string; count: number; color: string }> = [
+      {
+        value: 'ALL',
+        label: `Tất cả khu vực (${stats.total})`,
+        name: 'Tất cả khu vực',
+        count: stats.total,
+        color: '#bd9875',
+      },
+    ];
+
+    if (zonesData && zonesData.length > 0) {
+      zonesData.forEach((z) => {
+        const count = stats.zoneCounts?.[z.code.toUpperCase()] || 0;
+        list.push({
+          value: z.code,
+          label: `${z.name} (${count})`,
+          name: z.name,
+          count: count,
+          color: z.colorCode || '#85C1DC',
+        });
+      });
+    } else {
+      uniqueZones.forEach((code) => {
+        const count = stats.zoneCounts?.[code] || 0;
+        list.push({
+          value: code,
+          label: `${code} (${count})`,
+          name: code,
+          count: count,
+          color: '#85C1DC',
+        });
+      });
+    }
+
+    return list;
+  }, [zonesData, stats.total, stats.zoneCounts, uniqueZones]);
 
   const availableComputers = useMemo(
     () => allComputers.filter((c) => c.status === 'AVAILABLE'),
@@ -132,9 +181,19 @@ export const FloorMapPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1">
-            <span className="text-mist">STD: <strong className="text-sand">{stats.standardCount}</strong></span>
-            <span className="text-mist">VIP: <strong className="text-gold">{stats.vipCount}</strong></span>
+          <div className="mt-3 pt-2 border-t border-white/10 flex items-center gap-2 overflow-x-auto text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 scrollbar-none">
+            {Object.keys(stats.zoneCounts || {}).length === 0 ? (
+              <span className="text-mist">Chưa có máy</span>
+            ) : (
+              Object.entries(stats.zoneCounts || {}).map(([zCode, cnt]) => {
+                const shortCode = zCode === 'STANDARD' ? 'STD' : zCode;
+                return (
+                  <span key={zCode} className="text-mist shrink-0">
+                    {shortCode}: <strong className="text-sand">{cnt}</strong>
+                  </span>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -213,12 +272,12 @@ export const FloorMapPage: React.FC = () => {
       </div>
 
       {/* 3. Filter Bar & Search (Thanh tiêu đề chính - Twinkle Major Flow) */}
-      <div className="p-4 rounded-2xl twinkle-major-flow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        {/* Bộ lọc Trạng thái (Segmented tabs) */}
+      <div className="p-4 rounded-2xl twinkle-major-flow flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        {/* Bên trái: Bộ lọc Trạng thái máy (Segmented tabs nhanh cho quầy) */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium text-sand flex items-center gap-1 mr-1">
             <Filter className="w-3.5 h-3.5 text-gold" />
-            Lọc:
+            Trạng thái:
           </span>
           <Segmented
             value={statusFilter}
@@ -231,29 +290,47 @@ export const FloorMapPage: React.FC = () => {
             ]}
             className="bg-midnight/70 p-1 rounded-xl text-xs font-medium text-sand"
           />
-
-          <Segmented
-            value={zoneFilter}
-            onChange={(val) => setZoneFilter(val as string)}
-            options={[
-              { label: 'Toàn bộ khu', value: 'ALL' },
-              { label: `Standard (${stats.standardCount})`, value: 'STANDARD' },
-              { label: `VIP (${stats.vipCount})`, value: 'VIP' },
-            ]}
-            className="bg-midnight/70 p-1 rounded-xl text-xs font-medium text-sand hidden sm:inline-flex"
-          />
         </div>
 
-        {/* Ô Tìm kiếm nhanh */}
-        <div className="w-full md:w-72">
-          <Input
-            placeholder="Tìm mã máy, tên khách, SĐT..."
-            prefix={<Search className="w-4 h-4 text-mist mr-1" />}
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            allowClear
-            className="bg-midnight/80 border-mist/20 text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-10"
-          />
+        {/* Bên phải: Dropdown Phân khu (Mũi tên trỏ xuống) đặt cạnh Ô tìm kiếm */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          {/* Dropdown Lọc Phân khu */}
+          <div className="w-full sm:w-60">
+            <Select
+              value={zoneFilter}
+              onChange={(val) => setZoneFilter(val)}
+              className="w-full h-10"
+              popupClassName="cyberlux-select-dropdown"
+              suffixIcon={<ChevronDown className="w-4 h-4 text-mist" />}
+              options={zoneSelectOptions}
+              optionRender={(option) => (
+                <div className="flex items-center justify-between py-0.5 text-xs">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                      style={{ backgroundColor: option.data.color }}
+                    />
+                    <span className="truncate font-medium text-sand">{option.data.name}</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-mist font-bold shrink-0">
+                    ({option.data.count})
+                  </span>
+                </div>
+              )}
+            />
+          </div>
+
+          {/* Ô Tìm kiếm nhanh */}
+          <div className="w-full sm:w-64">
+            <Input
+              placeholder="Tìm mã máy, tên khách, SĐT..."
+              prefix={<Search className="w-4 h-4 text-mist mr-1" />}
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              allowClear
+              className="bg-midnight/80 border-mist/20 text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-10"
+            />
+          </div>
         </div>
       </div>
 

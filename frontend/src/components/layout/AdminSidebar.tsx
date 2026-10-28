@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   Monitor,
+  Layers,
   Utensils,
   Users,
   TrendingUp,
@@ -92,6 +93,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           icon: <Monitor className="w-5 h-5 shrink-0" />,
           badge: totalComputers > 0 ? `${activeComputers}/${totalComputers}` : undefined,
           badgeVariant: 'gold',
+        },
+        {
+          key: 'zones',
+          label: 'Khu vực',
+          path: '/admin/zones',
+          icon: <Layers className="w-5 h-5 shrink-0" />,
         },
         {
           key: 'items',

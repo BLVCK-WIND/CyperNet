@@ -18,6 +18,7 @@ import { accountApi } from '@/api/accountApi';
 import { timePurchaseApi } from '@/api/timePurchaseApi';
 import { orderApi } from '@/api/orderApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import { RegisterCustomerModal } from './RegisterCustomerModal';
 import type { Account } from '@/types/auth';
 import type { FloorMapComputerItem } from '@/types/computer';
@@ -349,8 +350,9 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Monitor className="w-4 h-4 text-gold" />
                   <div>
-                    <div className="text-xs font-bold text-sand">
-                      Máy {targetComputer.code} ({targetComputer.zone})
+                    <div className="text-xs font-bold text-sand flex items-center gap-1.5">
+                      <span>Máy {targetComputer.code}</span>
+                      <ZoneBadge zone={targetComputer.zone} size="sm" />
                     </div>
                     <div className="text-[11px] text-mist">Đang mở nạp giờ từ sơ đồ máy</div>
                   </div>

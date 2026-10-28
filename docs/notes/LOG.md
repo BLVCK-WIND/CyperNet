@@ -1358,6 +1358,55 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 
 ---
 
+### 2026-10-28 — Kiến Trúc Phân Khu Động (Dynamic Zone), Chuẩn Hóa Màu Sắc & Sửa Lỗi Nghiêm Trọng
+
+**Phase**: Phase 3 Admin Panel & Global Resiliency
+**Thời gian**: ~3.5 giờ
+**Việc đã làm**:
+1. **Kiến trúc Phân khu Động Toàn Diện (Dynamic Zone Architecture)**:
+   - **Backend**:
+     - Tạo migration Flyway V5 bảng `zones` (`code`, `name`, `default_price_per_hour`, `color_code`, `active`, `description`).
+     - Tạo migration Flyway V6 mở rộng `computers.zone` từ ENUM sang `VARCHAR(50)`.
+     - Xây dựng Entity `Zone.java`, `ZoneRepository.java`, DTOs (`CreateZoneRequest`, `UpdateZoneRequest`, `ZoneResponse`), `ZoneService.java` và `ZoneController.java`.
+     - Thiết lập rào chắn an toàn (Guards): Không thể xóa `STANDARD` và `VIP`; không thể xóa khu vực đang có máy trạm liên kết.
+     - Viết bài test tích hợp `ZoneIntegrationTest.java`: 8/8 tests PASS 100%.
+   - **Frontend**:
+     - Xây dựng trang Quản lý Khu Vực ([`ZoneManagerPage.tsx`](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/features/admin/pages/ZoneManagerPage.tsx)): Bảng danh sách, form tạo/sửa với Color Presets và color picker tự do.
+     - Xây dựng trang Quản lý Máy Trạm ([`ManageComputersPage.tsx`](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/frontend/src/features/admin/pages/ManageComputersPage.tsx)): CRUD máy trạm, chọn phân khu động, tự động gợi ý giá theo zone, toggle bảo trì, xóa máy an toàn.
+     - Đăng ký routes `/admin/zones` và `/admin/computers`, bổ sung menu trên Sidebar.
+2. **Hệ thống Hiển thị Zone Động & Tương phản cao (Zero-Camouflage System)**:
+   - Tạo hook `useZoneMap.ts` tra cứu danh mục khu vực từ API backend (`GET /api/zones/active`) và cache bằng React Query.
+   - Tạo component `<ZoneBadge />`:
+     - Tự động lấy **chính xác 100% màu sắc Admin cấu hình** trong database (khắc phục triệt để lỗi khu ARENA bị hiển thị màu Đỏ ở giao diện Staff).
+     - Quy chuẩn thẻ viết tắt ngắn gọn (Short Code: `STD`, `VIP`, `ARENA`, `VAL`, `FPS`...) trên thẻ máy trạm, bỏ icon rườm rà.
+     - Nâng cấp màu phân khu `STANDARD` từ `#434e60` sang **Ice Cyan (`#85C1DC`)**, giải quyết triệt để lỗi chữ bị chìm nghỉm vào nền tối.
+   - Đồng bộ toàn bộ các trang Staff (`ComputerCard`, `ComputerDetailDrawer`, `StartSessionModal`, `TransferSessionModal`, `SellTimeModal`, `SessionManagerPage`) và Customer (`CustomerLoginPage`, `CustomerDashboardPage`, `SessionStats`).
+3. **Tối ưu Bố cục Điều khiển Sơ đồ máy (Floor Map Control Optimization)**:
+   - Chuyển bộ lọc phân khu từ hàng nút bấm Segmented dàn ngang thành **Dropdown Select có mũi tên trỏ xuống `▾`** đặt liền kề cạnh ô Tìm kiếm bên phải.
+   - Giữ các nút trạng thái máy dạng 1-click bên trái, tạo bố cục cân đối và chống vỡ dòng responsive.
+4. **Sửa lỗi nghiêm trọng: Bất đối xứng độ dài SĐT (Phone Length Asymmetry Bug)**:
+   - **Triệu chứng**: Khách đăng ký hội viên số 11 chữ số (`01111111111`) tại quầy thành công, mở máy `VIP-06` thành công, nhưng khi vào màn hình khách đăng nhập thì bị báo lỗi *"Số điện thoại không khớp với người đang chơi tại máy VIP-06"*.
+   - **Nguyên nhân**: `RegisterCustomerModal.tsx` cho phép 9-11 số (`maxLength={11}`), nhưng `CustomerLoginPage.tsx` lại chặn cứng 10 số (`maxLength={10}` và regex `/^0\d{9}$/`). Khi người dùng gõ số 11 ký tự, ô input âm thầm cắt bỏ số cuối (`0111111111`), dẫn đến gửi chuỗi lệch 1 ký tự lên backend.
+   - **Khắc phục**:
+     - Nâng cấp `CustomerLoginPage.tsx`: `maxLength={11}`, regex `/^0\d{8,10}$/` cho phép 9 đến 11 số đồng bộ hoàn toàn với backend và modal đăng ký khách.
+     - Cập nhật số điện thoại tài khoản #82 trong MySQL từ `01111111111` về chuẩn 10 số `0111111111` theo mong muốn của người dùng. Kiểm tra đăng nhập thành công 100% (200 OK).
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Dynamic Zone Architecture & Flyway V5, V6 | `Zone.java`, `ZoneService.java`, `V5__`, `V6__` | 🔴 Architecture |
+| React Query Global Cache Hook | `useZoneMap.ts` | 🟠 Frontend State |
+| Zero-Camouflage High-Contrast Badge | `ZoneBadge.tsx` | 🟠 Design System |
+| Responsive Dropdown Control Layout | `FloorMapPage.tsx` | 🟡 UI/UX |
+| Single Source of Truth Validation | `CustomerLoginPage.tsx`, `RegisterCustomerModal.tsx` | 🔴 Reliability |
+
+**Kiểm thử chất lượng**:
+- `npm run build`: PASS 100% (built in 1.73s, 0 errors, 0 warnings).
+- `mvn test`: 13/13 tests PASS 100% (ZoneIntegrationTest + Phase6CrudEndpointsIntegrationTest).
+- Backend & Frontend dev servers chạy ổn định trong background.
+
+---
+
 
 
 

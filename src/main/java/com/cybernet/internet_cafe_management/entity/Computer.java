@@ -54,7 +54,7 @@ public class Computer {
     }
 
     public enum Zone {
-        STANDARD, VIP
+        STANDARD, VIP, STREAM, ARENA, COUPLE
     }
 
 }

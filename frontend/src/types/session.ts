@@ -1,6 +1,8 @@
+import type { ComputerZone } from '@/types/computer';
+
 export interface ComputerCheckResponse {
   computerCode: string;
-  zone: 'STANDARD' | 'VIP';
+  zone: ComputerZone;
   pricePerHour: number;
   status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE';
   hasActiveSession: boolean;

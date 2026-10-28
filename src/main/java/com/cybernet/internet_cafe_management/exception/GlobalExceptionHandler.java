@@ -145,6 +145,9 @@ public class GlobalExceptionHandler {
         if (lower.contains("không đủ") || lower.contains("số dư") || lower.contains("phút")) return ErrorCode.INSUFFICIENT_TIME;
         if (lower.contains("mật khẩu") || lower.contains("không chính xác") || lower.contains("tài khoản không tồn tại")) return ErrorCode.INVALID_CREDENTIALS;
         if (lower.contains("đang có phiên") || lower.contains("active")) return ErrorCode.ACTIVE_SESSION_EXISTS;
+        if (lower.contains("mã khu vực đã tồn tại") || lower.contains("zone already exists")) return ErrorCode.ZONE_ALREADY_EXISTS;
+        if (lower.contains("đang có máy") || lower.contains("khu vực đang có máy trạm") || lower.contains("zone in use")) return ErrorCode.ZONE_IN_USE;
+        if (lower.contains("khu vực") && lower.contains("không tồn tại")) return ErrorCode.ZONE_NOT_FOUND;
         if (lower.contains("refresh token")) return ErrorCode.REFRESH_TOKEN_INVALID;
         return ErrorCode.MALFORMED_REQUEST;
     }

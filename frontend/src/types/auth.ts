@@ -1,3 +1,5 @@
+import type { ComputerZone } from '@/types/computer';
+
 export type Role = 'CUSTOMER' | 'STAFF' | 'ADMIN';
 
 export interface Account {
@@ -13,7 +15,7 @@ export interface SessionResponse {
   id: number;
   computerId: number;
   computerCode: string;
-  computerZone: 'STANDARD' | 'VIP';
+  computerZone: ComputerZone;
   pricePerHour: number;
   accountId: number;
   accountName: string;

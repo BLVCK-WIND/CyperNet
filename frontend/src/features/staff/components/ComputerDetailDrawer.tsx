@@ -4,7 +4,6 @@ import {
   Monitor,
   User,
   Wrench,
-  Sparkles,
   Zap,
   Globe,
   PlayCircle,
@@ -22,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { sessionApi } from '@/api/sessionApi';
 import { computerApi } from '@/api/computerApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { FloorMapComputerItem, ComputerStatus } from '@/types/computer';
 import type { SessionResponse } from '@/types/auth';
 
@@ -144,22 +144,7 @@ export const ComputerDetailDrawer: React.FC<ComputerDetailDrawerProps> = ({
                 <h2 className="font-heading font-extrabold text-xl text-sand tracking-wide">
                   {code}
                 </h2>
-                {zone === 'VIP' ? (
-                  <Tag
-                    bordered={false}
-                    className="m-0 px-2 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-purple-900/60 to-purple-800/40 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1"
-                  >
-                    <Sparkles className="w-2.5 h-2.5" />
-                    VIP
-                  </Tag>
-                ) : (
-                  <Tag
-                    bordered={false}
-                    className="m-0 px-2 py-0.5 rounded text-[10px] font-medium bg-slate/60 text-sand border border-mist/20"
-                  >
-                    STANDARD
-                  </Tag>
-                )}
+                <ZoneBadge zone={zone} size="sm" />
               </div>
               <span className="text-xs text-mist font-mono">{ipAddress}</span>
             </div>

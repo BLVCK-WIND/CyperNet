@@ -1,11 +1,13 @@
 import React from 'react';
 import { Clock, DollarSign, Shield } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
+import type { ComputerZone } from '@/types/computer';
 
 interface SessionStatsProps {
   playedMinutes: number;
   pricePerHour: number;
-  computerZone: 'STANDARD' | 'VIP';
+  computerZone?: ComputerZone | string;
 }
 
 export const SessionStats: React.FC<SessionStatsProps> = ({
@@ -51,16 +53,10 @@ export const SessionStats: React.FC<SessionStatsProps> = ({
         <div className="p-1.5 rounded-md bg-midnight text-gold mb-1 border border-gold/20">
           <Shield className="w-4 h-4" />
         </div>
-        <span className="text-[10px] sm:text-xs text-mist uppercase tracking-wider block font-medium">
+        <span className="text-[10px] sm:text-xs text-mist uppercase tracking-wider block font-medium mb-1">
           Phân khu
         </span>
-        <span
-          className={`text-xs sm:text-sm font-bold font-['Space_Grotesk'] mt-0.5 ${
-            computerZone === 'VIP' ? 'text-gold' : 'text-slate-300'
-          }`}
-        >
-          {computerZone}
-        </span>
+        <ZoneBadge zone={computerZone} size="sm" />
       </GlassCard>
     </div>
   );

@@ -56,21 +56,25 @@ export const useFloorMap = ({
 
   const allComputers = useMemo(() => data?.computers || [], [data?.computers]);
 
-  // Thống kê tổng hợp số lượng máy
+  // Thống kê tổng hợp số lượng máy (Dynamic theo mọi khu vực)
   const stats = useMemo(() => {
     let availableCount = 0;
     let inUseCount = 0;
     let maintenanceCount = 0;
     let vipCount = 0;
     let standardCount = 0;
+    const zoneCounts: Record<string, number> = {};
 
     for (const c of allComputers) {
       if (c.status === 'AVAILABLE') availableCount++;
       else if (c.status === 'IN_USE') inUseCount++;
       else if (c.status === 'MAINTENANCE') maintenanceCount++;
 
-      if (c.zone === 'VIP') vipCount++;
-      else if (c.zone === 'STANDARD') standardCount++;
+      const z = (c.zone || 'STANDARD').toUpperCase();
+      zoneCounts[z] = (zoneCounts[z] || 0) + 1;
+
+      if (z === 'VIP') vipCount++;
+      else if (z === 'STANDARD') standardCount++;
     }
 
     return {
@@ -80,7 +84,17 @@ export const useFloorMap = ({
       maintenanceCount,
       vipCount,
       standardCount,
+      zoneCounts,
     };
+  }, [allComputers]);
+
+  // Danh sách các mã Zone duy nhất đang có máy
+  const uniqueZones = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of allComputers) {
+      if (c.zone) set.add(c.zone.toUpperCase());
+    }
+    return Array.from(set);
   }, [allComputers]);
 
   // Lọc máy theo status, zone và từ khóa tìm kiếm (Client-side mượt mà)
@@ -91,8 +105,8 @@ export const useFloorMap = ({
         return false;
       }
 
-      // 2. Lọc theo khu vực (Zone)
-      if (zoneFilter !== 'ALL' && item.zone !== zoneFilter) {
+      // 2. Lọc theo khu vực (Zone) - Case-insensitive match
+      if (zoneFilter !== 'ALL' && (item.zone || '').toUpperCase() !== zoneFilter.toUpperCase()) {
         return false;
       }
 
@@ -116,6 +130,7 @@ export const useFloorMap = ({
     computers: filteredComputers,
     allComputers,
     stats,
+    uniqueZones,
     isLoading,
     isFetching,
     isError,

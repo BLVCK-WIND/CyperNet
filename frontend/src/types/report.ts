@@ -1,3 +1,5 @@
+import type { ComputerZone } from '@/types/computer';
+
 export interface RevenueSummaryResponse {
   totalRevenue: number;
   totalOrderRevenue: number;
@@ -24,7 +26,7 @@ export interface DailyRevenueResponse {
 export interface ComputerUsageResponse {
   computerId: number;
   computerCode: string;
-  zone: 'STANDARD' | 'VIP';
+  zone: ComputerZone;
   totalSessions: number;
   totalMinutesUsed: number;
 }

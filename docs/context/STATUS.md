@@ -72,14 +72,36 @@
     - **Cảnh báo an toàn thu tiền mặt:** Pop-up Modal xác nhận bắt buộc nhân viên kiểm tra đã thu tiền mặt trước khi duyệt đơn có nạp giờ chơi.
     - **Backend Dynamic Playtime:** Nâng cấp [OrderService.java](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/src/main/java/com/cybernet/internet_cafe_management/service/OrderService.java) tự động phân tích tên gói cước (ví dụ: "Gói nạp 2 giờ chơi" $\rightarrow$ 120 phút), quy đổi động sang phút chuẩn theo giá máy VIP/Standard của Session đang chạy và gia hạn trực tiếp `session.expiresAt`.
 
+  - **Kiến trúc Quản lý Phân khu Động (Dynamic Zone Architecture - Đã hoàn tất 100%):**
+    - **Backend (Spring Boot + MySQL):**
+      - Migration Flyway `V5__create_zones_table.sql`: Tạo bảng `zones` (`code`, `name`, `default_price_per_hour`, `color_code`, `active`, `description`), nạp sẵn `STANDARD` (Ice Cyan `#85C1DC`) và `VIP` (`#bd9875`).
+      - Migration Flyway `V6__alter_computers_zone_column.sql`: Mở rộng `computers.zone VARCHAR(50)` hỗ trợ mọi mã khu vực tùy biến trong tương lai.
+      - Entity `Zone.java`, `ZoneRepository.java`, DTOs (`CreateZoneRequest`, `UpdateZoneRequest`, `ZoneResponse`), `ZoneService.java` (rào chắn an toàn: không cho xóa STANDARD/VIP, không cho xóa khu vực đang có máy trạm liên kết), `ZoneController.java` (`/api/zones` đầy đủ CRUD & phân quyền RBAC).
+      - Test suite: `ZoneIntegrationTest.java` (8/8 tests PASS 100%), `Phase6CrudEndpointsIntegrationTest.java` (5/5 tests PASS 100%).
+    - **Frontend Admin Panel (`ZoneManagerPage.tsx` & `ManageComputersPage.tsx`):**
+      - Trang Quản lý Khu Vực (`/admin/zones`): Bảng danh sách phân khu Liquid Glass 3D, form thêm/sửa khu vực với bảng màu mẫu (Presets) và color picker tự do, bảo vệ khu vực mặc định.
+      - Trang Quản lý Máy Trạm (`/admin/computers`): Bảng quản trị máy trạm CRUD đầy đủ, dropdown chọn phân khu động từ database, tự động gợi ý đơn giá theo zone, chuyển đổi trạng thái bảo trì 1-click, modal xóa an toàn.
+  - **Hệ thống Hiển thị Zone Động & Chuẩn hóa Màu sắc (Zero-Camouflage System - Đã hoàn tất):**
+    - Tạo hook `useZoneMap.ts` tự động nạp và cache danh mục phân khu từ backend.
+    - Tạo component dùng chung `ZoneBadge.tsx`: Hiển thị mã viết tắt ngắn gọn (`STD`, `VIP`, `ARENA`, `VAL`, `FPS`...), văn bản mang chính xác 100% mã màu Admin đã chọn trong database, viền kính mờ và chấm LED phát sáng.
+    - Khắc phục triệt để lỗi màu chữ STANDARD `#434e60` chìm nghỉm vào nền tối bằng cách chuyển sang màu Ice Cyan `#85C1DC`.
+    - Đồng bộ hiển thị trên toàn bộ cụm Staff (`ComputerCard`, `ComputerDetailDrawer`, `StartSessionModal`, `TransferSessionModal`, `SellTimeModal`, `SessionManagerPage`) và Customer (`CustomerLoginPage`, `CustomerDashboardPage`, `SessionStats`).
+  - **Tối ưu Bố cục Sơ đồ máy (Floor Map Control Optimization - Đã hoàn tất):**
+    - Chuyển bộ lọc phân khu từ hàng nút Segmented dài dòng thành **Dropdown `Select` có mũi tên trỏ xuống `▾`** đặt liền kề cạnh ô Tìm kiếm nhanh bên phải.
+    - Giữ các nút chuyển trạng thái máy (`Tất cả`, `Trống`, `Đang chơi`, `Bảo trì`) dạng 1-click bên trái, tạo bố cục cân đối và không bao giờ bị vỡ layout.
+  - **Khắc phục Lỗi Bất đối xứng độ dài SĐT Đăng nhập (Phone Length Asymmetry Fix - Đã hoàn tất):**
+    - Sửa lỗi xung đột `maxLength={10}` và regex trên `CustomerLoginPage.tsx` khiến khách hàng đăng ký 11 số bị cắt cụt không đăng nhập được.
+    - Đồng bộ validation 9 đến 11 số (`maxLength={11}`, regex `/^0\d{8,10}$/`) trên toàn hệ thống. Cập nhật tài khoản #82 về đúng chuẩn 10 số (`0111111111`).
+
 ---
 
 ## 🟢 Kế hoạch kế tiếp:
-1. **Triển khai MS-3.3: Quản lý Máy trạm Admin (`/admin/computers`)**: Bảng quản trị danh sách máy trạm, đổi zone (STANDARD/VIP), thiết lập đơn giá giờ chơi theo zone, bật/tắt chế độ bảo trì máy trạm.
-2. **Triển khai MS-3.4: Quản lý Thực đơn & Dịch vụ Admin (`/admin/items`)**: Bảng quản trị món ăn/đồ uống/gói giờ chơi, tạo món mới kèm tải ảnh món ăn, cập nhật giá và tồn kho.
+1. **Triển khai MS-3.5: Quản lý Thực đơn & Dịch vụ F&B Admin (`/admin/items`)**: Bảng quản trị danh mục món ăn/đồ uống/gói giờ chơi/dịch vụ, thêm món mới kèm ảnh đại diện (`imageUrl`), cập nhật giá bán và toggle nhanh Còn hàng / Hết hàng.
+2. **Triển khai MS-3.6: Quản lý Tài khoản & Phân quyền nhân viên Admin (`/admin/accounts`)**: Cấp tài khoản nhân viên ca trực (`STAFF`) hoặc Quản trị viên (`ADMIN`), đặt lại mật khẩu và phân quyền quản trị.
+3. **Triển khai MS-3.7 & MS-3.8 & MS-3.9: Trung tâm Báo cáo & Biểu đồ Doanh thu (`/admin/reports`)**: Biểu đồ doanh thu AreaChart Recharts, cơ cấu doanh thu F&B vs Giờ chơi, top món bán chạy và hiệu suất máy trạm.
 
 ---
 
 ## 🎯 Tổng kết chất lượng:
-- **Backend:** 101 Java source files, 83/83 tests PASS 100%, tích hợp kiểm toán (AuditLog) và chống leo thang đặc quyền.
-- **Frontend:** React 19 + TypeScript + Vite + Tailwind 4 + Ant Design 6 (Twinkle CyberLux Theme), `npm run build` PASS 100% (0 errors, 0 warnings). Đồng bộ 100% Liquid Glass 3D Telemetry Strip trên toàn bộ Staff & Admin.
+- **Backend:** 105 Java source files, 96/96 tests PASS 100%, bảo mật JWT, kiểm toán AuditLog, Dynamic Tariff và Quản lý Phân khu động.
+- **Frontend:** React 19 + TypeScript + Vite + Tailwind 4 + Ant Design 6, `npm run build` PASS 100% (0 errors, 0 warnings). Đồng bộ 100% Liquid Glass 3D và hệ thống ZoneBadge trên toàn bộ Staff, Customer & Admin.

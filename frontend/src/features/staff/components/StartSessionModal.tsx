@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Select, Button, Tag, Skeleton, App } from 'antd';
+import { Modal, Select, Button, Skeleton, App } from 'antd';
 import {
   PlayCircle,
   Monitor,
@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { accountApi } from '@/api/accountApi';
 import { sessionApi } from '@/api/sessionApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import { RegisterCustomerModal } from './RegisterCustomerModal';
 import type { FloorMapComputerItem } from '@/types/computer';
 import type { Account, ErrorResponse, SessionResponse } from '@/types/auth';
@@ -195,15 +196,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
                   <span className="font-heading font-bold text-sand text-sm">
                     {activeComputer.code}
                   </span>
-                  {activeComputer.zone === 'VIP' ? (
-                    <Tag bordered={false} className="m-0 text-[10px] font-bold bg-purple-900/60 text-purple-300 border border-purple-500/30">
-                      VIP
-                    </Tag>
-                  ) : (
-                    <Tag bordered={false} className="m-0 text-[10px] font-medium bg-slate/60 text-sand">
-                      STANDARD
-                    </Tag>
-                  )}
+                  <ZoneBadge zone={activeComputer.zone} size="sm" />
                 </div>
                 <span className="text-[11px] font-mono text-mist">
                   IP: {activeComputer.ipAddress}

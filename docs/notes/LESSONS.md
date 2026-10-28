@@ -664,6 +664,67 @@ Biên dịch thành công 69 files source code (`mvn clean test` BUILD SUCCESS).
     - Active/Hover: Nền kính vàng mờ (`rgba(189, 152, 117, 0.18)`), chữ chuyển sang màu Trắng Sáng (`#ffffff`, font-semibold).
   - Tăng độ đặc hiệu (specificity) trên `.ant-select-item-option-selected` và `.ant-select-item-option-active` để không bị CSS mặc định của Ant Design ghi đè.
 
+---
+
+## 📍 PHASE 3 — QUẢN TRỊ ADMIN, KIẾN TRÚC PHÂN KHU ĐỘNG & BÀI HỌC VẬN HÀNH
+
+### 11. Bất Đối Xứng Độ Dài Dữ Liệu Input Giữa Các Màn Hình (Phone Length Asymmetry Pitfall) ⚠️ CỰC KỲ NGUY HIỂM
+
+- **Triệu chứng & Tác hại**: Nhân viên quầy tạo hội viên mới thành công với SĐT 11 chữ số (`01111111111`), nạp tiền và mở máy `VIP-06` thành công. Tuy nhiên khi khách hàng ngồi vào máy mở trình duyệt đăng nhập thì bị báo lỗi *"Số điện thoại không khớp với người đang chơi tại máy VIP-06"*, gây hoang mang nghi vấn hệ thống bị lỗi nghiêm trọng.
+- **Nguyên nhân kỹ thuật gốc rễ**:
+  - Tại Form Đăng ký hội viên (`RegisterCustomerModal.tsx`): Cho phép nhận SĐT 9 đến 11 số (`maxLength={11}` và validation `9-11 số`). Tài khoản lưu vào MySQL là `01111111111` (11 số).
+  - Nhưng tại Trang Đăng nhập máy trạm (`CustomerLoginPage.tsx`): Ô nhập SĐT lại bị gán cứng `maxLength={10}` và regex `/^0\d{9}$/` (chỉ cho 10 số).
+  - Khi khách gõ `01111111111`, input âm thầm cắt cụt số cuối thành `0111111111` (10 số). Request gửi lên Backend lệch đúng 1 ký tự so với số đăng ký phiên, dẫn đến việc Backend từ chối hợp lệ.
+- **Bài học & Quy tắc phòng ngừa**:
+  - Các trường dữ liệu định danh (SĐT, Mã máy, CCCD) phải có **Validation đồng nhất (Single Source of Truth)** xuyên suốt từ Backend đến mọi Form Frontend.
+  - Tuyệt đối không để xảy ra tình trạng "Tạo được ở Form A nhưng không Đăng nhập được ở Form B".
+  - Với số điện thoại tại Việt Nam: Quy chuẩn validation Frontend phải hỗ trợ từ 9 đến 11 chữ số (`maxLength={11}`, regex `/^0\d{8,10}$/`).
+
+---
+
+### 12. Độc Lập Màu Sắc Động & Tránh Sai Lệch Màu Sắc Admin - Client (Dynamic Entity Color vs Hardcoded Preset Fallback)
+
+- **Vấn đề**: Admin vào trang Quản lý Khu vực thiết lập màu cho khu `ARENA` là màu **Xanh Cyan (`#06b6d4`)**. Nhưng trên Sơ đồ phòng máy (Staff) hay Màn hình khách (Customer), thẻ máy `VIP-06` lại hiển thị tag màu **Đỏ rực**, gây nhầm lẫn thị giác nghiêm trọng cho quản lý.
+- **Nguyên nhân**:
+  - Entity `Computer` trong Database chỉ lưu mã khu vực dạng chuỗi (`zone = 'ARENA'`), không lưu mã màu `colorCode`.
+  - Component hiển thị Badge khi không được truyền mã màu đã tự động fallback về bảng màu tĩnh hardcode trong file TSX (nơi ARENA bị gán cứng là `#ef4444` màu đỏ).
+- **Giải pháp chuẩn hóa**:
+  - Xây dựng Custom Hook `useZoneMap()` tải danh mục Zone thời gian thực từ `GET /api/zones/active` và cache toàn cục bằng TanStack Query (`staleTime: 60s`).
+  - Component `<ZoneBadge />` tự động tra cứu mã màu thực tế mà Admin đã chọn trong Database: Admin gán màu nào thì mọi màn hình Staff và Customer sẽ **hiển thị chính xác 100% màu đó**, triệt tiêu toàn bộ màu hardcode dự phòng.
+
+---
+
+### 13. Bài Toán Tương Phản Màu Nền Tối & Nguy Cơ "Ngụy Trang Màu" (Dark Surface Camouflage & WCAG 2.1 AA)
+
+- **Vấn đề**: Khu vực tiêu chuẩn `STANDARD` trong hệ thống cũ được gán mã màu `#434e60` (Slate Denim). Khi đưa mã màu này làm màu chữ trên nền Card / Table, chữ "Khu vực Tiêu Chuẩn" bị chìm nghỉm vào nền tối, tỷ lệ tương phản chỉ đạt ~1.4:1 (không đọc được bằng mắt thường).
+- **Nguyên nhân**: `#434e60` chính là màu nền bề mặt (`--color-slate` / `colorBgContainer`) của các Card và Table trong Twinkle dark theme.
+- **Bài học thiết kế giao diện tối**:
+  - **Màu bề mặt nền (Surface color) tuyệt đối không được dùng làm màu văn bản (Text color)**.
+  - Phân khu `STANDARD` được nâng cấp sang màu nhận diện **Ice Cyan (`#85C1DC`)** tươi sáng.
+  - Trong component `<ZoneBadge />`, văn bản phải luôn đạt độ tương phản cao trên nền tối kết hợp viền mờ phát sáng (`border: ${color}55`) và chấm LED chỉ báo.
+
+---
+
+### 14. Phân Định Mã Viết Tắt (Short Code) vs Tên Đầy Đủ (Full Name) Trên Thẻ Máy Trạm
+
+- **Vấn đề**: Khi hỗ trợ phân khu động, nếu hiển thị đầy đủ tên tiếng Việt (như *"CẤU HÌNH 4K 300HS"*, *"KHU THI ĐẤU VALORANT"*), thẻ máy trạm trên sơ đồ phòng máy sẽ bị dài dòng, chiếm diện tích và vỡ bố cục Cyber Gaming.
+- **Quy tắc phân định chuẩn Enterprise**:
+  - **Trên Thẻ máy trạm (Computer Card & Header)**: Bắt buộc dùng **Mã viết tắt ngắn gọn (Short Code)**: `STD`, `VIP`, `ARENA`, `VAL`, `FPS` (từ 3 đến 5 ký tự), không kèm icon rườm rà.
+  - **Trên Thanh lọc phân khu, Dropdown, Thực đơn, Báo cáo**: Luôn hiển thị **Tên đầy đủ trang trọng (Full Name)** để nhân viên và khách hàng nhận diện rõ ràng cấu hình phòng máy.
+  - Khi thêm khu vực mới trong Admin: Hướng dẫn người dùng nhập rõ **"Mã viết tắt trên thẻ máy (Code - VD: VAL, VIP)"** và **"Tên hiển thị đầy đủ (Name - VD: Khu Thi Đấu Valorant)"**.
+
+---
+
+### 15. Tối Ưu Bố Cục Điều Khiển Sơ Đồ Máy: Dropdown Select vs Hàng Nút Bấm Dàn Ngang
+
+- **Vấn đề**: Ban đầu bộ lọc phân khu được làm bằng hàng nút bấm `Segmented`. Khi phòng máy có thêm 4-5 khu vực với tên dài, hàng nút bấm bị dàn ngang quá mức, đẩy ô tìm kiếm rớt dòng và làm vỡ layout trên các màn hình nhỏ.
+- **Giải pháp bố cục**:
+  - Phân loại rõ ràng 2 nhóm điều khiển:
+    - **Lọc Trạng thái máy (ít, cố định 4 mục: Tất cả, Trống, Đang chơi, Bảo trì)**: Đặt dạng Segmented tabs bên trái để nhân viên quầy click 1 chạm.
+    - **Lọc Phân khu (nhiều, động, tên dài)**: Chuyển thành **Dropdown `Select` có mũi tên trỏ xuống `▾` (`ChevronDown`)** với độ rộng cố định `w-60`, đặt ngay cạnh ô Tìm kiếm bên phải.
+  - Trong dropdown, mỗi tùy chọn có chấm LED màu nhận diện và số lượng máy. Giao diện trở nên vô cùng gọn gàng, thanh thoát và không bao giờ bị vỡ dòng dù phòng máy mở rộng thêm 20 khu vực.
+
+
 
 
 

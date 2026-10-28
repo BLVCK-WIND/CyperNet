@@ -24,6 +24,10 @@ public interface ComputerRepository extends JpaRepository<Computer, Long>, JpaSp
 
     Page<Computer> findByZone(Computer.Zone zone, Pageable pageable);
 
+    // Đếm số lượng máy trạm thuộc một khu vực (theo chuỗi mã zone code)
+    @Query(value = "SELECT COUNT(*) FROM computers WHERE UPPER(zone) = UPPER(:zoneCode)", nativeQuery = true)
+    long countComputersByZoneCode(@Param("zoneCode") String zoneCode);
+
     // Khóa bi quan (Pessimistic Lock) khi mở máy hoặc chuyển máy theo ID - Dùng nativeQuery tương thích mọi phiên bản MySQL/MariaDB
     @Query(value = "SELECT * FROM computers WHERE id = :id FOR UPDATE", nativeQuery = true)
     Optional<Computer> findByIdWithLock(@Param("id") Long id);

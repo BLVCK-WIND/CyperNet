@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Select, Button, Tag, Checkbox, Input, App } from 'antd';
+import { Modal, Select, Button, Checkbox, Input, App } from 'antd';
 import {
   ArrowRightLeft,
   Monitor,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { sessionApi } from '@/api/sessionApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { FloorMapComputerItem } from '@/types/computer';
 import type { ErrorResponse, SessionResponse } from '@/types/auth';
 
@@ -130,9 +131,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
               <span className="font-heading font-bold text-sand text-base">
                 {computer.code}
               </span>
-              <Tag bordered={false} className="m-0 text-[10px] font-bold bg-info/20 text-[#85C1DC]">
-                {computer.zone}
-              </Tag>
+              <ZoneBadge zone={computer.zone} size="sm" />
             </div>
             <span className="text-xs text-mist truncate block mt-1">
               Khách: {session.accountName || 'Khách vãng lai'}
@@ -151,9 +150,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
                   <span className="font-heading font-bold text-gold text-base">
                     {targetComputer.code}
                   </span>
-                  <Tag bordered={false} className="m-0 text-[10px] font-bold bg-gold/20 text-gold">
-                    {targetComputer.zone}
-                  </Tag>
+                  <ZoneBadge zone={targetComputer.zone} size="sm" />
                 </div>
                 <span className="text-xs text-sand font-mono block mt-1">
                   {new Intl.NumberFormat('vi-VN').format(targetComputer.pricePerHour)}đ/h

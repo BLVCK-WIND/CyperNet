@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tag, Skeleton, App } from 'antd';
+import { Button, Skeleton, App } from 'antd';
 import {
   LogOut,
   Monitor,
@@ -15,6 +15,7 @@ import dayjs from 'dayjs';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { PageTransition } from '@/components/animations/PageTransition';
 import { Sparkles as SparklesParticles } from '@/components/animations/Sparkles';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import { TimerRing } from '../components/TimerRing';
 import { SessionStats } from '../components/SessionStats';
 import { useSession } from '../hooks/useSession';
@@ -97,12 +98,11 @@ export const CustomerDashboardPage: React.FC = () => {
               <span>{computerCode || session?.computerCode || 'PC'}</span>
             </div>
 
-            <Tag
-              color={session?.computerZone === 'VIP' ? '#bd9875' : '#434e60'}
-              className="font-semibold text-xs border-0 px-2 py-0.5 m-0"
-            >
-              {session?.computerZone || 'STANDARD'}
-            </Tag>
+            <ZoneBadge
+              zone={session?.computerZone}
+              size="sm"
+              className="hidden sm:inline-flex"
+            />
 
             <Button
               type="text"

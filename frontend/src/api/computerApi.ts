@@ -1,5 +1,10 @@
 import { axiosClient } from './axiosClient';
-import type { ComputerResponse, GetComputersParams } from '@/types/computer';
+import type {
+  ComputerResponse,
+  GetComputersParams,
+  CreateComputerRequest,
+  UpdateComputerRequest,
+} from '@/types/computer';
 import type { PageResponse } from '@/types/item';
 
 export const computerApi = {
@@ -20,13 +25,29 @@ export const computerApi = {
   },
 
   /**
+   * Tạo máy trạm mới (ADMIN / STAFF)
+   * Endpoint: POST /api/computers
+   */
+  createComputer(data: CreateComputerRequest): Promise<ComputerResponse> {
+    return axiosClient.post('/api/computers', data);
+  },
+
+  /**
    * Cập nhật máy trạm (đổi trạng thái, khu vực, giá)
    * Endpoint: PUT /api/computers/{id}
    */
   updateComputer(
     id: number,
-    data: Partial<Omit<ComputerResponse, 'id'>>
+    data: UpdateComputerRequest | Partial<Omit<ComputerResponse, 'id'>>
   ): Promise<ComputerResponse> {
     return axiosClient.put(`/api/computers/${id}`, data);
+  },
+
+  /**
+   * Xóa máy trạm (ADMIN)
+   * Endpoint: DELETE /api/computers/{id}
+   */
+  deleteComputer(id: number): Promise<void> {
+    return axiosClient.delete(`/api/computers/${id}`);
   },
 };

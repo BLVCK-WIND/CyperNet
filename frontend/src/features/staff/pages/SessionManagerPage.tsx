@@ -20,6 +20,7 @@ import dayjs from 'dayjs';
 import { sessionApi } from '@/api/sessionApi';
 import { computerApi } from '@/api/computerApi';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { StartSessionModal } from '../components/StartSessionModal';
 import { EndSessionModal } from '../components/EndSessionModal';
@@ -377,12 +378,7 @@ export const SessionManagerPage: React.FC = () => {
                     <span className="font-heading font-extrabold text-base text-sand tracking-wide">
                       {session.computerCode}
                     </span>
-                    <Tag
-                      color={session.computerZone === 'VIP' ? 'gold' : 'blue'}
-                      className="m-0 text-[10px] font-bold px-1.5 py-0.2 rounded"
-                    >
-                      {session.computerZone}
-                    </Tag>
+                    <ZoneBadge zone={session.computerZone} size="sm" />
                     <span className="text-[11px] font-mono text-mist">
                       {new Intl.NumberFormat('vi-VN').format(session.pricePerHour)}đ/h
                     </span>
@@ -515,12 +511,7 @@ export const SessionManagerPage: React.FC = () => {
                     <span className="font-heading font-extrabold text-sm text-sand">
                       {session.computerCode}
                     </span>
-                    <Tag
-                      color={session.computerZone === 'VIP' ? 'gold' : 'blue'}
-                      className="m-0 text-[10px] font-bold px-1.5 py-0.2 rounded"
-                    >
-                      {session.computerZone}
-                    </Tag>
+                    <ZoneBadge zone={session.computerZone} size="sm" />
                   </div>
                   <div className="text-[11px] font-mono text-mist">
                     Mã phiên: #{session.id} • {new Intl.NumberFormat('vi-VN').format(session.pricePerHour)}đ/h

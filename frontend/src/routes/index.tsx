@@ -7,6 +7,8 @@ import { CustomerLayout } from '@/components/layout/CustomerLayout';
 import { StaffLayout } from '@/components/layout/StaffLayout';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage';
+import { ZoneManagerPage } from '@/features/admin/pages/ZoneManagerPage';
+import { ManageComputersPage } from '@/features/admin/pages/ManageComputersPage';
 import { StaffLoginPage } from '@/features/staff/pages/StaffLoginPage';
 import { FloorMapPage } from '@/features/staff/pages/FloorMapPage';
 import { StaffOrderQueuePage } from '@/features/staff/pages/StaffOrderQueuePage';
@@ -125,6 +127,14 @@ export const router = createBrowserRouter([
           {
             path: 'dashboard',
             element: <AdminDashboardPage />,
+          },
+          {
+            path: 'computers',
+            element: <ManageComputersPage />,
+          },
+          {
+            path: 'zones',
+            element: <ZoneManagerPage />,
           },
           {
             path: 'accounts',
