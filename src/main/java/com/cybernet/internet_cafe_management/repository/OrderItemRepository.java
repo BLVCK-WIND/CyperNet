@@ -14,6 +14,9 @@ import java.util.List;
 @Repository
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
+    // Kiểm tra xem món ăn đã từng có trong đơn hàng nào chưa
+    boolean existsByItemId(Long itemId);
+
     // Lấy các món chi tiết của 1 đơn hàng cụ thể
     List<OrderItem> findByOrderId(Long orderId);
 

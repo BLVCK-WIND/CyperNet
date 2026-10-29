@@ -1400,12 +1400,56 @@ Mỗi ngày làm việc, ghi 1 entry theo format:
 | Responsive Dropdown Control Layout | `FloorMapPage.tsx` | 🟡 UI/UX |
 | Single Source of Truth Validation | `CustomerLoginPage.tsx`, `RegisterCustomerModal.tsx` | 🔴 Reliability |
 
-**Kiểm thử chất lượng**:
-- `npm run build`: PASS 100% (built in 1.73s, 0 errors, 0 warnings).
-- `mvn test`: 13/13 tests PASS 100% (ZoneIntegrationTest + Phase6CrudEndpointsIntegrationTest).
-- Backend & Frontend dev servers chạy ổn định trong background.
-
 ---
+
+### 2026-10-30 — Hoàn Thiện & Nghiệm Thu Toàn Bộ 4 Trang Quản Trị Admin (Phase 3 CRUD)
+
+**Phase**: Phase 3 Admin CRUD Hardening & Financial Integrity
+**Thời gian**: ~4.5 giờ
+**Việc đã làm**:
+1. **Trang 1: Quản lý Máy trạm (`/admin/computers`)**:
+   - Cập nhật validation IPv4 regex trên `CreateComputerRequest` và `UpdateComputerRequest`.
+   - Bổ sung `existsByIpAddress` và `existsByIpAddressAndIdNot` trong `ComputerRepository`.
+   - Chặn tạo/sửa trùng IP LAN, chặn xóa máy đang `IN_USE` hoặc đã có lịch sử phiên chơi / đơn hàng liên kết.
+   - Bắn sự kiện realtime WebSocket STOMP tức thì khi tạo máy trạm mới.
+   - Viết bài test tích hợp `ManageComputersIntegrationTest.java`: 5/5 tests PASS 100%.
+   - Kịch bản kiểm thử Live Server `test_admin_computers_e2e.ps1`: 8/8 bước PASS 100%.
+2. **Trang 2: Quản lý Thực đơn F&B & Kho món (`/admin/items`)**:
+   - Tự động `.trim()` khoảng trắng đầu/cuối tên món khi tạo và cập nhật.
+   - Chống trùng tên món case-insensitive (`existsByNameIgnoreCaseAndIdNot`).
+   - Safe Delete Integrity: Chặn xóa cứng món đã phát sinh đơn hàng trong `order_items` (HTTP 400); chuyển sang toggle `available = false` (báo hết hàng).
+   - **Bảo toàn Dynamic Tariff cho gói Combo giờ chơi:** Bổ sung regex nhận diện `"tiếng"` / `"tiếng"` / `"giờ"` / `"h"` trong `extractPackageMinutes`. Khi bán gói combo trực tiếp tại quầy qua `OrderService.createDirectOrder`, quy đổi động ra số phút máy thực tế theo Zone máy (`VIP` 15k/h $\rightarrow$ 240 phút cho gói 6 tiếng), bảo toàn nguyên vẹn doanh thu phòng máy.
+   - Viết bài test tích hợp `ManageItemsIntegrationTest.java`: 5/5 tests PASS 100%.
+   - Kịch bản kiểm thử Live Server `test_admin_items_e2e.ps1`: 9/9 bước PASS 100%.
+3. **Trang 3: Quản lý Tài khoản & Phân quyền (`/admin/accounts`)**:
+   - Auto-trim số điện thoại và họ tên khi tạo mới và cập nhật.
+   - Bảo vệ Quản trị viên Tối cao: Chặn Admin tự xóa chính mình (`isSelf`) và chặn xóa/hạ quyền Quản trị viên duy nhất còn lại trong hệ thống (`countByRole(Role.ADMIN) <= 1`).
+   - Safe Delete: Chặn xóa tài khoản đã có lịch sử nạp giờ (`time_purchases`), lịch sử phiên chơi (`sessions`), lịch sử đơn hàng (`orders`) hoặc nhân viên đã từng xác nhận giao dịch.
+   - Active Session Protection: Chặn xóa và chặn đổi Role khi tài khoản đang có phiên chơi `ACTIVE` trên máy trạm.
+   - Viết bài test tích hợp `ManageAccountsIntegrationTest.java`: 6/6 tests PASS 100%.
+   - Kịch bản kiểm thử Live Server `test_admin_accounts_e2e.ps1`: 9/9 bước PASS 100%.
+4. **Trang 4: Báo cáo Doanh thu & Thống kê (`/admin/reports`)**:
+   - **Cân đối sổ sách kế toán 100% (Zero Revenue Leakage):** Gom cả `Item.Type.SERVICE` và `Item.Type.PLAYTIME` vào doanh thu giờ chơi / dịch vụ, bảo đảm cân đối tuyệt đối: $\text{totalRevenue} = \text{F&B} + \text{Playtime} = \text{Cash} + \text{QR}$.
+   - Chuẩn hóa mốc thời gian lọc `end.atTime(23, 59, 59)` loại bỏ lỗi làm tròn nanoseconds sang ngày hôm sau trên MySQL.
+   - Bảo mật RBAC tuyệt đối: Toàn bộ controller khóa chặt `@PreAuthorize("hasRole('ADMIN')")`, chặn `STAFF` và `CUSTOMER` xem báo cáo tài chính (HTTP 403).
+   - Viết bài test tích hợp `ReportIntegrationTest.java`: 6/6 tests PASS 100%.
+   - Kịch bản kiểm thử Live Server `test_admin_reports_e2e.ps1`: 9/9 bước PASS 100%.
+
+**Kỹ thuật & kiến thức áp dụng**:
+| Kỹ thuật | Dùng ở đâu | Tier |
+|---|---|---|
+| Safe Delete Integrity (FK Protection) | `ComputerService.java`, `ItemService.java`, `AccountService.java` | 🔴 Data Reliability |
+| Anti-Privilege Escalation & Admin Guard | `AccountController.java`, `AccountService.java` | 🔴 Security & RBAC |
+| Active Session Mutex Guard | `AccountService.java`, `SessionRepository.java` | 🔴 Concurrency / State |
+| Dynamic Tariff Order Linkage | `OrderService.java` (`createDirectOrder`) | 🔴 Dynamic Pricing |
+| Financial Balance Aggregations | `ReportService.java` | 🟠 Financial Accuracy |
+| End-to-End Automation Scripts | `test_admin_*.ps1` (4 scripts, 35 test steps) | 🟢 Quality Assurance |
+
+**Kiểm thử chất lượng**:
+- **Integration Tests:** 22/22 tests PASS 100% trên cả 4 modules (`ManageComputersIntegrationTest`, `ManageItemsIntegrationTest`, `ManageAccountsIntegrationTest`, `ReportIntegrationTest`).
+- **Live Server E2E:** 4/4 scripts (35/35 bước kiểm thử thực tế) PASS 100%.
+- **Frontend Production Build:** `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings).
+
 
 
 

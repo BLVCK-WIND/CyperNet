@@ -47,7 +47,7 @@ public class ReportService {
         LocalDate end = resolvedDates[1];
 
         LocalDateTime fromTime = start.atStartOfDay();
-        LocalDateTime toTime = end.atTime(LocalTime.MAX);
+        LocalDateTime toTime = end.atTime(23, 59, 59);
 
         // 1. Doanh thu từ Order (đã thanh toán CONFIRMED)
         BigDecimal totalOrderRevenue = orderRepository.sumRevenueByStatusAndDateRange(Order.Status.CONFIRMED, fromTime, toTime);
@@ -84,7 +84,7 @@ public class ReportService {
             }
         }
 
-        // 5. Cơ cấu doanh thu theo loại hàng (F&B vs Playtime)
+        // 5. Cơ cấu doanh thu theo loại hàng (F&B vs Playtime/Service)
         BigDecimal totalFoodAndDrinkRevenue = BigDecimal.ZERO;
         BigDecimal playtimeInOrderRevenue = BigDecimal.ZERO;
 
@@ -93,7 +93,7 @@ public class ReportService {
             BigDecimal subtotal = (BigDecimal) row[1];
             if (type == Item.Type.FOOD || type == Item.Type.DRINK) {
                 totalFoodAndDrinkRevenue = totalFoodAndDrinkRevenue.add(subtotal);
-            } else if (type == Item.Type.PLAYTIME) {
+            } else if (type == Item.Type.PLAYTIME || type == Item.Type.SERVICE) {
                 playtimeInOrderRevenue = playtimeInOrderRevenue.add(subtotal);
             }
         }
@@ -126,7 +126,7 @@ public class ReportService {
         LocalDate end = resolvedDates[1];
 
         LocalDateTime fromTime = start.atStartOfDay();
-        LocalDateTime toTime = end.atTime(LocalTime.MAX);
+        LocalDateTime toTime = end.atTime(23, 59, 59);
 
         // Map tạm gom Order theo ngày
         Map<LocalDate, BigDecimal> orderRevMap = new HashMap<>();
@@ -182,7 +182,7 @@ public class ReportService {
     public List<TopItemResponse> getTopSellingItems(LocalDate fromDate, LocalDate toDate, int limit) {
         LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
         LocalDateTime fromTime = resolvedDates[0].atStartOfDay();
-        LocalDateTime toTime = resolvedDates[1].atTime(LocalTime.MAX);
+        LocalDateTime toTime = resolvedDates[1].atTime(23, 59, 59);
 
         int resolvedLimit = Math.max(1, Math.min(limit, 100)); // An toàn từ 1 đến 100 món
         List<Object[]> rawList = orderItemRepository.findTopSellingItems(
@@ -207,7 +207,7 @@ public class ReportService {
     public List<TopCustomerResponse> getTopSpendingCustomers(LocalDate fromDate, LocalDate toDate, int limit) {
         LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
         LocalDateTime fromTime = resolvedDates[0].atStartOfDay();
-        LocalDateTime toTime = resolvedDates[1].atTime(LocalTime.MAX);
+        LocalDateTime toTime = resolvedDates[1].atTime(23, 59, 59);
 
         int resolvedLimit = Math.max(1, Math.min(limit, 50));
 
@@ -284,7 +284,7 @@ public class ReportService {
     public List<ComputerUsageResponse> getComputerUsageStats(LocalDate fromDate, LocalDate toDate) {
         LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
         LocalDateTime fromTime = resolvedDates[0].atStartOfDay();
-        LocalDateTime toTime = resolvedDates[1].atTime(LocalTime.MAX);
+        LocalDateTime toTime = resolvedDates[1].atTime(23, 59, 59);
 
         // 1. Lấy tổng số phút sử dụng theo máy
         Map<Long, Long> minutesMap = new HashMap<>();

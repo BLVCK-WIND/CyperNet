@@ -29,6 +29,14 @@ export const orderApi = {
   },
 
   /**
+   * Lấy lịch sử tất cả đơn hàng của khách hàng đang đăng nhập (hỗ trợ cả đơn có phiên và máy trống)
+   * Endpoint: GET /api/orders/my-orders
+   */
+  getMyOrders(params: GetOrdersParams = { page: 0, size: 30 }): Promise<PageResponse<OrderResponse>> {
+    return axiosClient.get('/api/orders/my-orders', { params });
+  },
+
+  /**
    * Lấy danh sách đơn hàng lọc theo status (dành cho Staff / Admin)
    * Endpoint: GET /api/orders?status={status}&page={page}&size={size}
    */
@@ -49,6 +57,14 @@ export const orderApi = {
     return axiosClient.get('/api/files/vietqr', {
       params: { amount, content },
     });
+  },
+
+  /**
+   * Khách hàng xác nhận đã chuyển khoản VietQR
+   * Endpoint: PATCH /api/orders/{id}/notify-transferred
+   */
+  notifyTransferred(id: number): Promise<OrderResponse> {
+    return axiosClient.patch(`/api/orders/${id}/notify-transferred`);
   },
 
   /**

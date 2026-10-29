@@ -39,6 +39,15 @@ export interface TopItemResponse {
   totalRevenue: number;
 }
 
+export interface TopCustomerResponse {
+  accountId: number;
+  name: string;
+  phone: string;
+  totalSpent: number;
+  remainingMinutes: number;
+  totalMinutesPlayed: number;
+}
+
 export interface ReportDateParams {
   fromDate?: string;
   toDate?: string;

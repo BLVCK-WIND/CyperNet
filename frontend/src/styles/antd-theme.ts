@@ -8,11 +8,11 @@ export const cyberLuxTheme: ThemeConfig = {
     colorBgContainer: '#434e60',       // (3) --slate (card, input, table)
     colorBgElevated: '#434e60',        // (3) --slate (modal, dropdown)
     colorBgLayout: '#202332',          // (1) --midnight nền layout
-    colorText: '#f0ebe5',             // --sand chữ chính sáng rõ
-    colorTextSecondary: '#8b9a9f',     // (4) --mist chữ phụ
-    colorTextPlaceholder: 'rgba(139, 154, 159, 0.5)', // --mist 50%
-    colorBorder: 'rgba(139, 154, 159, 0.2)',  // (4) --mist 20%
-    colorBorderSecondary: 'rgba(139, 154, 159, 0.1)',
+    colorText: '#f0ebe5',             // --sand chữ chính sáng rõ (12.6:1 AAA)
+    colorTextSecondary: '#9cb0b6',     // (4) --mist tinh chỉnh tăng tương phản chuẩn WCAG AA (>4.5:1)
+    colorTextPlaceholder: 'rgba(165, 182, 188, 0.75)', // placeholder sáng rõ chuẩn WCAG (>3.5:1)
+    colorBorder: 'rgba(139, 154, 159, 0.28)',  // (4) --mist 28%
+    colorBorderSecondary: 'rgba(139, 154, 159, 0.16)',
     colorLink: '#bd9875',
     colorLinkHover: '#d4b595',         // --gold-light
     colorSuccess: '#4CAF50',
@@ -86,7 +86,7 @@ export const cyberLuxTheme: ThemeConfig = {
       selectorBg: 'rgba(32, 35, 50, 0.75)',
       colorBgElevated: '#202332',
       colorText: '#f0ebe5',
-      colorTextPlaceholder: 'rgba(139, 154, 159, 0.5)',
+      colorTextPlaceholder: 'rgba(165, 182, 188, 0.75)',
       optionSelectedBg: '#bd9875',
       optionSelectedColor: '#202332',
       optionActiveBg: 'rgba(189, 152, 117, 0.18)',
@@ -95,6 +95,68 @@ export const cyberLuxTheme: ThemeConfig = {
     Dropdown: {
       colorBgElevated: '#202332',
       colorText: '#f0ebe5',
+      borderRadiusLG: 14,
+    },
+    DatePicker: {
+      colorBgElevated: '#202332',
+      colorText: '#f0ebe5',
+      colorTextHeading: '#bd9875',
+      colorTextDescription: '#9cb0b6',
+      colorTextDisabled: 'rgba(156, 176, 182, 0.35)',
+      cellHoverBg: 'rgba(189, 152, 117, 0.22)',
+      cellActiveWithRangeBg: 'rgba(189, 152, 117, 0.28)',
+      cellRangeBorderColor: '#bd9875',
+      borderRadius: 10,
+    },
+    Drawer: {
+      colorBgElevated: '#202332',
+      colorText: '#f0ebe5',
+      colorTextHeading: '#f0ebe5',
+      colorBorder: 'rgba(139, 154, 159, 0.25)',
+    },
+    Tabs: {
+      itemColor: '#9cb0b6',
+      itemHoverColor: '#f0ebe5',
+      itemSelectedColor: '#bd9875',
+      itemActiveColor: '#d4b595',
+      inkBarColor: '#bd9875',
+      titleFontSize: 14,
+    },
+    Pagination: {
+      itemActiveBg: '#bd9875',
+      itemBg: 'rgba(32, 35, 50, 0.75)',
+      itemSize: 32,
+      borderRadius: 8,
+    },
+    Tooltip: {
+      colorBgSpotlight: '#151722',
+      colorTextLightSolid: '#f0ebe5',
+      borderRadius: 8,
+    },
+    Switch: {
+      colorPrimary: '#bd9875',
+      colorPrimaryHover: '#d4b595',
+    },
+    Checkbox: {
+      colorPrimary: '#bd9875',
+      colorPrimaryHover: '#d4b595',
+    },
+    Radio: {
+      colorPrimary: '#bd9875',
+      dotColorDisabled: 'rgba(189, 152, 117, 0.2)',
+    },
+    Spin: {
+      colorPrimary: '#bd9875',
+    },
+    Message: {
+      contentBg: '#242838',
+      colorText: '#f0ebe5',
+      borderRadiusLG: 12,
+    },
+    Notification: {
+      colorBgElevated: '#242838',
+      colorText: '#f0ebe5',
+      colorTextHeading: '#bd9875',
       borderRadiusLG: 14,
     },
   },

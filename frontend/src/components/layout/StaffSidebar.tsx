@@ -77,6 +77,12 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
 
   const menuItems: NavMenuItem[] = [
     {
+      key: 'dashboard',
+      label: 'Tổng quan ca',
+      path: '/staff/dashboard',
+      icon: <LayoutDashboard className="w-5 h-5 shrink-0" />,
+    },
+    {
       key: 'floormap',
       label: 'Sơ đồ máy',
       path: '/staff/floormap',

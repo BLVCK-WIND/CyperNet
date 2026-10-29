@@ -37,8 +37,14 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     // Kiểm tra nhanh xem máy tính có đang có phiên ACTIVE nào không
     boolean existsByComputerIdAndStatus(Long computerId, Status status);
 
+    // Kiểm tra xem máy tính đã từng có phiên chơi nào trong lịch sử chưa
+    boolean existsByComputerId(Long computerId);
+
     // Kiểm tra nhanh xem khách hàng có đang chơi tại máy nào khác không
     boolean existsByAccountIdAndStatus(Long accountId, Status status);
+
+    // Kiểm tra xem tài khoản đã từng có phiên chơi nào trong lịch sử chưa
+    boolean existsByAccountId(Long accountId);
 
     // Lấy toàn bộ danh sách phiên theo trạng thái (VD: lấy tất cả phiên ACTIVE để hiển thị màn hình giám sát máy)
     List<Session> findByStatusOrderByStartedAtDesc(Status status);

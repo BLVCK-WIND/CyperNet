@@ -8,10 +8,12 @@ import com.cybernet.internet_cafe_management.dto.response.AuthResponse;
 import com.cybernet.internet_cafe_management.dto.response.CustomerAuthResponse;
 import com.cybernet.internet_cafe_management.dto.response.SessionResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
+import com.cybernet.internet_cafe_management.entity.Computer;
 import com.cybernet.internet_cafe_management.entity.RefreshToken;
 import com.cybernet.internet_cafe_management.entity.Session;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
+import com.cybernet.internet_cafe_management.repository.ComputerRepository;
 import com.cybernet.internet_cafe_management.repository.RefreshTokenRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.security.JwtService;
@@ -28,17 +30,20 @@ public class AuthService {
     private final AccountRepository accountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SessionRepository sessionRepository;
+    private final ComputerRepository computerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(AccountRepository accountRepository,
                        RefreshTokenRepository refreshTokenRepository,
                        SessionRepository sessionRepository,
+                       ComputerRepository computerRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService) {
         this.accountRepository = accountRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.sessionRepository = sessionRepository;
+        this.computerRepository = computerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -144,14 +149,32 @@ public class AuthService {
         String pcCode = request.getComputerCode().trim();
         String phone = request.getPhone().trim();
 
-        // 1. Tìm phiên đang ACTIVE tại máy
-        Session session = sessionRepository.findByComputerCodeAndStatus(pcCode, Session.Status.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException("Máy [" + pcCode + "] hiện không có phiên chơi nào đang hoạt động!"));
+        // 1. Kiểm tra máy tính có tồn tại không
+        Computer computer = computerRepository.findByCode(pcCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính với mã: " + pcCode));
 
-        // 2. Đối chiếu số điện thoại với tài khoản phiên
-        Account account = session.getAccount();
-        if (!account.getPhone().equals(phone)) {
-            throw new IllegalArgumentException("Số điện thoại không khớp với người đang chơi tại máy " + pcCode + "!");
+        // 2. Tìm phiên đang ACTIVE tại máy (nếu có)
+        Session session = sessionRepository.findByComputerCodeAndStatus(pcCode, Session.Status.ACTIVE).orElse(null);
+
+        Account account;
+        if (session != null) {
+            // Máy đang có phiên chơi: SĐT phải khớp với tài khoản phiên
+            account = session.getAccount();
+            if (!account.getPhone().equals(phone)) {
+                throw new IllegalArgumentException("Số điện thoại không khớp với người đang chơi tại máy " + pcCode + "!");
+            }
+        } else {
+            // Máy đang TRỐNG (chưa mở phiên): Khách dùng điện thoại quét QR để gọi món / nạp giờ
+            // Quy tắc: Tuyệt đối không tự động mở phiên, không trừ bất kỳ phút nào của khách!
+            account = accountRepository.findByPhone(phone).orElseGet(() -> {
+                Account newAcc = new Account();
+                newAcc.setPhone(phone);
+                newAcc.setName("Khách " + (phone.length() >= 4 ? phone.substring(phone.length() - 4) : phone));
+                newAcc.setPasswordHash(passwordEncoder.encode("123456"));
+                newAcc.setRole(Account.Role.CUSTOMER);
+                newAcc.setRemainingMinutes(0);
+                return accountRepository.save(newAcc);
+            });
         }
 
         // 3. Sinh token với quyền ROLE_CUSTOMER
@@ -163,7 +186,9 @@ public class AuthService {
                 refreshTokenStr,
                 jwtService.getAccessTokenExpirationMs(),
                 AccountResponse.fromEntity(account),
-                SessionResponse.fromEntity(session)
+                (session != null) ? SessionResponse.fromEntity(session) : null,
+                computer.getCode(),
+                computer.getZone()
         );
     }
 

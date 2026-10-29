@@ -12,9 +12,11 @@ import java.util.List;
  */
 public class CreateOrderRequest {
 
-    // ID phiên chơi đang hoạt động tại máy
-    @NotNull(message = "Mã phiên chơi (sessionId) không được để trống")
+    // ID phiên chơi đang hoạt động tại máy (null nếu máy chưa mở phiên)
     private Long sessionId;
+
+    // Mã máy tính quét QR (bắt buộc nếu không có sessionId, ví dụ "PC-01", "VIP-02")
+    private String computerCode;
 
     // Hình thức thanh toán: QR (chuyển khoản) hoặc CASH (tiền mặt tại bàn)
     @NotNull(message = "Phương thức thanh toán không được để trống")
@@ -34,12 +36,27 @@ public class CreateOrderRequest {
         this.items = items;
     }
 
+    public CreateOrderRequest(Long sessionId, String computerCode, PaymentMethod paymentMethod, List<CreateOrderItemRequest> items) {
+        this.sessionId = sessionId;
+        this.computerCode = computerCode;
+        this.paymentMethod = paymentMethod;
+        this.items = items;
+    }
+
     public Long getSessionId() {
         return sessionId;
     }
 
     public void setSessionId(Long sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public String getComputerCode() {
+        return computerCode;
+    }
+
+    public void setComputerCode(String computerCode) {
+        this.computerCode = computerCode;
     }
 
     public PaymentMethod getPaymentMethod() {

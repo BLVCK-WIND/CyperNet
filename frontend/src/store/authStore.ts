@@ -12,7 +12,7 @@ interface AuthState {
   role: Role | null;
   isAuthenticated: boolean;
 
-  setCustomerAuth: (authData: CustomerAuthResponse) => void;
+  setCustomerAuth: (authData: CustomerAuthResponse, fallbackComputerCode?: string) => void;
   setStaffAuth: (authData: AuthResponse) => void;
   setSessionId: (sessionId: number | null) => void;
   setComputerCode: (code: string | null) => void;
@@ -53,19 +53,32 @@ export const useAuthStore = create<AuthState>((set, get) => {
     role: initialUser ? initialUser.role : null,
     isAuthenticated: Boolean(initialAccessToken && initialUser),
 
-    setCustomerAuth: (data: CustomerAuthResponse) => {
+    setCustomerAuth: (data: CustomerAuthResponse, fallbackComputerCode?: string) => {
       storage.setAccessToken(data.accessToken);
       storage.setRefreshToken(data.refreshToken);
       storage.setUser(data.account);
-      storage.setSessionId(data.session.id);
-      storage.setComputerCode(data.session.computerCode);
+
+      const sId = data.session?.id ?? null;
+      const cCode = data.session?.computerCode ?? data.computerCode ?? fallbackComputerCode ?? null;
+
+      if (sId !== null) {
+        storage.setSessionId(sId);
+      } else {
+        storage.removeSessionId();
+      }
+
+      if (cCode !== null) {
+        storage.setComputerCode(cCode);
+      } else {
+        storage.removeComputerCode();
+      }
 
       set({
         user: data.account,
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
-        sessionId: data.session.id,
-        computerCode: data.session.computerCode,
+        sessionId: sId,
+        computerCode: cCode,
         role: data.account.role,
         isAuthenticated: true,
       });

@@ -39,7 +39,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     getTotalCount,
   } = useCartStore();
 
-  const { sessionId } = useAuthStore();
+  const { sessionId, computerCode } = useAuthStore();
   const [submitting, setSubmitting] = useState(false);
 
   const totalAmount = getTotalAmount();
@@ -56,16 +56,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       return;
     }
 
-    if (!sessionId) {
-      message.error('Không tìm thấy thông tin phiên chơi. Vui lòng đăng nhập lại!');
+    if (!sessionId && !computerCode) {
+      message.error('Vui lòng quét lại mã QR tại bàn để xác định vị trí máy trạm!');
       return;
     }
 
     setSubmitting(true);
     try {
-      // 1. Gửi request tạo đơn hàng
+      // 1. Gửi request tạo đơn hàng (hỗ trợ cả máy có phiên và máy trống gọi tại bàn)
       const order = await orderApi.createOrder({
-        sessionId,
+        sessionId: sessionId ?? undefined,
+        computerCode: computerCode ?? undefined,
         paymentMethod,
         items: items.map((i) => ({
           itemId: i.item.id,

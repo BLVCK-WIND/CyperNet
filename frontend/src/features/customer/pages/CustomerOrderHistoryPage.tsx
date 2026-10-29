@@ -34,7 +34,7 @@ export const CustomerOrderHistoryPage: React.FC = () => {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [loadingQrOrderId, setLoadingQrOrderId] = useState<number | null>(null);
 
-  // Tra cứu đơn hàng theo phiên chơi, polling tự động mỗi 10 giây
+  // Tra cứu tất cả đơn hàng của khách hàng (hỗ trợ cả đơn có phiên và máy trống), polling tự động mỗi 10 giây
   const {
     data: pageData,
     isLoading,
@@ -42,14 +42,9 @@ export const CustomerOrderHistoryPage: React.FC = () => {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ['session-orders', sessionId],
-    queryFn: () => {
-      if (!sessionId) {
-        throw new Error('Không có mã phiên hoạt động');
-      }
-      return orderApi.getOrdersBySession(sessionId, { page: 0, size: 30 });
-    },
-    enabled: Boolean(sessionId && isAuthenticated),
+    queryKey: ['customer-my-orders'],
+    queryFn: () => orderApi.getMyOrders({ page: 0, size: 30 }),
+    enabled: Boolean(isAuthenticated),
     refetchInterval: 10000, // Polling định kỳ 10 giây cập nhật trạng thái đơn
   });
 

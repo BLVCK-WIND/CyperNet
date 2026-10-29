@@ -1,6 +1,8 @@
+import type { ComputerZone } from './computer';
+
 export type PaymentMethod = 'CASH' | 'QR';
 
-export type OrderStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED';
+export type OrderStatus = 'PENDING_PAYMENT' | 'WAITING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED';
 
 export interface CreateOrderItemRequest {
   itemId: number;
@@ -8,7 +10,8 @@ export interface CreateOrderItemRequest {
 }
 
 export interface CreateOrderRequest {
-  sessionId: number;
+  sessionId?: number;
+  computerCode?: string;
   paymentMethod: PaymentMethod;
   items: CreateOrderItemRequest[];
 }
@@ -27,8 +30,9 @@ export interface OrderItemResponse {
 
 export interface OrderResponse {
   id: number;
-  sessionId: number;
+  sessionId?: number | null;
   computerCode: string;
+  computerZone?: ComputerZone | string | null;
   customerName: string;
   customerPhone: string;
   totalAmount: number;
@@ -38,6 +42,7 @@ export interface OrderResponse {
   confirmedByStaffName: string | null;
   createdAt: string;
   confirmedAt: string | null;
+  transferredAt?: string | null;
   items: OrderItemResponse[];
 }
 

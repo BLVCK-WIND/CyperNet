@@ -93,8 +93,10 @@ public class AccountController {
     @Operation(summary = "Xóa tài khoản", description = "Xóa tài khoản theo ID. Yêu cầu đặc quyền ADMIN.")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
-        accountService.deleteAccount(id);
+    public ResponseEntity<Void> deleteAccount(@PathVariable Long id, Authentication authentication) {
+        Account currentAdmin = accountRepository.findByPhone(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên từ phiên đăng nhập!"));
+        accountService.deleteAccount(id, currentAdmin.getId());
         return ResponseEntity.noContent().build();
     }
 

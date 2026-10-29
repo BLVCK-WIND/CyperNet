@@ -20,15 +20,30 @@ public class Order {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
+    @JoinColumn(name = "session_id", nullable = true)
     private Session session;
+
+    // Máy trạm đặt đơn (hỗ trợ cả khi máy đang có session hoặc máy trống gọi món tại bàn)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "computer_id", nullable = true)
+    private Computer computer;
+
+    // Tài khoản khách hàng đặt đơn
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", nullable = true)
+    private Account account;
 
     // Tổng số tiền của order (bao gồm cả đồ ăn và giờ chơi)
     @Column(nullable = false)
     private BigDecimal totalAmount;
+
     // Thời gian nhân viên xác nhận order (khi khách đã thanh toán xong)
     @Column(nullable = true)
     private LocalDateTime confirmedAt;
+
+    // Thời gian khách hàng bấm 'Đã chuyển khoản' trên giao diện QR
+    @Column(nullable = true)
+    private LocalDateTime transferredAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -43,7 +58,7 @@ public class Order {
     private Account confirmedByStaff;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> orderItems;  // 1 order có nhiều orderItems, 
+    private List<OrderItem> orderItems;  // 1 order có nhiều orderItems
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -54,6 +69,6 @@ public class Order {
     }
 
     public enum Status {
-        PENDING_PAYMENT, CONFIRMED, CANCELLED
+        PENDING_PAYMENT, WAITING_CONFIRMATION, CONFIRMED, CANCELLED
     }
 }

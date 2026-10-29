@@ -21,8 +21,9 @@ export const CustomerBottomNav: React.FC = () => {
 
   const pendingCount = useMemo(() => {
     return (
-      ordersPage?.content?.filter((o) => o.status === 'PENDING_PAYMENT')
-        .length || 0
+      ordersPage?.content?.filter(
+        (o) => o.status === 'PENDING_PAYMENT' || o.status === 'WAITING_CONFIRMATION'
+      ).length || 0
     );
   }, [ordersPage]);
 

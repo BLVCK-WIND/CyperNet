@@ -48,6 +48,7 @@
   6. **Chuẩn hóa API Contract 100% dữ liệu thật:** Dùng `name` và `remainingMinutes` (thay vì `fullName`/`balanceMinutes`), `expiresIn: 1800000`, `toComputerId` (thay vì `newComputerId`), mã lỗi hết hàng `400 ORDER_OUT_OF_STOCK`.
   7. **Đồng bộ thời gian thực tế:** `SessionResponse` có trường `serverTime`; CORS expose `Date` và `Retry-After`; Frontend dùng công thức bù lệch đồng hồ (Clock Drift Compensation) với `dayjs.tz`.
   8. **Mở máy quầy (Phương án A):** Mở theo toàn bộ số dư khả dụng, hoàn trả tự động khi `endSession`.
+  9. **Ứng dụng triết lý thẩm mỹ shadcn/ui (Bento Grid & Recharts) trên nền Ant Design + Tailwind 4:** Đã thống nhất với Tech Lead: Hoàn thành 100% các chức năng quản trị cốt lõi trước (MS-3.5 Thực đơn, MS-3.6 Tài khoản, MS-3.7 đến MS-3.9 Báo cáo), sau đó triển khai MS-3.12 nâng cấp toàn diện Admin Dashboard và xây dựng Staff Shift Hub theo phong cách Bento Grid hiện đại mà không làm đảo lộn cấu trúc thư viện gốc.
 - **Quyết định CÒN MỞ:**
   - Ngưỡng cảnh báo tải mạng LAN khi số máy vượt quá 80 máy trạm (sẽ đánh giá lại khi chạy thực tế tại quán).
 
@@ -142,11 +143,17 @@ Lập trình viên khi tiếp nhận cần đọc theo đúng thứ tự sau:
 ---
 
 ## 8. Hướng Dẫn Kế Tiếp Cho Phiên Làm Việc Mới (Next Steps)
-1. **Triển khai MS-3.3: Quản lý Máy trạm Admin (`/admin/computers`)**:
-   - Bảng quản trị danh sách máy trạm (DataTable kèm tìm kiếm & lọc zone STANDARD/VIP).
-   - Thao tác thêm máy mới, sửa IP, chuyển zone, cấu hình đơn giá theo zone và bật/tắt chế độ bảo trì máy.
-   - Áp dụng đầy đủ: Dải chỉ số Liquid Glass 3D, Card Twinkle Flow mạ viền vàng, Modal tương phản cao.
-2. **Triển khai MS-3.4: Quản lý Thực đơn & Dịch vụ Admin (`/admin/items`)**:
-   - Bảng quản trị món ăn, đồ uống và các gói nạp giờ chơi.
-   - Thao tác thêm món mới kèm tải ảnh món ăn (`FileUploadController`), cập nhật giá bán, trạng thái còn/hết hàng.
+1. **Triển khai MS-3.5: Quản lý Thực đơn & Dịch vụ Admin (`/admin/items`)**:
+   - Bảng quản trị món ăn, đồ uống và các gói nạp giờ chơi (DataTable Twinkle Dark Luxury).
+   - Thao tác thêm món mới kèm tải ảnh món ăn (`FileUploadController` qua `/api/files/upload?folder=items`), cập nhật giá bán, trạng thái còn/hết hàng.
+   - Dải 4 chỉ số Liquid Glass 3D (Tổng món, Món ăn, Đồ uống, Hết hàng).
    - Đảm bảo các gói nạp giờ ghi rõ số giờ/phút quy đổi trong tên hoặc mô tả để `OrderService` phân tích tự động.
+2. **Triển khai MS-3.6: Quản lý Tài khoản & Phân quyền Admin (`/admin/accounts`)**:
+   - Bảng quản trị tài khoản đa vai trò (`ADMIN`, `STAFF`, `CUSTOMER`), phân trang server-side, tìm kiếm SĐT.
+   - Cấp tài khoản nhân viên / quản trị mới (`POST /api/accounts`), cập nhật thông tin và reset mật khẩu an toàn có RBAC guard.
+3. **Triển khai MS-3.7 đến MS-3.9: Trung tâm Báo cáo Doanh thu & Thống kê (`/admin/reports`)**:
+   - Tích hợp biểu đồ diện tích Recharts doanh thu 7 ngày (`/api/reports/revenue/daily`).
+   - Báo cáo cơ cấu doanh thu F&B vs Giờ chơi, Top 10 món bán chạy (`/api/reports/items/top-selling`), Top khách hàng chi tiêu (`/api/reports/customers/top-spenders`) và Hiệu suất máy trạm (`/api/reports/computers/usage`).
+4. **Triển khai MS-3.12: Nâng cấp Toàn diện Dashboard Quản lý & Xây dựng Staff Operations Hub (shadcn/ui Bento Grid)**:
+   - Tái cấu trúc Admin Dashboard thành Bento Grid đa tầng giàu dữ liệu thời gian thực.
+   - Xây dựng Staff Shift Hub (`/staff/dashboard`) bao quát ca trực, hàng đợi việc khẩn, thanh tiến trình máy online và dock phím tắt 1-click.

@@ -10,6 +10,7 @@ import com.cybernet.internet_cafe_management.entity.Order.PaymentMethod;
 import com.cybernet.internet_cafe_management.entity.Order.Status;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
+import com.cybernet.internet_cafe_management.repository.ComputerRepository;
 import com.cybernet.internet_cafe_management.repository.ItemRepository;
 import com.cybernet.internet_cafe_management.repository.OrderRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
@@ -34,6 +35,7 @@ public class OrderService {
     private final SessionRepository sessionRepository;
     private final ItemRepository itemRepository;
     private final AccountRepository accountRepository;
+    private final ComputerRepository computerRepository;
     private final RealtimeNotificationService realtimeNotificationService;
     private final AuditLogService auditLogService;
 
@@ -42,12 +44,14 @@ public class OrderService {
                         SessionRepository sessionRepository,
                         ItemRepository itemRepository,
                         AccountRepository accountRepository,
+                        ComputerRepository computerRepository,
                         RealtimeNotificationService realtimeNotificationService,
                         AuditLogService auditLogService) {
         this.orderRepository = orderRepository;
         this.sessionRepository = sessionRepository;
         this.itemRepository = itemRepository;
         this.accountRepository = accountRepository;
+        this.computerRepository = computerRepository;
         this.realtimeNotificationService = realtimeNotificationService;
         this.auditLogService = auditLogService;
     }
@@ -72,27 +76,56 @@ public class OrderService {
             throw new IllegalArgumentException("Vui lòng chọn phương thức thanh toán (QR hoặc CASH)!");
         }
 
-        // Validate phiên chơi: Máy phải đang có phiên ACTIVE
-        Session session = sessionRepository.findById(request.getSessionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + request.getSessionId()));
+        // 1. Xác định Session, Computer và Account
+        Session session = null;
+        Computer computer = null;
+        Account customer = null;
 
-        if (session.getStatus() != Session.Status.ACTIVE) {
-            throw new IllegalStateException("Phiên chơi này đã kết thúc, không thể đặt món!");
-        }
+        if (request.getSessionId() != null) {
+            session = sessionRepository.findById(request.getSessionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + request.getSessionId()));
 
-        // Kiểm tra quyền sở hữu phiên: Nếu là khách hàng, chỉ được đặt món cho chính phiên của mình (B4)
-        if (currentUserPhone != null && session.getAccount() != null) {
-            Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
-            if (user != null && user.getRole() == Account.Role.CUSTOMER) {
-                if (!session.getAccount().getPhone().equals(currentUserPhone)) {
-                    throw new org.springframework.security.access.AccessDeniedException("Bạn chỉ có thể đặt món cho chính phiên chơi của mình!");
+            if (session.getStatus() != Session.Status.ACTIVE) {
+                throw new IllegalStateException("Phiên chơi này đã kết thúc, không thể đặt món!");
+            }
+
+            computer = session.getComputer();
+            customer = session.getAccount();
+
+            // Kiểm tra quyền sở hữu phiên: Nếu là khách hàng, chỉ được đặt món cho chính phiên của mình (B4)
+            if (currentUserPhone != null && customer != null) {
+                Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
+                if (user != null && user.getRole() == Account.Role.CUSTOMER) {
+                    if (!customer.getPhone().equals(currentUserPhone)) {
+                        throw new org.springframework.security.access.AccessDeniedException("Bạn chỉ có thể đặt món cho chính phiên chơi của mình!");
+                    }
                 }
             }
+        } else if (request.getComputerCode() != null && !request.getComputerCode().isBlank()) {
+            String pcCode = request.getComputerCode().trim();
+            computer = computerRepository.findByCode(pcCode)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính với mã: " + pcCode));
+
+            // Kiểm tra xem máy này có phiên ACTIVE không
+            Session activeSession = sessionRepository.findByComputerCodeAndStatus(pcCode, Session.Status.ACTIVE).orElse(null);
+            if (activeSession != null) {
+                session = activeSession;
+                customer = activeSession.getAccount();
+            } else {
+                // Máy trống (AVAILABLE): Lấy tài khoản khách hàng từ token SĐT
+                if (currentUserPhone != null) {
+                    customer = accountRepository.findByPhone(currentUserPhone).orElse(null);
+                }
+            }
+        } else {
+            throw new IllegalArgumentException("Vui lòng cung cấp mã phiên chơi (sessionId) hoặc mã máy trạm (computerCode)!");
         }
 
         // Khởi tạo Order cha
         Order order = new Order();
         order.setSession(session);
+        order.setComputer(computer);
+        order.setAccount(customer);
         order.setPaymentMethod(request.getPaymentMethod());
         order.setStatus(Status.PENDING_PAYMENT);
 
@@ -133,9 +166,10 @@ public class OrderService {
 
         // Do có cascade = ALL, hàm save dưới đây sẽ tự động INSERT cả bảng orders và order_items
         Order savedOrder = orderRepository.save(order);
-        realtimeNotificationService.broadcastOrderEvent(savedOrder, "CREATED", "Khách gọi món mới tại máy " + (session.getComputer() != null ? session.getComputer().getCode() : "N/A"));
-        log.info("Order: Tạo đơn hàng mới [ID={}] cho phiên [ID={}], tổng tiền: {} VND, phương thức: {}",
-                savedOrder.getId(), session.getId(), savedOrder.getTotalAmount(), savedOrder.getPaymentMethod());
+        String pcCode = (computer != null) ? computer.getCode() : (session != null && session.getComputer() != null ? session.getComputer().getCode() : "N/A");
+        realtimeNotificationService.broadcastOrderEvent(savedOrder, "CREATED", "Khách gọi món mới tại máy " + pcCode);
+        log.info("Order: Tạo đơn hàng mới [ID={}] tại máy [{}], phiên [ID={}], tổng tiền: {} VND, phương thức: {}",
+                savedOrder.getId(), pcCode, (session != null ? session.getId() : "NONE"), savedOrder.getTotalAmount(), savedOrder.getPaymentMethod());
         return OrderResponse.fromEntity(savedOrder);
     }
 
@@ -150,8 +184,8 @@ public class OrderService {
         }
 
         String name = item.getName().toLowerCase();
-        // Regex tìm số giờ: "2 giờ", "2h", "2 hour"
-        java.util.regex.Pattern hourPattern = java.util.regex.Pattern.compile("(\\d+)\\s*(giờ|giờ|h|hour)");
+        // Regex tìm số giờ: "2 giờ", "2h", "2 hour", "2 tiếng"
+        java.util.regex.Pattern hourPattern = java.util.regex.Pattern.compile("(\\d+)\\s*(giờ|giờ|tiếng|tiếng|h|hour)");
         java.util.regex.Matcher hourMatcher = hourPattern.matcher(name);
         if (hourMatcher.find()) {
             int hours = Integer.parseInt(hourMatcher.group(1));
@@ -183,8 +217,13 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID = " + orderId));
 
-        if (order.getStatus() != Status.PENDING_PAYMENT) {
+        if (order.getStatus() != Status.PENDING_PAYMENT && order.getStatus() != Status.WAITING_CONFIRMATION) {
             throw new IllegalStateException("Đơn hàng không ở trạng thái chờ duyệt! Trạng thái hiện tại: " + order.getStatus());
+        }
+
+        // RÀO CHẮN AN TOÀN TÀI CHÍNH: Nếu đơn thanh toán QR mà khách CHƯA xác nhận chuyển khoản thì CẤM duyệt
+        if (order.getPaymentMethod() == PaymentMethod.QR && order.getStatus() == Status.PENDING_PAYMENT) {
+            throw new IllegalStateException("Đơn hàng chuyển khoản QR chưa được khách hàng xác nhận đã chuyển tiền! Không được phép duyệt.");
         }
 
         Account staff = accountRepository.findById(staffId)
@@ -213,14 +252,17 @@ public class OrderService {
         long extraMachineMinutes = 0;
         if (totalStandardMinutes > 0) {
             // 1. Cộng thêm phút chuẩn vào tài khoản khách hàng
-            Account customer = session.getAccount();
+            Account customer = (order.getAccount() != null)
+                    ? order.getAccount()
+                    : (session != null ? session.getAccount() : null);
+
             if (customer != null) {
                 customer.setRemainingMinutes(customer.getRemainingMinutes() + totalStandardMinutes);
                 accountRepository.save(customer);
             }
 
             // 2. Nếu phiên chơi đang ACTIVE, gia hạn thời điểm hết hạn theo đơn giá máy đang ngồi
-            if (session.getStatus() == Session.Status.ACTIVE && session.getComputer() != null) {
+            if (session != null && session.getStatus() == Session.Status.ACTIVE && session.getComputer() != null) {
                 extraMachineMinutes = SessionService.calculatePlayableMinutes(
                         totalStandardMinutes,
                         session.getComputer().getPricePerHour()
@@ -229,6 +271,8 @@ public class OrderService {
                 sessionRepository.save(session);
                 realtimeNotificationService.broadcastComputerStatus(session.getComputer());
             }
+            // Nếu session == null (máy trống): Theo đúng quy tắc Cách B:
+            // Giờ chơi được nạp vào tài khoản an toàn 100%, không tự mở máy và không trừ giờ của khách!
         }
 
         Order updatedOrder = orderRepository.save(order);
@@ -242,16 +286,62 @@ public class OrderService {
     }
 
     /**
+     * 2b. KHÁCH HÀNG XÁC NHẬN ĐÃ CHUYỂN KHOẢN (notifyTransferred)
+     * Chuyển trạng thái đơn từ PENDING_PAYMENT sang WAITING_CONFIRMATION.
+     * Bắn thông báo realtime tới quầy thu ngân để nhân viên đối soát số dư ngân hàng và mở nút duyệt.
+     */
+    @Transactional
+    public OrderResponse notifyTransferred(Long orderId, String currentUserPhone) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID = " + orderId));
+
+        if (order.getStatus() != Status.PENDING_PAYMENT) {
+            throw new IllegalStateException("Đơn hàng hiện không ở trạng thái chờ chuyển khoản! Trạng thái hiện tại: " + order.getStatus());
+        }
+
+        if (order.getPaymentMethod() != PaymentMethod.QR) {
+            throw new IllegalArgumentException("Chỉ đơn hàng thanh toán qua chuyển khoản QR mới cần thao tác này!");
+        }
+
+        // Bảo vệ B4: Nếu là khách hàng, chỉ được thao tác với chính đơn hàng của mình
+        if (currentUserPhone != null) {
+            Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
+            if (user != null && user.getRole() == Account.Role.CUSTOMER) {
+                String orderPhone = (order.getAccount() != null)
+                        ? order.getAccount().getPhone()
+                        : (order.getSession() != null && order.getSession().getAccount() != null ? order.getSession().getAccount().getPhone() : null);
+                if (orderPhone != null && !orderPhone.equals(currentUserPhone)) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn chỉ có thể thao tác với đơn hàng của chính mình!");
+                }
+            }
+        }
+
+        order.setStatus(Status.WAITING_CONFIRMATION);
+        order.setTransferredAt(LocalDateTime.now());
+        Order savedOrder = orderRepository.save(order);
+
+        String pcCode = (order.getComputer() != null)
+                ? order.getComputer().getCode()
+                : (order.getSession() != null && order.getSession().getComputer() != null ? order.getSession().getComputer().getCode() : "N/A");
+        realtimeNotificationService.broadcastOrderEvent(savedOrder, "WAITING_CONFIRMATION",
+                "Khách tại máy " + pcCode + " đã chuyển khoản cho đơn #" + orderId + " (" + savedOrder.getTotalAmount() + " VNĐ)");
+        auditLogService.log("ORDER_TRANSFERRED", "Order", orderId,
+                "Khách xác nhận đã chuyển khoản cho đơn #" + orderId + " (Máy " + pcCode + ")");
+        log.info("Order Transferred: Khách tại máy [{}] xác nhận đã chuyển khoản cho đơn [ID={}]", pcCode, orderId);
+        return OrderResponse.fromEntity(savedOrder);
+    }
+
+    /**
      * 3. HUỶ ĐƠN HÀNG (cancelOrder)
-     * Chỉ huỷ được khi đơn đang ở trạng thái PENDING_PAYMENT.
+     * Chỉ huỷ được khi đơn đang ở trạng thái PENDING_PAYMENT hoặc WAITING_CONFIRMATION.
      */
     @Transactional
     public OrderResponse cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID = " + orderId));
 
-        if (order.getStatus() != Status.PENDING_PAYMENT) {
-            throw new IllegalStateException("Chỉ có thể huỷ đơn hàng đang chờ thanh toán! Trạng thái: " + order.getStatus());
+        if (order.getStatus() != Status.PENDING_PAYMENT && order.getStatus() != Status.WAITING_CONFIRMATION) {
+            throw new IllegalStateException("Chỉ có thể huỷ đơn hàng chưa hoàn tất thanh toán! Trạng thái: " + order.getStatus());
         }
 
         order.setStatus(Status.CANCELLED);
@@ -278,7 +368,9 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders(Status status) {
         List<Order> list = (status != null)
-                ? orderRepository.findByStatusOrderByCreatedAtDesc(status)
+                ? (status == Status.PENDING_PAYMENT
+                        ? orderRepository.findByStatusInOrderByCreatedAtDesc(List.of(Status.PENDING_PAYMENT, Status.WAITING_CONFIRMATION))
+                        : orderRepository.findByStatusOrderByCreatedAtDesc(status))
                 : orderRepository.findAll();
 
         return list.stream()
@@ -291,9 +383,17 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getAllOrders(Status status, Pageable pageable) {
-        Page<Order> orderPage = (status != null)
-                ? orderRepository.findByStatus(status, pageable)
-                : orderRepository.findAll(pageable);
+        Page<Order> orderPage;
+        if (status != null) {
+            if (status == Status.PENDING_PAYMENT) {
+                // Hàng đợi đơn chờ xử lý bao gồm cả đơn Chờ chuyển khoản và đơn Khách đã CK chờ quầy duyệt
+                orderPage = orderRepository.findByStatusIn(List.of(Status.PENDING_PAYMENT, Status.WAITING_CONFIRMATION), pageable);
+            } else {
+                orderPage = orderRepository.findByStatus(status, pageable);
+            }
+        } else {
+            orderPage = orderRepository.findAll(pageable);
+        }
 
         return PageResponse.fromPage(orderPage, OrderResponse::fromEntity);
     }
@@ -363,6 +463,18 @@ public class OrderService {
     }
 
     /**
+     * 6c. LẤY TẤT CẢ ĐƠN HÀNG CỦA KHÁCH HÀNG ĐANG ĐĂNG NHẬP (Hỗ trợ cả đơn có phiên và đơn máy trống)
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getMyOrders(String currentUserPhone, Pageable pageable) {
+        if (currentUserPhone == null || currentUserPhone.isBlank()) {
+            throw new IllegalArgumentException("Không xác định được số điện thoại khách hàng!");
+        }
+        Page<Order> orderPage = orderRepository.findByAccountPhone(currentUserPhone, pageable);
+        return PageResponse.fromPage(orderPage, OrderResponse::fromEntity);
+    }
+
+    /**
      * 7. NHÂN VIÊN TẠO ĐƠN TRỰC TIẾP TẠI QUẦY (createDirectOrder - UC-7)
      * Khách gọi món / thêm giờ trả tiền mặt trực tiếp tại quầy thu ngân.
      * Tạo Order, gán CONFIRMED ngay lập tức, tự động kích hoạt nạp giờ nếu có món PLAYTIME.
@@ -399,6 +511,8 @@ public class OrderService {
         LocalDateTime now = LocalDateTime.now();
         Order order = new Order();
         order.setSession(session);
+        order.setComputer(session.getComputer());
+        order.setAccount(session.getAccount());
         order.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : PaymentMethod.CASH);
         order.setStatus(Status.CONFIRMED);
         order.setConfirmedByStaff(staff);
@@ -406,7 +520,7 @@ public class OrderService {
 
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItemList = new ArrayList<>();
-        int extraMinutes = 0;
+        int totalStandardMinutes = 0;
 
         // 4. Xử lý từng món trong đơn
         for (CreateOrderItemRequest itemReq : request.getItems()) {
@@ -434,31 +548,44 @@ public class OrderService {
 
             orderItemList.add(orderItem);
 
-            // Kiểm tra món loại PLAYTIME
+            // Kiểm tra món loại PLAYTIME: Trích xuất số phút chuẩn của gói (Standard Minutes)
             if (item.getType() == Item.Type.PLAYTIME) {
-                extraMinutes += (60 * itemReq.getQuantity());
+                int packageMinutes = extractPackageMinutes(item);
+                totalStandardMinutes += (packageMinutes * itemReq.getQuantity());
             }
         }
 
         order.setTotalAmount(totalAmount);
         order.setOrderItems(orderItemList);
 
-        // 5. Nếu có món loại PLAYTIME, tự động cộng giờ vào phiên và tài khoản
-        if (extraMinutes > 0 && session.getStatus() == Session.Status.ACTIVE) {
-            session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMinutes));
-            sessionRepository.save(session);
-
+        // 5. Nếu có món loại PLAYTIME: Áp dụng kiến trúc Dynamic Tariff chuẩn theo Zone của máy
+        long extraMachineMinutes = 0;
+        if (totalStandardMinutes > 0) {
+            // a. Cộng phút chuẩn vào tài khoản khách hàng
             Account customer = session.getAccount();
-            customer.setRemainingMinutes(customer.getRemainingMinutes() + extraMinutes);
-            accountRepository.save(customer);
+            if (customer != null) {
+                customer.setRemainingMinutes(customer.getRemainingMinutes() + totalStandardMinutes);
+                accountRepository.save(customer);
+            }
+
+            // b. Nếu phiên chơi đang ACTIVE, quy đổi phút máy thực tế theo đơn giá Zone máy đang ngồi
+            if (session.getStatus() == Session.Status.ACTIVE && session.getComputer() != null) {
+                extraMachineMinutes = SessionService.calculatePlayableMinutes(
+                        totalStandardMinutes,
+                        session.getComputer().getPricePerHour()
+                );
+                session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMachineMinutes));
+                sessionRepository.save(session);
+                realtimeNotificationService.broadcastComputerStatus(session.getComputer());
+            }
         }
 
         Order savedOrder = orderRepository.save(order);
         realtimeNotificationService.broadcastOrderEvent(savedOrder, "CREATED_DIRECT", "Tạo và thanh toán đơn trực tiếp tại quầy #" + savedOrder.getId());
         auditLogService.log("CREATE_DIRECT_ORDER", "Order", savedOrder.getId(),
                 "Tạo và thu tiền trực tiếp đơn #" + savedOrder.getId() + " cho phiên #" + session.getId() + ", tổng: " + savedOrder.getTotalAmount() + " VND");
-        log.info("UC-7 Direct Order: Nhân viên [ID={}] tạo đơn trực tiếp [ID={}] cho phiên [ID={}], tổng: {} VND, cộng giờ: {} phút",
-                staff.getId(), savedOrder.getId(), session.getId(), savedOrder.getTotalAmount(), extraMinutes);
+        log.info("UC-7 Direct Order: Nhân viên [ID={}] tạo đơn trực tiếp [ID={}] cho phiên [ID={}], tổng: {} VND, cộng phút chuẩn: {}, phút máy: {}",
+                staff.getId(), savedOrder.getId(), session.getId(), savedOrder.getTotalAmount(), totalStandardMinutes, extraMachineMinutes);
         return OrderResponse.fromEntity(savedOrder);
     }
 }

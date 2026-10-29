@@ -38,6 +38,22 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Custom Twinkle Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(32, 35, 50, 0.7);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 154, 159, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(189, 152, 117, 0.6);
+}
+
 body {
   margin: 0;
   background-color: var(--color-midnight);
@@ -488,4 +504,214 @@ body {
   background-color: #bd9875 !important;
   color: #202332 !important;
   font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   7. Ant Design DatePicker, Table, Modal, Drawer, Tabs & Pagination
+   Chuẩn hóa độ tương phản WCAG AA & Bề mặt Liquid Glass
+   ========================================================================== */
+
+/* Ant Design DatePicker Popup */
+.ant-picker-dropdown {
+  background-color: #202332 !important;
+  border: 1px solid rgba(139, 154, 159, 0.28) !important;
+  border-top: 1.5px solid rgba(220, 185, 150, 0.55) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(189, 152, 117, 0.15) !important;
+  backdrop-filter: blur(20px) !important;
+  padding: 8px !important;
+}
+
+.ant-picker-panel-container {
+  background-color: #202332 !important;
+  border-radius: 14px !important;
+  color: #f0ebe5 !important;
+}
+
+.ant-picker-header {
+  color: #bd9875 !important;
+  border-bottom: 1px solid rgba(139, 154, 159, 0.15) !important;
+}
+
+.ant-picker-header button {
+  color: #bd9875 !important;
+}
+
+.ant-picker-header button:hover {
+  color: #d4b595 !important;
+}
+
+.ant-picker-content th {
+  color: #9cb0b6 !important;
+}
+
+.ant-picker-cell {
+  color: rgba(240, 235, 229, 0.65) !important;
+}
+
+.ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-range-start):not(.ant-picker-cell-range-end) .ant-picker-cell-inner {
+  background-color: rgba(189, 152, 117, 0.22) !important;
+  color: #ffffff !important;
+}
+
+.ant-picker-cell-in-range {
+  background-color: rgba(189, 152, 117, 0.18) !important;
+}
+
+.ant-picker-cell-selected .ant-picker-cell-inner,
+.ant-picker-cell-range-start .ant-picker-cell-inner,
+.ant-picker-cell-range-end .ant-picker-cell-inner {
+  background-color: #bd9875 !important;
+  color: #202332 !important;
+  font-weight: 700 !important;
+}
+
+.ant-picker-today-btn {
+  color: #bd9875 !important;
+}
+
+/* Ant Design Table High-Contrast & Glass Styling */
+.ant-table-wrapper .ant-table {
+  background: transparent !important;
+  color: #f0ebe5 !important;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: rgba(32, 35, 50, 0.85) !important;
+  color: #bd9875 !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid rgba(139, 154, 159, 0.25) !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(139, 154, 159, 0.15) !important;
+  color: #f0ebe5 !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: rgba(189, 152, 117, 0.08) !important;
+}
+
+/* Ant Design Pagination */
+.ant-pagination .ant-pagination-item {
+  background-color: rgba(32, 35, 50, 0.75) !important;
+  border-color: rgba(139, 154, 159, 0.25) !important;
+  border-radius: 8px !important;
+}
+
+.ant-pagination .ant-pagination-item a {
+  color: #f0ebe5 !important;
+}
+
+.ant-pagination .ant-pagination-item:hover {
+  border-color: #bd9875 !important;
+}
+
+.ant-pagination .ant-pagination-item:hover a {
+  color: #bd9875 !important;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  background-color: #bd9875 !important;
+  border-color: #bd9875 !important;
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: #202332 !important;
+  font-weight: 700 !important;
+}
+
+.ant-pagination .ant-pagination-prev button,
+.ant-pagination .ant-pagination-next button {
+  color: #bd9875 !important;
+  background-color: rgba(32, 35, 50, 0.75) !important;
+  border-color: rgba(139, 154, 159, 0.25) !important;
+  border-radius: 8px !important;
+}
+
+.ant-pagination .ant-pagination-prev button:hover,
+.ant-pagination .ant-pagination-next button:hover {
+  border-color: #bd9875 !important;
+  color: #d4b595 !important;
+}
+
+/* Ant Design Modal Content & Glass Tweaks */
+.ant-modal-content {
+  background-color: #242938 !important;
+  border: 1px solid rgba(189, 152, 117, 0.3) !important;
+  border-top: 1.5px solid rgba(220, 185, 150, 0.65) !important;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8), 0 0 30px rgba(189, 152, 117, 0.12) !important;
+  backdrop-filter: blur(24px) !important;
+  border-radius: 20px !important;
+}
+
+.ant-modal-header {
+  background-color: transparent !important;
+  border-bottom: 1px solid rgba(139, 154, 159, 0.18) !important;
+  padding-bottom: 14px !important;
+}
+
+.ant-modal-title {
+  color: #f0ebe5 !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+}
+
+.ant-modal-close {
+  color: #9cb0b6 !important;
+}
+
+.ant-modal-close:hover {
+  color: #bd9875 !important;
+  background-color: rgba(189, 152, 117, 0.15) !important;
+}
+
+/* Ant Design Drawer */
+.ant-drawer-content {
+  background-color: #202332 !important;
+  border-left: 1px solid rgba(189, 152, 117, 0.3) !important;
+}
+
+.ant-drawer-header {
+  background-color: #242938 !important;
+  border-bottom: 1px solid rgba(139, 154, 159, 0.2) !important;
+}
+
+.ant-drawer-title {
+  color: #f0ebe5 !important;
+  font-weight: 700 !important;
+}
+
+.ant-drawer-close {
+  color: #9cb0b6 !important;
+}
+
+.ant-drawer-close:hover {
+  color: #bd9875 !important;
+}
+
+/* Ant Design Tabs */
+.ant-tabs-nav::before {
+  border-bottom: 1px solid rgba(139, 154, 159, 0.2) !important;
+}
+
+.ant-tabs-tab {
+  color: #9cb0b6 !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-tabs-tab:hover {
+  color: #f0ebe5 !important;
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #bd9875 !important;
+  font-weight: 700 !important;
+}
+
+.ant-tabs-ink-bar {
+  background: #bd9875 !important;
+  height: 3px !important;
+  border-radius: 9999px !important;
 }

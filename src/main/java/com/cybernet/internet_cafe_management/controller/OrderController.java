@@ -91,6 +91,20 @@ public class OrderController {
     }
 
     /**
+     * 2b. Khách hàng thông báo đã chuyển khoản VietQR (PATCH /api/orders/{id}/notify-transferred)
+     */
+    @Operation(summary = "Khách thông báo đã chuyển khoản VietQR", description = "Khách hàng bấm 'Tôi đã chuyển khoản' để gửi yêu cầu đối soát tới quầy thu ngân.")
+    @PatchMapping("/{id}/notify-transferred")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
+    public ResponseEntity<OrderResponse> notifyTransferred(
+            @PathVariable Long id,
+            Authentication authentication) {
+        String phone = (authentication != null) ? authentication.getName() : null;
+        OrderResponse response = orderService.notifyTransferred(id, phone);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * 3. Huỷ đơn hàng khi khách đổi ý (PATCH /api/orders/{id}/cancel)
      */
     @Operation(summary = "Hủy đơn hàng", description = "Hủy đơn hàng khi khách đổi ý hoặc hết món (chỉ hủy được đơn đang PENDING_PAYMENT).")
@@ -140,6 +154,21 @@ public class OrderController {
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         String currentUserPhone = (authentication != null) ? authentication.getName() : null;
         PageResponse<OrderResponse> responses = orderService.getOrdersBySessionId(sessionId, currentUserPhone, pageable);
+        return ResponseEntity.ok(responses);
+    }
+
+    /**
+     * 6b. Khách hàng xem lịch sử tất cả đơn hàng của chính mình (GET /api/orders/my-orders)
+     * Hỗ trợ xem đơn cả khi đang chơi và khi đặt tại máy trống chưa mở phiên.
+     */
+    @Operation(summary = "Khách hàng xem lịch sử đơn của mình", description = "Lấy toàn bộ đơn hàng của khách hàng đang đăng nhập, bất kể đơn có phiên chơi hay đặt tại máy trống.")
+    @GetMapping("/my-orders")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<PageResponse<OrderResponse>> getMyOrders(
+            Authentication authentication,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        String phone = authentication.getName();
+        PageResponse<OrderResponse> responses = orderService.getMyOrders(phone, pageable);
         return ResponseEntity.ok(responses);
     }
 

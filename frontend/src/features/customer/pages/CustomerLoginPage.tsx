@@ -96,8 +96,12 @@ export const CustomerLoginPage: React.FC = () => {
       });
 
       // Lưu thông tin phiên và token vào Zustand store + storage
-      setCustomerAuth(res);
-      message.success(`Chào mừng ${res.account.name || 'bạn'} vào phiên chơi!`);
+      setCustomerAuth(res, computerCode);
+      if (res.session) {
+        message.success(`Chào mừng ${res.account.name || 'bạn'} vào phiên chơi!`);
+      } else {
+        message.success(`Chào mừng ${res.account.name || 'bạn'}! Máy trạm sẵn sàng gọi món & nạp giờ.`);
+      }
       navigate('/customer/dashboard', { replace: true });
     } catch (err: unknown) {
       triggerShake();

@@ -3,6 +3,7 @@ import { Tag, Button } from 'antd';
 import { QrCode, Coins, Clock, ChevronRight } from 'lucide-react';
 import dayjs from 'dayjs';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { OrderResponse, OrderStatus } from '@/types/order';
 
 interface OrderCardProps {
@@ -12,13 +13,28 @@ interface OrderCardProps {
   isLoadingQr?: boolean;
 }
 
-const getStatusBadge = (status: OrderStatus) => {
+const getStatusBadge = (status: OrderStatus, paymentMethod?: string) => {
   switch (status) {
     case 'PENDING_PAYMENT':
+      if (paymentMethod === 'QR') {
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-ping" />
+            CHỜ CHUYỂN KHOẢN
+          </span>
+        );
+      }
       return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider bg-amber-400 text-midnight shadow-[0_0_14px_rgba(251,191,36,0.5)] animate-pulse">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider bg-amber-400 text-midnight shadow-[0_0_12px_rgba(251,191,36,0.35)]">
           <span className="w-1.5 h-1.5 rounded-full bg-midnight shrink-0" />
           CHỜ XỬ LÝ
+        </span>
+      );
+    case 'WAITING_CONFIRMATION':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.25)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+          CHỜ XÁC NHẬN (ĐÃ CK)
         </span>
       );
     case 'CONFIRMED':
@@ -72,16 +88,24 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     >
       {/* Header: Order ID, Time & Status */}
       <div className="flex items-center justify-between border-b border-mist/10 pb-2.5">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="font-['Space_Grotesk'] text-base font-bold text-sand">
             Đơn #{order.id}
           </span>
+          {order.computerCode && (
+            <span className="text-xs font-mono font-bold text-gold">
+              ({order.computerCode})
+            </span>
+          )}
+          {order.computerZone && (
+            <ZoneBadge zone={order.computerZone} size="sm" short={false} />
+          )}
           <span className="text-[11px] text-mist flex items-center gap-1 font-mono">
             <Clock className="w-3 h-3" />
             {formattedTime}
           </span>
         </div>
-        {getStatusBadge(order.status)}
+        {getStatusBadge(order.status, order.paymentMethod)}
       </div>
 
       {/* Items Summary */}

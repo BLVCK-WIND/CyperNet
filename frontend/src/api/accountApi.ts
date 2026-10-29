@@ -1,5 +1,12 @@
 import { axiosClient } from './axiosClient';
-import type { Account, Role, RegisterCustomerWithDepositRequest, RegisterCustomerResponse } from '@/types/auth';
+import type {
+  Account,
+  Role,
+  RegisterCustomerWithDepositRequest,
+  RegisterCustomerResponse,
+  CreateAccountRequest,
+  UpdateAccountRequest,
+} from '@/types/auth';
 import type { PageResponse } from '@/types/item';
 
 export interface GetAccountsParams {
@@ -28,6 +35,14 @@ export const accountApi = {
   },
 
   /**
+   * Tạo tài khoản mới (Admin / Staff)
+   * Endpoint: POST /api/accounts
+   */
+  createAccount(data: CreateAccountRequest): Promise<Account> {
+    return axiosClient.post('/api/accounts', data);
+  },
+
+  /**
    * Đăng ký hội viên mới tại quầy POS kèm nạp tiền lần đầu (tối thiểu 10.000 VNĐ)
    * Endpoint: POST /api/accounts/register-with-deposit
    */
@@ -41,7 +56,7 @@ export const accountApi = {
    */
   updateAccount(
     id: number,
-    data: { name: string; password?: string; role: Role }
+    data: UpdateAccountRequest
   ): Promise<Account> {
     return axiosClient.put(`/api/accounts/${id}`, data);
   },

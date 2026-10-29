@@ -20,6 +20,11 @@ public class CreateComputerRequest {
 
     private Status status;
 
+    @NotBlank(message = "Địa chỉ IP không được để trống")
+    @jakarta.validation.constraints.Pattern(
+        regexp = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+        message = "Địa chỉ IP không đúng định dạng IPv4"
+    )
     private String ipAddress;
 
     @NotNull(message = "Khu vực máy (Zone) không được để trống")

@@ -33,7 +33,11 @@ public class OrderSpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
+                if (status == Order.Status.PENDING_PAYMENT) {
+                    predicates.add(root.get("status").in(List.of(Order.Status.PENDING_PAYMENT, Order.Status.WAITING_CONFIRMATION)));
+                } else {
+                    predicates.add(cb.equal(root.get("status"), status));
+                }
             }
 
             if (paymentMethod != null) {

@@ -19,6 +19,7 @@ import { computerApi } from '@/api/computerApi';
 import { sessionApi } from '@/api/sessionApi';
 import { useAuthStore } from '@/store/authStore';
 import { soundAlert } from '@/utils/soundAlert';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -247,9 +248,14 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
                       className="p-2.5 rounded-xl bg-midnight/90 hover:bg-gold/15 border border-mist/15 transition-colors cursor-pointer text-xs"
                     >
                       <div className="flex items-center justify-between font-semibold">
-                        <span className="text-sand font-mono">
-                          #ORD-{order.id} • {order.computerCode}
-                        </span>
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="text-sand font-mono">
+                            #ORD-{order.id} • {order.computerCode}
+                          </span>
+                          {order.computerZone && (
+                            <ZoneBadge zone={order.computerZone} size="sm" short={true} />
+                          )}
+                        </div>
                         <span className="text-gold font-mono font-bold">
                           {new Intl.NumberFormat('vi-VN', {
                             style: 'currency',

@@ -17,6 +17,8 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface ComputerRepository extends JpaRepository<Computer, Long>, JpaSpecificationExecutor<Computer> {
     boolean existsByCode(String code);
+    boolean existsByIpAddress(String ipAddress);
+    boolean existsByIpAddressAndIdNot(String ipAddress, Long id);
 
     Optional<Computer> findByCode(String code);
 

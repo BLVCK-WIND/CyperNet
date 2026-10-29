@@ -86,3 +86,75 @@
 .animate-shake {
   animation: shake 0.4s ease-in-out;
 }
+
+/* Breathing Glow Animations (+10-15% intensity, bảo toàn 100% độ nét, không đổi opacity) */
+@keyframes pulseUrgentGlow {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15), 0 0 0 1.5px rgba(245, 158, 11, 0.45);
+  }
+  50% {
+    box-shadow: 0 4px 26px rgba(245, 158, 11, 0.35), 0 0 0 2px rgba(245, 158, 11, 0.85);
+  }
+}
+
+.animate-pulse-urgent-border {
+  animation: pulseUrgentGlow 2.2s ease-in-out infinite;
+}
+
+@keyframes pulseBadgeRed {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(239, 83, 80, 0.3);
+    border-color: rgba(239, 83, 80, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(239, 83, 80, 0.65);
+    border-color: rgba(239, 83, 80, 0.95);
+  }
+}
+
+.animate-pulse-badge-red {
+  animation: pulseBadgeRed 2s ease-in-out infinite;
+}
+
+@keyframes pulseBadgeCyan {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(6, 182, 212, 0.25);
+    border-color: rgba(6, 182, 212, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(6, 182, 212, 0.6);
+    border-color: rgba(6, 182, 212, 0.9);
+  }
+}
+
+.animate-pulse-badge-cyan {
+  animation: pulseBadgeCyan 2s ease-in-out infinite;
+}
+
+@keyframes pulseButtonCyan {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(6, 182, 212, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(6, 182, 212, 0.7);
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-button-cyan {
+  animation: pulseButtonCyan 2s ease-in-out infinite;
+}
+
+@keyframes pulseButtonGold {
+  0%, 100% {
+    box-shadow: 0 2px 10px rgba(189, 152, 117, 0.3);
+  }
+  50% {
+    box-shadow: 0 2px 18px rgba(189, 152, 117, 0.6);
+  }
+}
+
+.animate-pulse-button-gold {
+  animation: pulseButtonGold 2.2s ease-in-out infinite;
+}

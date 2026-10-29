@@ -9,7 +9,12 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage';
 import { ZoneManagerPage } from '@/features/admin/pages/ZoneManagerPage';
 import { ManageComputersPage } from '@/features/admin/pages/ManageComputersPage';
+import { ManageItemsPage } from '@/features/admin/pages/ManageItemsPage';
+import { ManageAccountsPage } from '@/features/admin/pages/ManageAccountsPage';
+import { RevenueReportsPage } from '@/features/admin/pages/RevenueReportsPage';
+import { ComputerUsageReportPage } from '@/features/admin/pages/ComputerUsageReportPage';
 import { StaffLoginPage } from '@/features/staff/pages/StaffLoginPage';
+import { StaffDashboardPage } from '@/features/staff/pages/StaffDashboardPage';
 import { FloorMapPage } from '@/features/staff/pages/FloorMapPage';
 import { StaffOrderQueuePage } from '@/features/staff/pages/StaffOrderQueuePage';
 import { SellTimePage } from '@/features/staff/pages/SellTimePage';
@@ -82,7 +87,11 @@ export const router = createBrowserRouter([
         children: [
           {
             path: '',
-            element: <Navigate to="/staff/floormap" replace />,
+            element: <Navigate to="/staff/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: <StaffDashboardPage />,
           },
           {
             path: 'floormap',
@@ -137,8 +146,24 @@ export const router = createBrowserRouter([
             element: <ZoneManagerPage />,
           },
           {
+            path: 'items',
+            element: <ManageItemsPage />,
+          },
+          {
             path: 'accounts',
-            element: <AccountManagerPage />,
+            element: <ManageAccountsPage />,
+          },
+          {
+            path: 'reports',
+            element: <Navigate to="/admin/reports/revenue" replace />,
+          },
+          {
+            path: 'reports/revenue',
+            element: <RevenueReportsPage />,
+          },
+          {
+            path: 'reports/computers',
+            element: <ComputerUsageReportPage />,
           },
         ],
       },

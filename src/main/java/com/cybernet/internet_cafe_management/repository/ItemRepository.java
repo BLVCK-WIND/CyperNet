@@ -13,6 +13,8 @@ import com.cybernet.internet_cafe_management.entity.Item;
 @Repository
 public interface ItemRepository extends JpaRepository<Item, Long> {
     boolean existsByName(String name);
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
     Optional<Item> findByName(String name);
 

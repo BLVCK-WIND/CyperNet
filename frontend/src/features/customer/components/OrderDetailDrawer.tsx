@@ -10,6 +10,7 @@ import {
   Utensils,
 } from 'lucide-react';
 import dayjs from 'dayjs';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { OrderResponse } from '@/types/order';
 
 interface OrderDetailDrawerProps {
@@ -89,9 +90,22 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-mist">Trạng thái đơn:</span>
             {order.status === 'PENDING_PAYMENT' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wider bg-amber-400 text-midnight shadow-[0_0_12px_rgba(251,191,36,0.5)] animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-midnight shrink-0" />
-                CHỜ THANH TOÁN / DUYỆT
+              order.paymentMethod === 'QR' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-ping" />
+                  CHỜ CHUYỂN KHOẢN
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wider bg-amber-400 text-midnight shadow-[0_0_12px_rgba(251,191,36,0.5)] animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-midnight shrink-0" />
+                  CHỜ THU TIỀN MẶT
+                </span>
+              )
+            )}
+            {order.status === 'WAITING_CONFIRMATION' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0 animate-pulse" />
+                CHỜ XÁC NHẬN (ĐÃ CK)
               </span>
             )}
             {order.status === 'CONFIRMED' && (
@@ -109,9 +123,14 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-mist flex items-center gap-1.5">
               <Monitor className="w-3.5 h-3.5 text-gold" />
-              Máy trạm:
+              Máy trạm & Khu vực:
             </span>
-            <span className="font-semibold text-sand">{order.computerCode}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sand">{order.computerCode}</span>
+              {order.computerZone && (
+                <ZoneBadge zone={order.computerZone} size="sm" short={false} />
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between">

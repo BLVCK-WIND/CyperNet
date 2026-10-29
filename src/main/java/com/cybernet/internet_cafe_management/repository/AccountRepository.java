@@ -19,4 +19,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     // Phân trang danh sách tài khoản theo vai trò
     Page<Account> findByRole(Account.Role role, Pageable pageable);
+
+    // Đếm số lượng tài khoản theo vai trò (dùng để bảo vệ ADMIN duy nhất)
+    long countByRole(Account.Role role);
 }

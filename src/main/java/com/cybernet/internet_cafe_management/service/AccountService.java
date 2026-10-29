@@ -8,9 +8,12 @@ import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.dto.response.RegisterCustomerResponse;
 import com.cybernet.internet_cafe_management.dto.response.TimePurchaseResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
+import com.cybernet.internet_cafe_management.entity.Session;
 import com.cybernet.internet_cafe_management.entity.TimePurchase;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
+import com.cybernet.internet_cafe_management.repository.OrderRepository;
+import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.repository.TimePurchaseRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,30 +33,44 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final TimePurchaseRepository timePurchaseRepository;
+    private final SessionRepository sessionRepository;
+    private final OrderRepository orderRepository;
     private final AuditLogService auditLogService;
 
     // Dependency Injection qua Constructor (chuẩn của Spring Boot)
     public AccountService(AccountRepository accountRepository,
                           PasswordEncoder passwordEncoder,
                           TimePurchaseRepository timePurchaseRepository,
+                          SessionRepository sessionRepository,
+                          OrderRepository orderRepository,
                           AuditLogService auditLogService) {
         this.accountRepository = accountRepository;
         this.passwordEncoder = passwordEncoder;
         this.timePurchaseRepository = timePurchaseRepository;
+        this.sessionRepository = sessionRepository;
+        this.orderRepository = orderRepository;
         this.auditLogService = auditLogService;
     }
 
     // 1. Tạo tài khoản mới
     public AccountResponse createAccount(CreateAccountRequest request) {
-        if (accountRepository.existsByPhone(request.getPhone())) {
+        String cleanPhone = request.getPhone() != null ? request.getPhone().trim() : "";
+        String cleanName = request.getName() != null ? request.getName().trim() : "";
+        if (cleanPhone.isEmpty()) {
+            throw new IllegalArgumentException("Số điện thoại không được để trống!");
+        }
+        if (cleanName.isEmpty()) {
+            throw new IllegalArgumentException("Họ và tên không được để trống!");
+        }
+        if (accountRepository.existsByPhone(cleanPhone)) {
             throw new IllegalArgumentException("Số điện thoại này đã được đăng ký!");
         }
 
         Account account = new Account();
-        account.setPhone(request.getPhone());
-        account.setName(request.getName());
+        account.setPhone(cleanPhone);
+        account.setName(cleanName);
         // Mã hoá mật khẩu bằng BCrypt trước khi lưu vào database
-        account.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        account.setPasswordHash(passwordEncoder.encode(request.getPassword().trim()));
         if (request.getRole() != null) {
             account.setRole(request.getRole());
         }
@@ -158,11 +175,44 @@ public class AccountService {
         return AccountResponse.fromEntity(account);
     }
 
-    // 4. Xóa tài khoản theo ID
+    // 4. Xóa tài khoản theo ID (tương thích backward)
     public void deleteAccount(Long id) {
-        if (!accountRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Không tìm thấy Account với id = " + id);
+        deleteAccount(id, null);
+    }
+
+    // 4b. Xóa tài khoản có xác thực bảo vệ Admin & toàn vẹn dữ liệu
+    public void deleteAccount(Long id, Long currentAdminId) {
+        if (id != null && id.equals(currentAdminId)) {
+            throw new IllegalArgumentException("Bạn không thể xóa tài khoản đang đăng nhập của chính mình!");
         }
+
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Account với id = " + id));
+
+        // 1. Chặn xóa Quản trị viên duy nhất còn lại trong hệ thống
+        if (account.getRole() == Account.Role.ADMIN) {
+            long adminCount = accountRepository.countByRole(Account.Role.ADMIN);
+            if (adminCount <= 1) {
+                throw new IllegalArgumentException("Không thể xóa tài khoản Quản trị viên duy nhất còn lại trong hệ thống!");
+            }
+        }
+
+        // 2. Chặn xóa tài khoản đang có phiên chơi ACTIVE trên máy trạm
+        if (sessionRepository.existsByAccountIdAndStatus(id, Session.Status.ACTIVE)) {
+            throw new IllegalArgumentException("Tài khoản đang có phiên chơi hoạt động trên máy trạm! Vui lòng kết thúc phiên chơi trước khi xóa.");
+        }
+
+        // 3. Chặn xóa tài khoản đã phát sinh lịch sử (Safe Delete: bảo toàn toàn vẹn CSDL và sổ sách kế toán)
+        boolean hasSessionHistory = sessionRepository.existsByAccountId(id);
+        boolean hasTimePurchaseHistory = timePurchaseRepository.existsByAccountId(id);
+        boolean hasOrderHistory = orderRepository.existsByAccountId(id);
+        boolean hasStaffConfirmTimeHistory = timePurchaseRepository.existsByConfirmedByStaffId(id);
+        boolean hasStaffConfirmOrderHistory = orderRepository.existsByConfirmedByStaffId(id);
+
+        if (hasSessionHistory || hasTimePurchaseHistory || hasOrderHistory || hasStaffConfirmTimeHistory || hasStaffConfirmOrderHistory) {
+            throw new IllegalArgumentException("Tài khoản này đã phát sinh lịch sử giao dịch (nạp giờ / phiên chơi / hóa đơn). Không thể xóa để bảo toàn dữ liệu sổ sách kế toán!");
+        }
+
         accountRepository.deleteById(id);
     }
 
@@ -171,10 +221,25 @@ public class AccountService {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Account với id = " + id));
 
-        account.setName(request.getName().trim());
-        if (request.getRole() != null) {
+        // Nếu có thay đổi vai trò (Role)
+        if (request.getRole() != null && request.getRole() != account.getRole()) {
+            // 1. Chặn đổi role nếu tài khoản đang có phiên chơi ACTIVE trên máy trạm
+            if (sessionRepository.existsByAccountIdAndStatus(id, Session.Status.ACTIVE)) {
+                throw new IllegalArgumentException("Tài khoản đang có phiên chơi hoạt động trên máy trạm! Không thể thay đổi vai trò lúc này.");
+            }
+
+            // 2. Chặn hạ quyền Quản trị viên duy nhất còn lại
+            if (account.getRole() == Account.Role.ADMIN && request.getRole() != Account.Role.ADMIN) {
+                long adminCount = accountRepository.countByRole(Account.Role.ADMIN);
+                if (adminCount <= 1) {
+                    throw new IllegalArgumentException("Hệ thống chỉ còn 1 Quản trị viên duy nhất, không thể hạ quyền tài khoản này!");
+                }
+            }
+
             account.setRole(request.getRole());
         }
+
+        account.setName(request.getName().trim());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             account.setPasswordHash(passwordEncoder.encode(request.getPassword().trim()));
         }

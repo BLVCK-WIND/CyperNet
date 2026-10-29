@@ -79,7 +79,11 @@ export const CustomerMenuPage: React.FC = () => {
   });
 
   const pendingOrdersCount = useMemo(() => {
-    return ordersPage?.content?.filter((o) => o.status === 'PENDING_PAYMENT').length || 0;
+    return (
+      ordersPage?.content?.filter(
+        (o) => o.status === 'PENDING_PAYMENT' || o.status === 'WAITING_CONFIRMATION'
+      ).length || 0
+    );
   }, [ordersPage]);
 
   const allItems: ItemResponse[] = useMemo(() => {

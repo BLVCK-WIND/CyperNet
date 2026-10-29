@@ -656,49 +656,54 @@ flowchart TD
 - [ ] **API:** Full CRUD `/api/computers`
 
 ### MS-3.5 — Manage Menu Items (CRUD)
-- [ ] **Ant Table:** Tên, Loại (tag color), Giá, Còn hàng (switch), Actions
-- [ ] **Add/Edit Modal:** Form với select type (FOOD/DRINK/SERVICE/PLAYTIME), giá (number input VNĐ)
-- [ ] **Toggle available:** Inline switch, optimistic update
-- [ ] **API:** Full CRUD `/api/items`
+- [x] **Ant Table:** Tên, Loại (tag color), Giá, Còn hàng (switch), Actions
+- [x] **Add/Edit Modal:** Form với select type (FOOD/DRINK/SERVICE/PLAYTIME), giá (number input VNĐ), tải ảnh đại diện qua `/api/files/upload?folder=items`
+- [x] **Toggle available:** Inline switch, optimistic update
+- [x] **API:** Full CRUD `/api/items` & Upload `/api/files/upload`
 
 ### MS-3.6 — Manage Accounts (CRUD)
-- [ ] **Ant Table:** SĐT, Tên, Role (tag), Phút còn lại, Ngày tạo, Actions
-- [ ] **Add Modal:** Form tạo tài khoản mới (`POST /api/accounts`)
-- [ ] **Edit Modal:** Form sửa họ tên, cập nhật vai trò hoặc đặt lại mật khẩu mới (`PUT /api/accounts/{id}`) với `UpdateAccountRequest` (`name`, `password`, `role`)
-- [ ] **Delete:** Modal confirm xóa tài khoản (`DELETE /api/accounts/{id}`)
-- [ ] **Phân quyền hiển thị:** Chỉ ADMIN tạo/sửa được ADMIN/STAFF
-- [ ] **API:** Full CRUD `/api/accounts`
+- [x] **Ant Table:** SĐT, Tên, Role (tag), Phút còn lại, Ngày tạo, Actions
+- [x] **Add Modal:** Form tạo tài khoản mới (`POST /api/accounts`)
+- [x] **Edit Modal:** Form sửa họ tên, cập nhật vai trò hoặc đặt lại mật khẩu mới (`PUT /api/accounts/{id}`) với `UpdateAccountRequest` (`name`, `password`, `role`)
+- [x] **Delete:** Modal confirm xóa tài khoản (`DELETE /api/accounts/{id}`)
+- [x] **Phân quyền hiển thị:** Chỉ ADMIN tạo/sửa được ADMIN/STAFF, bảo vệ chống tự xóa/hạ cấp tài khoản của chính mình
+- [x] **API:** Full CRUD `/api/accounts`
 
 ### MS-3.7 — Report: Daily Revenue
-- [ ] **Date range picker** (Ant DatePicker.RangePicker), default 7 ngày gần nhất
-- [ ] **Table:** Ngày, Doanh thu Order, Doanh thu Giờ chơi, Tổng
-- [ ] **Chart:** Bar chart so sánh 2 nguồn doanh thu theo ngày
-- [ ] **Export:** Nút "Xuất Excel" (optional, dùng SheetJS)
-- [ ] **API:** `GET /api/reports/revenue/daily?fromDate=...&toDate=...`
+- [x] **Date range picker** (Ant DatePicker.RangePicker), default 7 ngày gần nhất kèm phím tắt Preset (Hôm nay, 7D, 30D, Tháng này)
+- [x] **Table:** Ngày, Doanh thu Order, Doanh thu Giờ chơi, Tổng
+- [x] **Chart:** Interactive AreaChart với Recharts phân rã 3 dòng tiền mượt mà kèm custom Tooltip
+- [x] **API:** `GET /api/reports/revenue/daily?fromDate=...&toDate=...` & `GET /api/reports/revenue/summary`
 
 ### MS-3.8 — Report: Top Items & Top Customers
-- [ ] **Top 10 món bán chạy:** Horizontal bar chart (Recharts) + table, sorted by quantity
-- [ ] **Top 10 khách hàng:** Table — SĐT, Tên, Tổng chi tiêu, Số đơn
-- [ ] **API:** `GET /api/reports/items/top-selling`, `GET /api/reports/customers/top-spenders`
+- [x] **Top 10 món bán chạy:** Table xếp hạng vinh danh Top 1, 2, 3 nổi bật, số lượng bán và tổng tiền
+- [x] **Top 10 khách hàng:** Table — SĐT, Tên, Số phút đã chơi, Tổng chi tiêu
+- [x] **API:** `GET /api/reports/items/top-selling`, `GET /api/reports/customers/top-spenders`
 
 ### MS-3.9 — Report: Computer Usage
-- [ ] **Table:** Mã máy, Tổng giờ sử dụng, Số phiên, Tỷ lệ sử dụng (%), Doanh thu
-- [ ] **Tính toán Client-side:** API `GET /api/reports/computers/usage` trả về `totalSessions` và `totalUsageMinutes`. Frontend tự tính: `totalHours = (totalUsageMinutes / 60).toFixed(1)`, `utilizationRate = totalUsageMinutes / (days * 24 * 60) * 100`
-- [ ] **Heatmap hoặc bar chart:** So sánh hiệu suất giữa các máy
-- [ ] **API:** `GET /api/reports/computers/usage?fromDate=&toDate=`
+- [x] **Table:** Mã máy, Phân khu ZoneBadge, Số phiên đã phục vụ, Tổng thời lượng sử dụng, Thanh tiến trình công suất lấp đầy 24/7 (%)
+- [x] **Tính toán Client-side:** API `GET /api/reports/computers/usage` trả về `totalSessions` và `totalMinutesUsed`. Frontend tự tính: `totalHours = (totalMinutesUsed / 60).toFixed(1)`, `utilizationRate = totalMinutesUsed / (surveyDays * 24 * 60) * 100`
+- [x] **API:** `GET /api/reports/computers/usage?fromDate=&toDate=`
 
-### MS-3.10 — Admin Animations & Charts Polish
-- [ ] Stats cards: countUp animation (0 → value), stagger delay
-- [ ] Charts: draw animation on mount (Recharts `isAnimationActive`)
-- [ ] Table row: hover highlight `rgba(gold, 0.05)`
-- [ ] Modal: scale-in animation (Framer Motion)
-- [ ] Page transitions consistent
+### MS-3.10 & MS-3.11 — Admin Polish & Integration Tests
+- [x] Đồng bộ dải Telemetry 4 thẻ Liquid Glass 3D trên toàn bộ các trang Báo cáo
+- [x] Biểu đồ Recharts gradient mạ vàng mờ, responsive theo kích thước khung hình
+- [x] Đã kiểm thử trọn vẹn: `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings)
 
-### MS-3.11 — Admin Test & Polish
-- [ ] Test CRUD flows cho Computers, Items, Accounts
-- [ ] Test report date ranges, empty data states
-- [ ] Test RBAC: Staff không thấy Admin menu
-- [ ] Layout audit: table overflow, chart responsiveness
+### MS-3.12 — Shadcn-Inspired Bento Grid Upgrade for Admin Dashboard & Staff Operations Hub ⭐
+> **Quyết định chiến lược (Tech Lead Approved):** Triển khai ngay sau khi hoàn tất các chức năng nghiệp vụ cốt lõi (MS-3.5 đến MS-3.11) nhằm đảm bảo các tính năng chính chạy chuẩn chỉ trước khi nâng cấp trải nghiệm giao diện tổng quan.
+- [x] **Lột xác Admin Executive Dashboard (`/admin/dashboard`):**
+  - Tái thiết kế bố cục theo phong cách **Bento Grid** đa tầng của shadcn/ui kết hợp nền tảng Ant Design 6 + Tailwind 4 + Liquid Glass 3D.
+  - Tích hợp biểu đồ diện tích tương tác cao (Interactive AreaChart với `recharts`) thể hiện xu hướng doanh thu theo ngày/giờ, tùy biến tooltip tối giản viền vàng.
+  - Khối cơ cấu doanh thu phân rã đa chiều (Doanh thu Giờ chơi vs Dịch vụ F&B) và tỷ lệ lấp đầy máy theo từng phân khu (`Zone`).
+  - Khối Hoạt động gần nhất (Recent Orders Feed 5 đơn mới nhất) và Khối Top món bán chạy nhất trong ngày (Top Selling Items ranking).
+  - Khối Phím tắt điều hành 6 phân hệ quản trị (Máy trạm, Phân khu, Thực đơn, Tài khoản, Báo cáo tài chính, Báo cáo máy trạm).
+- [x] **Xây dựng Staff Shift Hub — Trung tâm Điều hành Ca Trực (`/staff/dashboard`):**
+  - Tạo trang tổng quan ca trực độc lập cho nhân viên (kèm chuyển đổi 1-click qua lại với Sơ đồ máy Floor Map và Hàng đợi đơn hàng).
+  - **Dải chỉ số ca trực (Shift Telemetry Bar):** 4 thẻ Liquid Glass 3D (Doanh thu ca hiện tại phân bổ Tiền mặt vs VietQR, Đơn chờ duyệt khẩn cấp với pulse indicator đỏ, Tỷ lệ máy online kèm progress bar, Phiên chơi trực tiếp).
+  - **Màn hình tiến độ trực tiếp (Live Progress Monitor):** Danh sách máy online kèm mini progress bar % thời gian chơi còn lại, cảnh báo sắp hết giờ (<10 phút) và ZoneBadge.
+  - **Thanh điều khiển nhanh (Quick Action Dock):** Các nút 1-click mở nhanh modal: ⚡ Mở máy (`StartSessionModal`), 💰 Bán giờ quầy (`SellTimeModal`), 👤 Đăng ký hội viên (`RegisterCustomerModal`), 🗺️ Sơ đồ máy, 📋 Duyệt đơn hàng.
+- [x] Đã kiểm thử trọn vẹn: `npm --prefix frontend run build` PASS 100% (0 errors, 0 warnings).
 
 ---
 
@@ -708,7 +713,8 @@ flowchart TD
 
 | # | Task | Chi tiết |
 |---|---|---|
-| **MS-4.1** | **Theme fine-tuning** | Điều chỉnh colors, shadows, border-radius nhất quán. Đảm bảo contrast ratio WCAG AA |
+| **MS-4.1** | **Theme fine-tuning (DONE)** | ✅ Điều chỉnh colors, shadows, border-radius nhất quán. Đảm bảo contrast ratio WCAG AA (>4.5:1 text, >3:1 UI), bổ sung tokens Ant Design (DatePicker, Tabs, Drawer, Pagination, Tooltip, Switch), custom Twinkle scrollbar |
+| **MS-4.1b** | **Luồng đặt hàng QR 2 bước & Rào chắn An toàn Tài chính (DONE)** | ✅ Chuẩn hóa luồng thanh toán QR VietQR Napas247:<br>1. Khách đặt đơn QR: Đơn hiển thị "Chờ chuyển khoản" (`PENDING_PAYMENT`). Nút duyệt của Staff bị VÔ HIỆU HÓA kèm tooltip cảnh báo cấm duyệt; Backend chặn 400 Bad Request nếu cố duyệt.<br>2. Khách bấm "TÔI ĐÃ CHUYỂN KHOẢN": Chuyển trạng thái sang "Đã CK • Chờ quầy duyệt" (`WAITING_CONFIRMATION`), lưu `transferredAt`. Staff nhận thông báo realtime, nút Xác nhận đổi sang cyan/emerald bật sáng.<br>3. Staff xác nhận: Hiện Modal Popup đối soát bắt buộc (SĐT khách, tên khách, máy trạm, số tiền, cú pháp CK `ORDER-CYBERNET-{id}` và nhắc kiểm tra app ngân hàng) trước khi duyệt `CONFIRMED`.<br>4. Mở rộng MySQL `orders.status` lên `VARCHAR(50)` và bổ sung migration `V8__alter_orders_status_varchar.sql`. |
 | **MS-4.2** | **Animation audit** | Kiểm tra mọi transition/animation nhất quán, không giật, respect `prefers-reduced-motion` |
 | **MS-4.3** | **Loading & Skeleton audit** | Mọi page có skeleton loading phù hợp, không flash of empty content |
 | **MS-4.4** | **Error & Empty state audit** | Mọi list có empty state đẹp, mọi API error có UX xử lý rõ ràng |

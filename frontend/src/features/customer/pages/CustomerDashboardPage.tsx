@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock,
   Sparkles,
+  Coffee,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -29,7 +30,7 @@ export const CustomerDashboardPage: React.FC = () => {
   const { user, computerCode, logout } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const { data: session, isLoading, isError } = useSession({
+  const { data: session, isLoading } = useSession({
     computerCode: computerCode || undefined,
   });
 
@@ -126,16 +127,74 @@ export const CustomerDashboardPage: React.FC = () => {
           <GlassCard className="w-full text-center py-12">
             <Skeleton active paragraph={{ rows: 4 }} />
           </GlassCard>
-        ) : isError ? (
-          <GlassCard elevated className="w-full text-center py-8 border-danger/40">
-            <p className="text-danger font-semibold mb-2">Không thể tải thông tin phiên chơi!</p>
-            <p className="text-xs text-mist mb-4">
-              Máy trạm có thể chưa được quầy thu ngân mở phiên hoặc phiên đã kết thúc.
-            </p>
-            <Button onClick={() => window.location.reload()} size="small">
-              Tải lại trang
-            </Button>
-          </GlassCard>
+        ) : !session ? (
+          /* MÀN HÌNH CHẾ ĐỘ GỌI MÓN TẠI BÀN KHI MÁY TRỐNG (CHƯA MỞ PHIÊN PC) */
+          <div className="w-full space-y-5 animate-fade-in">
+            {/* Card chính: Trạng thái máy & Số dư tài khoản */}
+            <GlassCard elevated className="w-full p-6 text-center space-y-4 border-gold/30 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-36 h-36 bg-gold/10 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate/70 border border-gold/30 text-xs font-semibold text-gold">
+                <Coffee className="w-3.5 h-3.5 text-gold" />
+                <span>CHẾ ĐỘ GỌI MÓN TẠI BÀN</span>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold font-['Space_Grotesk'] text-sand mb-1">
+                  Máy trạm <span className="text-gold">{computerCode || 'PC'}</span>
+                </h2>
+                <p className="text-xs text-mist">
+                  Chưa mở phiên chơi trên PC • Giờ chơi trong tài khoản được bảo lưu 100%
+                </p>
+              </div>
+
+              {/* Hộp số dư tài khoản an toàn */}
+              <div className="p-4 rounded-xl bg-midnight/80 border border-mist/20 max-w-sm mx-auto space-y-1">
+                <span className="text-[11px] text-mist uppercase tracking-wider block">
+                  Số dư giờ trong tài khoản
+                </span>
+                <span className="text-3xl font-black font-['Space_Grotesk'] text-gold">
+                  {rawRemainingMinutes} <span className="text-sm font-sans font-medium text-sand/80">phút chuẩn</span>
+                </span>
+                <span className="text-[11px] text-emerald-400 block font-medium">
+                  ✓ Chưa tính giờ (không bị trừ phút)
+                </span>
+              </div>
+
+              {/* Thông báo hướng dẫn mở máy PC */}
+              <div className="p-3.5 rounded-xl bg-slate/40 border border-mist/15 text-left text-xs text-sand/85 space-y-1.5 leading-relaxed">
+                <div className="font-semibold text-gold flex items-center gap-1.5 text-xs">
+                  <Monitor className="w-4 h-4 text-gold shrink-0" />
+                  <span>Cách bắt đầu chơi game tại máy này:</span>
+                </div>
+                <p className="text-[11px] text-mist pl-5.5">
+                  Bạn vui lòng gõ <strong>Số điện thoại</strong> và <strong>mật khẩu</strong> trực tiếp trên màn hình máy tính để đăng nhập. Hệ thống sẽ bắt đầu tính giờ từ thời điểm đó.
+                </p>
+              </div>
+            </GlassCard>
+
+            {/* Quick Action Buttons: Gọi món F&B & Xem Đơn hàng */}
+            <div className="grid grid-cols-2 gap-3 w-full">
+              <Button
+                type="primary"
+                size="large"
+                icon={<Utensils className="w-4 h-4 text-midnight" />}
+                onClick={() => navigate('/customer/menu')}
+                className="h-13 font-bold text-sm bg-gold hover:bg-gold-light active:bg-gold-dark text-midnight rounded-xl border-0 shadow-lg shadow-gold/20 flex items-center justify-center gap-2 transition-all duration-300"
+              >
+                GỌI MÓN / NẠP GIỜ
+              </Button>
+
+              <Button
+                size="large"
+                icon={<ReceiptText className="w-4 h-4 text-gold" />}
+                onClick={() => navigate('/customer/orders')}
+                className="h-13 font-semibold text-sm bg-slate/70 hover:bg-slate active:bg-midnight text-sand rounded-xl border border-gold/30 hover:border-gold shadow-md flex items-center justify-center gap-2 transition-all duration-300"
+              >
+                ĐƠN HÀNG CỦA TÔI
+              </Button>
+            </div>
+          </div>
         ) : (
           <>
             {/* Countdown Hero Section */}

@@ -30,17 +30,32 @@ Khách ngồi vào máy bất kỳ đang trống
                     hết giờ → không cho đăng nhập, phải mua giờ trước
 ```
 
-**Đang chơi — gọi món/thêm giờ:**
+**Đang chơi — gọi món/thêm giờ (Luồng thanh toán QR 2 bước chuẩn hóa):**
 ```
 Khách quét QR tại bàn bằng điện thoại
 → Trang web hiện ra → nhập SĐT (mỗi lần quét đều nhập)
 → Hệ thống đối chiếu: SĐT khớp với phiên đang mở tại máy đó
 → Hiện menu (đồ ăn/uống/thêm giờ)
 → Khách chọn nhiều món vào giỏ → tạo 1 đơn hàng
-→ Chọn thanh toán QR hoặc tiền mặt
-→ NV xác nhận → đơn CONFIRMED
-→ Nếu có item "thêm giờ" → hệ thống tự cộng giờ vào phiên
-→ Nếu có đồ ăn/uống → NV chuẩn bị mang tới máy
+→ Nếu chọn TIỀN MẶT (CASH):
+    • Đơn tạo trạng thái PENDING_PAYMENT ("Chờ thu tiền mặt").
+    • Nhân viên nhận đủ tiền mặt từ khách ➔ bấm Xác nhận ➔ Hệ thống hiển thị Popup đối soát an toàn:
+      "Bạn có chắc chắn đã nhận đủ [số tiền] tiền mặt từ khách hàng [tên] (SĐT [sdt]) tại máy [mã máy] rồi chứ?"
+      kèm mã đơn, tổng tiền cần thu và cảnh báo cầm đủ tiền trên tay trước khi bấm duyệt.
+    • Nhân viên xác nhận ➔ Đơn chuyển sang CONFIRMED.
+    • Nếu đơn có item PLAYTIME ➔ Hệ thống tự động cộng giờ chơi vào phiên máy.
+→ Nếu chọn CHUYỂN KHOẢN (QR):
+    • Bước 1 (Khách chưa CK): Đơn tạo trạng thái PENDING_PAYMENT ("Chờ chuyển khoản").
+      Giao diện Staff hiển thị nút Xác nhận BỊ VÔ HIỆU HÓA (DISABLED) kèm cảnh báo CẤM DUYỆT.
+      Backend chặn tuyệt đối không cho Staff xác nhận khi khách chưa gửi thông báo đã CK (400 Bad Request).
+    • Bước 2 (Khách đã CK): Khách quét VietQR chuyển tiền xong, bấm "TÔI ĐÃ CHUYỂN KHOẢN" trên modal
+      → Đơn chuyển sang WAITING_CONFIRMATION ("Đã CK • Chờ quầy duyệt").
+      → Phía Staff nhận thông báo realtime, nút Xác nhận được BẬT (ENABLED) nổi bật.
+      → Staff bấm "Xác nhận chuyển khoản", hệ thống bật Popup an toàn:
+        "Bạn có chắc khách hàng có SĐT: [sdt] (máy [code]) đã chuyển khoản rồi chứ? Số tiền: ... Nội dung: ..."
+      → Staff kiểm tra app ngân hàng/biến động số dư rồi xác nhận → Đơn chuyển CONFIRMED.
+→ Nếu có item "thêm giờ" (PLAYTIME) → hệ thống tự cộng giờ vào phiên.
+→ Nếu có đồ ăn/uống (FOOD/DRINK) → Bếp chế biến & mang tới máy trạm.
 ```
 
 ### Cơ chế giờ chơi
@@ -56,7 +71,8 @@ Khách quét QR tại bàn bằng điện thoại
 
 ### Cấu trúc đơn hàng
 - **1 Order = nhiều OrderItem** (giỏ hàng)
-- Order: status, paymentMethod, totalAmount, session, confirmedByStaff...
+- Order: id, session (kèm computerCode và computerZone định vị phân khu), totalAmount, paymentMethod (QR/CASH), status (PENDING_PAYMENT, WAITING_CONFIRMATION, CONFIRMED, CANCELLED), confirmedByStaff, confirmedAt, transferredAt, createdAt
+- Đơn hàng luôn gắn liền với thông tin Khu vực/Zone phòng máy (`computerZone`) để nhân viên quầy và nhân viên phục vụ định vị chính xác vị trí bàn giao món (vd: VIP-02 tại Zone VIP).
 - OrderItem: item, quantity, unitPrice, subtotal
 
 ### Thanh toán

@@ -1,5 +1,6 @@
 package com.cybernet.internet_cafe_management.dto.response;
 
+import com.cybernet.internet_cafe_management.entity.Computer;
 import com.cybernet.internet_cafe_management.entity.Order;
 import com.cybernet.internet_cafe_management.entity.Order.PaymentMethod;
 import com.cybernet.internet_cafe_management.entity.Order.Status;
@@ -11,7 +12,7 @@ import java.util.List;
 
 /**
  * Response DTO: Toàn bộ thông tin đơn hàng trả về cho Client.
- * Làm phẳng thông tin máy tính (computerCode), khách hàng (customerName),
+ * Làm phẳng thông tin máy tính (computerCode), khu vực (computerZone), khách hàng (customerName),
  * nhân viên duyệt, và chứa danh sách các món trong đơn hàng.
  */
 public class OrderResponse {
@@ -20,7 +21,8 @@ public class OrderResponse {
 
     // Thông tin định danh phục vụ nhân viên bưng bê và giao hàng
     private Long sessionId;
-    private String computerCode; // Mang ra bàn nào (VD: "PC-01")
+    private String computerCode; // Mang ra bàn nào (VD: "PC-01", "VIP-02")
+    private Computer.Zone computerZone; // Khu vực phòng máy (VD: VIP, STANDARD, STREAM, ARENA, COUPLE)
     private String customerName;
     private String customerPhone;
 
@@ -36,6 +38,7 @@ public class OrderResponse {
     // Thời gian
     private LocalDateTime createdAt;
     private LocalDateTime confirmedAt;
+    private LocalDateTime transferredAt;
 
     // Danh sách các món trong đơn hàng
     private List<OrderItemResponse> items;
@@ -43,14 +46,15 @@ public class OrderResponse {
     public OrderResponse() {
     }
 
-    public OrderResponse(Long id, Long sessionId, String computerCode, String customerName, String customerPhone,
+    public OrderResponse(Long id, Long sessionId, String computerCode, Computer.Zone computerZone, String customerName, String customerPhone,
                          BigDecimal totalAmount, PaymentMethod paymentMethod, Status status,
                          Long confirmedByStaffId, String confirmedByStaffName,
-                         LocalDateTime createdAt, LocalDateTime confirmedAt,
+                         LocalDateTime createdAt, LocalDateTime confirmedAt, LocalDateTime transferredAt,
                          List<OrderItemResponse> items) {
         this.id = id;
         this.sessionId = sessionId;
         this.computerCode = computerCode;
+        this.computerZone = computerZone;
         this.customerName = customerName;
         this.customerPhone = customerPhone;
         this.totalAmount = totalAmount;
@@ -60,7 +64,17 @@ public class OrderResponse {
         this.confirmedByStaffName = confirmedByStaffName;
         this.createdAt = createdAt;
         this.confirmedAt = confirmedAt;
+        this.transferredAt = transferredAt;
         this.items = items;
+    }
+
+    public OrderResponse(Long id, Long sessionId, String computerCode, String customerName, String customerPhone,
+                         BigDecimal totalAmount, PaymentMethod paymentMethod, Status status,
+                         Long confirmedByStaffId, String confirmedByStaffName,
+                         LocalDateTime createdAt, LocalDateTime confirmedAt, LocalDateTime transferredAt,
+                         List<OrderItemResponse> items) {
+        this(id, sessionId, computerCode, null, customerName, customerPhone, totalAmount, paymentMethod, status,
+             confirmedByStaffId, confirmedByStaffName, createdAt, confirmedAt, transferredAt, items);
     }
 
     public static OrderResponse fromEntity(Order order) {
@@ -78,12 +92,33 @@ public class OrderResponse {
                 ? order.getOrderItems().stream().map(OrderItemResponse::fromEntity).toList()
                 : Collections.emptyList();
 
+        String compCode = null;
+        Computer.Zone compZone = null;
+        if (order.getComputer() != null) {
+            compCode = order.getComputer().getCode();
+            compZone = order.getComputer().getZone();
+        } else if (order.getSession() != null && order.getSession().getComputer() != null) {
+            compCode = order.getSession().getComputer().getCode();
+            compZone = order.getSession().getComputer().getZone();
+        }
+
+        String custName = null;
+        String custPhone = null;
+        if (order.getAccount() != null) {
+            custName = order.getAccount().getName();
+            custPhone = order.getAccount().getPhone();
+        } else if (order.getSession() != null && order.getSession().getAccount() != null) {
+            custName = order.getSession().getAccount().getName();
+            custPhone = order.getSession().getAccount().getPhone();
+        }
+
         return new OrderResponse(
                 order.getId(),
-                order.getSession().getId(),
-                order.getSession().getComputer().getCode(),
-                order.getSession().getAccount().getName(),
-                order.getSession().getAccount().getPhone(),
+                (order.getSession() != null) ? order.getSession().getId() : null,
+                compCode,
+                compZone,
+                custName,
+                custPhone,
                 order.getTotalAmount(),
                 order.getPaymentMethod(),
                 order.getStatus(),
@@ -91,6 +126,7 @@ public class OrderResponse {
                 staffName,
                 order.getCreatedAt(),
                 order.getConfirmedAt(),
+                order.getTransferredAt(),
                 itemResponses
         );
     }
@@ -117,6 +153,14 @@ public class OrderResponse {
 
     public void setComputerCode(String computerCode) {
         this.computerCode = computerCode;
+    }
+
+    public Computer.Zone getComputerZone() {
+        return computerZone;
+    }
+
+    public void setComputerZone(Computer.Zone computerZone) {
+        this.computerZone = computerZone;
     }
 
     public String getCustomerName() {
@@ -189,6 +233,14 @@ public class OrderResponse {
 
     public void setConfirmedAt(LocalDateTime confirmedAt) {
         this.confirmedAt = confirmedAt;
+    }
+
+    public LocalDateTime getTransferredAt() {
+        return transferredAt;
+    }
+
+    public void setTransferredAt(LocalDateTime transferredAt) {
+        this.transferredAt = transferredAt;
     }
 
     public List<OrderItemResponse> getItems() {

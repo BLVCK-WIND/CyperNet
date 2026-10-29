@@ -31,7 +31,9 @@ export const useOrderQueue = ({
         status: statusTab === 'ALL' ? undefined : statusTab,
         page: 0,
         size: 50,
-        sort: 'createdAt,desc',
+        // Hàng đợi Chờ xử lý: FIFO (createdAt,asc) để người chờ lâu nhất được ưu tiên làm trước.
+        // Các tab hoàn thành/hủy/tất cả: LIFO (createdAt,desc) để xem đơn mới cập nhật gần nhất.
+        sort: statusTab === 'PENDING_PAYMENT' ? 'createdAt,asc' : 'createdAt,desc',
       }),
     placeholderData: keepPreviousData,
     // 5s polling cho đơn chờ xử lý, 15s cho các tab đã hoàn thành

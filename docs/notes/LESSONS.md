@@ -715,14 +715,71 @@ Biên dịch thành công 69 files source code (`mvn clean test` BUILD SUCCESS).
 
 ---
 
-### 15. Tối Ưu Bố Cục Điều Khiển Sơ Đồ Máy: Dropdown Select vs Hàng Nút Bấm Dàn Ngang
+### 16. Safe Delete Integrity vs Nguy Cơ Sập Khóa Ngoại CSDL (Foreign Key Constraint Crash) ⚠️ QUY TẮC SỐNG CÒN
 
-- **Vấn đề**: Ban đầu bộ lọc phân khu được làm bằng hàng nút bấm `Segmented`. Khi phòng máy có thêm 4-5 khu vực với tên dài, hàng nút bấm bị dàn ngang quá mức, đẩy ô tìm kiếm rớt dòng và làm vỡ layout trên các màn hình nhỏ.
-- **Giải pháp bố cục**:
-  - Phân loại rõ ràng 2 nhóm điều khiển:
-    - **Lọc Trạng thái máy (ít, cố định 4 mục: Tất cả, Trống, Đang chơi, Bảo trì)**: Đặt dạng Segmented tabs bên trái để nhân viên quầy click 1 chạm.
-    - **Lọc Phân khu (nhiều, động, tên dài)**: Chuyển thành **Dropdown `Select` có mũi tên trỏ xuống `▾` (`ChevronDown`)** với độ rộng cố định `w-60`, đặt ngay cạnh ô Tìm kiếm bên phải.
-  - Trong dropdown, mỗi tùy chọn có chấm LED màu nhận diện và số lượng máy. Giao diện trở nên vô cùng gọn gàng, thanh thoát và không bao giờ bị vỡ dòng dù phòng máy mở rộng thêm 20 khu vực.
+- **Vấn đề thực tế**: Trong các hệ thống phần mềm doanh nghiệp, các thực thể gốc (Parent Tables) như `computers`, `items`, `accounts` thường có quan hệ khóa ngoại (Foreign Key) chặt chẽ với các bảng lịch sử giao dịch: `sessions`, `orders`, `order_items`, `time_purchases`, `audit_logs`.
+- **Hậu quả nếu gọi `deleteById` trực tiếp**:
+  - Khi người quản trị vô tình xóa một máy trạm cũ, một món ăn từng bán, hoặc một tài khoản từng nạp tiền, MySQL sẽ quăng ngoại lệ `DataIntegrityViolationException: Cannot delete or update a parent row: a foreign key constraint fails`.
+  - Server ném lỗi **HTTP 500 Internal Server Error**, làm gián đoạn hệ thống và mất uy tín chất lượng phần mềm.
+  - Tệ hại hơn: Nếu DB không có FK constraint mà xóa cứng thành công, toàn bộ báo cáo doanh thu, hóa đơn kế toán và audit log của tháng trước sẽ bị mồ côi (Orphaned records), dẫn đến sai lệch sổ sách tài chính nghiêm trọng!
+- **Giải pháp chuẩn hóa Enterprise (Safe Delete Integrity)**:
+  1. Bổ sung các hàm kiểm tra quan hệ tồn tại trong Repository: `existsByComputerId`, `existsByItemId`, `existsByAccountId`, `existsByConfirmedByStaffId`.
+  2. Tại Service layer: Kiểm tra trước khi thực hiện xóa. Nếu đã phát sinh bất kỳ bản ghi lịch sử nào $\rightarrow$ Chặn đứng ngay lập tức và ném `IllegalArgumentException` (HTTP 400 Bad Request) kèm thông báo nghiệp vụ rõ ràng: *"Mặt hàng/Máy trạm/Tài khoản này đã phát sinh lịch sử giao dịch. Không thể xóa để bảo toàn sổ sách kế toán!"*.
+  3. Với Thực đơn F&B đã bán: Hướng dẫn người dùng chuyển sang cơ chế **Hết hàng (`available = false`)** thay vì xóa cứng.
+
+---
+
+### 17. Cạm Bẫy Đổi Role Khi Khách Đang Ngồi Chơi & Cơ Chế Bảo Vệ ADMIN Duy Nhất (Privilege & Session Protection)
+
+- **Vấn đề 1 — Admin tự hủy diệt hoặc hệ thống trở thành "Vô Chủ"**:
+  - Nếu API `DELETE /api/accounts/{id}` chỉ kiểm tra quyền `@PreAuthorize("hasRole('ADMIN')")`, một quản trị viên có thể gửi request xóa chính mình.
+  - Nguy hiểm hơn: Nếu phòng máy chỉ có đúng 1 tài khoản ADMIN duy nhất và tài khoản này bị xóa hoặc bị đổi role thành `CUSTOMER`/`STAFF` (Demotion), hệ thống sẽ không còn bất kỳ ai có quyền quản trị tối cao nữa!
+  - **Khắc phục**:
+    + Chặn Admin tự xóa chính tài khoản đang đăng nhập (`id.equals(currentAdminId)`).
+    + Đếm số lượng Admin hiện có qua `accountRepository.countByRole(Role.ADMIN)`: Nếu $\le 1$ thì **tuyệt đối không cho phép xóa và không cho phép hạ quyền** sang role khác.
+- **Vấn đề 2 — Sửa Role hoặc Xóa tài khoản khi đang có phiên chơi ACTIVE**:
+  - Khi khách hàng đang ngồi máy chơi game (Session `ACTIVE` trên máy VIP), phiên chơi liên tục tính toán thời gian và đếm ngược theo đơn vị Zone Dynamic Tariff.
+  - Nếu quản trị viên xóa khách này hoặc đổi role sang `STAFF`/`ADMIN`, khi phiên chơi kết thúc hoặc khách gọi món, hệ thống sẽ bị xung đột dữ liệu hoặc quăng lỗi Null Pointer / FK failure làm đơ máy trạm.
+  - **Khắc phục**: Bắt buộc kiểm tra `sessionRepository.existsByAccountIdAndStatus(id, Session.Status.ACTIVE)`. Nếu tài khoản đang có phiên chơi hoạt động trên máy trạm thì **chặn đứng mọi hành vi xóa hoặc đổi vai trò (HTTP 400)**.
+
+---
+
+### 18. Bảo Toàn Cân Đối Sổ Sách Kế Toán 100% — Cạm Bẫy Phân Loại `Item.Type.SERVICE` vs `PLAYTIME` (Zero Revenue Leakage)
+
+- **Hiện tượng**: Báo cáo tổng quan doanh thu hiển thị: Tổng doanh thu toàn quán = 910.000 VNĐ, Doanh thu Tiền mặt + QR = 910.000 VNĐ. Tuy nhiên, khi cộng Doanh thu F&B (600.000 VNĐ) + Doanh thu Giờ chơi (260.000 VNĐ) thì chỉ được 860.000 VNĐ, bị lệch mất 50.000 VNĐ!
+- **Nguyên nhân kỹ thuật**:
+  - Trong thực đơn phòng net, một số gói nạp combo đặc biệt được tạo với loại `Item.Type.SERVICE` (thay vì `PLAYTIME` hoặc `FOOD`/`DRINK`).
+  - Trong logic gom nhóm doanh thu tại `ReportService`: Vòng lặp chỉ kiểm tra `if (type == FOOD || type == DRINK)` và `else if (type == PLAYTIME)`. Mặt hàng có loại `SERVICE` bị rơi vào khoảng trống không được cộng vào đâu cả!
+- **Bài học kế toán tài chính**:
+  - Mọi luồng tính toán cơ cấu doanh thu bắt buộc phải tuân thủ nguyên lý bảo toàn:
+    $$\sum \text{Loại hàng} = \sum \text{Hình thức thanh toán} = \text{Tổng doanh thu thực tế}$$
+  - Cập nhật logic: Gom cả `Item.Type.PLAYTIME` và `Item.Type.SERVICE` vào nhóm Doanh thu Giờ chơi & Dịch vụ. Kết quả: $600.000 + 310.000 = 910.000$ VNĐ, cân đối tuyệt đối 100%.
+
+---
+
+### 19. Cạm Bẫy Làm Tròn Mốc Thời Gian Cuối Ngày (Nanosecond Boundary Overflow in MySQL)
+
+- **Vấn đề**: Trong Java, `LocalTime.MAX` có giá trị `23:59:59.999999999` (độ chính xác đến 9 chữ số nano-second).
+- **Lỗi phát sinh**:
+  - Khi lưu trữ hoặc so sánh với kiểu dữ liệu `DATETIME` hay `DATETIME(3)` trong MySQL (chỉ hỗ trợ tối đa 3 hoặc 6 chữ số thập phân), MySQL có thể **tự động làm tròn lên (Round Up)** thành `00:00:00` của ngày hôm sau!
+  - Hậu quả: Bộ lọc ngày `toDate = 2026-10-30` vô tình nuốt trọn cả các giao dịch phát sinh vào đúng 00:00:00 của ngày `2026-10-31`, làm số liệu báo cáo doanh thu cuối tháng bị sai lệch.
+- **Giải pháp chuẩn hóa**:
+  - Không dùng `LocalTime.MAX` cho các truy vấn SQL trực tiếp.
+  - Sử dụng mốc an toàn `end.atTime(23, 59, 59)` (hoặc `< (end + 1 day).atStartOfDay()`) để đảm bảo bao trọn vẹn 100% các giây trong ngày mà không bao giờ bị tràn sang ngày tiếp theo.
+
+---
+
+### 20. Đồng Bộ Hóa Dynamic Tariff Khi Bán Gói Combo Qua Đơn Hàng Tại Quầy (`createDirectOrder`)
+
+- **Vấn đề**: Tại quầy thu ngân, khi nhân viên bán trực tiếp gói combo giờ chơi cho khách đang ngồi máy VIP (15.000đ/h), nếu code backend lấy cứng số giờ nhân 60 phút và cộng thẳng vào `session.expiresAt` (ví dụ: Combo 6 tiếng $\rightarrow$ cộng 360 phút máy VIP):
+  - Giá trị thực tế của 360 phút máy VIP là: $360 \times 15.000 / 60 = 90.000$ VNĐ. Nhưng khách chỉ thanh toán giá gói combo chuẩn (50.000 VNĐ).
+  - Phòng máy bị thất thoát doanh thu nghiêm trọng do máy VIP bị cộng quá nhiều thời lượng chơi!
+- **Nguyên tắc Dynamic Tariff bất biến**:
+  - Mọi gói giờ combo mua qua quầy phải được trích xuất ra **Số Phút Chuẩn (Standard Minutes @ 10k/h)**.
+  - Số phút cộng vào màn hình máy VIP bắt buộc phải được quy đổi qua bộ xử lý Zone Tariff:
+    $$\text{playableMinutes} = \lfloor \text{standardMinutes} \times \frac{\text{BASE\_PRICE\_PER\_HOUR}}{\text{pricePerHour}} \rfloor = \lfloor 360 \times \frac{10.000}{15.000} \rfloor = 240 \text{ phút máy VIP}$$
+  - Đồng thời cộng 360 phút chuẩn vào `customer.remainingMinutes` để khi khách chuyển sang máy khác hoặc trả máy sớm, số dư còn lại hoàn trả về tài khoản hoàn toàn chính xác theo đúng tỷ lệ kinh tế.
+
 
 
 

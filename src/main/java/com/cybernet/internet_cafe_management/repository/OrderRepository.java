@@ -20,6 +20,18 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     // Phân trang danh sách đơn hàng theo trạng thái
     Page<Order> findByStatus(Status status, Pageable pageable);
 
+    // Kiểm tra máy tính đã từng có đơn hàng nào chưa
+    boolean existsByComputerId(Long computerId);
+
+    // Kiểm tra tài khoản khách hàng đã từng có đơn hàng nào chưa
+    boolean existsByAccountId(Long accountId);
+
+    // Kiểm tra nhân viên đã từng xác nhận đơn hàng nào chưa
+    boolean existsByConfirmedByStaffId(Long staffId);
+
+    // Phân trang danh sách đơn hàng theo tập hợp trạng thái (ví dụ đơn chờ xử lý gồm PENDING_PAYMENT và WAITING_CONFIRMATION)
+    Page<Order> findByStatusIn(List<Status> statuses, Pageable pageable);
+
     // Phân trang danh sách đơn hàng theo phiên chơi
     Page<Order> findBySessionId(Long sessionId, Pageable pageable);
 
@@ -29,8 +41,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     // Lấy danh sách đơn hàng theo trạng thái (VD: lấy tất cả đơn PENDING_PAYMENT cho nhân viên quầy bar/bếp duyệt)
     List<Order> findByStatusOrderByCreatedAtDesc(Status status);
 
+    // Lấy danh sách đơn hàng theo nhiều trạng thái (VD: lấy tất cả đơn chờ xử lý gồm PENDING_PAYMENT và WAITING_CONFIRMATION)
+    List<Order> findByStatusInOrderByCreatedAtDesc(List<Status> statuses);
+
     // Lấy danh sách đơn hàng của 1 phiên chơi theo trạng thái
     List<Order> findBySessionIdAndStatus(Long sessionId, Status status);
+
+    // Phân trang danh sách đơn hàng theo SĐT khách hàng (hỗ trợ cả đơn có phiên và đơn máy trống)
+    @Query("SELECT o FROM Order o LEFT JOIN o.account a LEFT JOIN o.session s LEFT JOIN s.account sa " +
+           "WHERE a.phone = :phone OR sa.phone = :phone ORDER BY o.createdAt DESC")
+    Page<Order> findByAccountPhone(@Param("phone") String phone, Pageable pageable);
 
     // === PHASE 4: AGGREGATION QUERIES FOR REVENUE REPORTING ===
 

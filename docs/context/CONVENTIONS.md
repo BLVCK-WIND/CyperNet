@@ -39,6 +39,21 @@
    - Sử dụng Locking khi xử lý tranh chấp tài nguyên (ví dụ: đặt máy, trừ giờ đồng thời).
 4. **Audit Fields:**
    - Dùng `@CreationTimestamp` kết hợp `updatable = false` cho `createdAt`.
+5. **Quy chuẩn Toàn vẹn Dữ liệu Kế toán & Safe Delete (Enterprise Integrity):**
+   - **Tuyệt đối không Hard Delete** bất kỳ thực thể cha nào (`Computer`, `Item`, `Account`) nếu thực thể đó đã phát sinh lịch sử giao dịch (có bản ghi trong `sessions`, `orders`, `order_items`, `time_purchases` hoặc nhân viên duyệt đơn).
+   - Bắt buộc kiểm tra `existsBy...` tại tầng Service và ném `IllegalArgumentException` (HTTP 400) với thông điệp rõ ràng, bảo vệ CSDL khỏi lỗi sập khóa ngoại `DataIntegrityViolationException` (HTTP 500).
+   - Với thực đơn F&B đã bán: chuyển sang cờ `available = false` ("HẾT HÀNG") thay vì xóa cứng.
+6. **Quy chuẩn Bảo vệ Đặc quyền Quản trị (Admin Safety Guards):**
+   - Chặn Admin tự xóa tài khoản đang đăng nhập của chính mình (`id.equals(currentAdminId)`).
+   - Chặn xóa hoặc hạ quyền Quản trị viên duy nhất còn lại trong hệ thống (`countByRole(Role.ADMIN) <= 1`).
+   - Chặn xóa hoặc thay đổi Role của tài khoản khi đang có phiên chơi `ACTIVE` trên máy trạm.
+7. **Quy chuẩn Cân đối Báo cáo Tài chính (Zero Revenue Leakage):**
+   - Gom đầy đủ cả `Item.Type.SERVICE` và `Item.Type.PLAYTIME` vào nhóm Giờ chơi/Dịch vụ để đảm bảo cân đối kế toán 100%: $\text{totalRevenue} = \text{F&B} + \text{Playtime} = \text{Cash} + \text{QR}$.
+   - Chuẩn hóa mốc thời gian lọc báo cáo: Dùng `end.atTime(23, 59, 59)` để tránh tràn sang ngày hôm sau trên MySQL.
+8. **Quy chuẩn Dynamic Tariff Bất Biến (Immutable Tariff Rules):**
+   - Số phút lưu trong `Account.remainingMinutes` **LUÔN LUÔN là Phút Chuẩn (Standard Minutes)** (neo theo giá chuẩn `BASE_PRICE_PER_HOUR = 10.000 VNĐ`).
+   - Mọi quy đổi ra phút máy thực tế chỉ diễn ra tại `Session` khi khách ngồi máy cụ thể qua công thức: $\text{playableMinutes} = \lfloor \text{standardMinutes} \times \frac{10.000}{\text{pricePerHour}} \rfloor$.
+   - Khi khách đăng nhập tại máy trống (chưa mở phiên), **TUYỆT ĐỐI KHÔNG TẠO SESSION VÀ KHÔNG ĐƯỢC TRỪ GIỜ CỦA KHÁCH**. Khách muốn chơi game phải tự đăng nhập thủ công trên màn hình PC.
 
 ---
 

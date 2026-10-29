@@ -1,5 +1,5 @@
 import React from 'react';
-import { Drawer, Button, Tag } from 'antd';
+import { Drawer, Button, Tag, Tooltip } from 'antd';
 import {
   ReceiptText,
   User,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { OrderResponse } from '@/types/order';
 
 interface StaffOrderDetailDrawerProps {
@@ -42,7 +43,9 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
 
   const {
     id,
+    sessionId,
     computerCode,
+    computerZone,
     customerName,
     customerPhone,
     totalAmount,
@@ -93,8 +96,19 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
                   #ORD-{id}
                 </h2>
                 {status === 'PENDING_PAYMENT' ? (
-                  <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-warning/20 text-warning border border-warning/40">
-                    Chờ thanh toán
+                  paymentMethod === 'QR' ? (
+                    <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Chờ chuyển khoản
+                    </Tag>
+                  ) : (
+                    <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-warning/20 text-warning border border-warning/40">
+                      Chờ thu tiền mặt
+                    </Tag>
+                  )
+                ) : status === 'WAITING_CONFIRMATION' ? (
+                  <Tag bordered={false} className="m-0 text-xs font-bold px-2.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-ping" />
+                    <span>Đã CK • Chờ quầy duyệt</span>
                   </Tag>
                 ) : status === 'CONFIRMED' ? (
                   <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-success/20 text-success border border-success/40">
@@ -128,12 +142,20 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
           {items.some((it) => it.itemType === 'PLAYTIME') && (
             <div className="p-3.5 rounded-xl bg-gold/15 border border-gold/30 text-xs space-y-1.5">
               <div className="flex items-center gap-1.5 text-gold font-bold">
-                <Zap className="w-4 h-4 shrink-0 animate-pulse" />
+                <Zap className="w-4 h-4 shrink-0" />
                 <span>ĐƠN CÓ KÈM GÓI NẠP GIỜ CHƠI</span>
               </div>
               <p className="text-sand/90 text-[11px] leading-relaxed">
-                Hệ thống sẽ <strong>tự động gia hạn thời gian phiên chơi</strong> của máy{' '}
-                <strong className="text-gold">{computerCode}</strong> và cộng số phút vào tài khoản khách ngay khi bạn bấm Xác nhận.
+                {sessionId ? (
+                  <>
+                    Hệ thống sẽ <strong>tự động gia hạn thời gian phiên chơi</strong> của máy{' '}
+                    <strong className="text-gold">{computerCode}</strong> và cộng số phút vào tài khoản khách ngay khi bạn bấm Xác nhận.
+                  </>
+                ) : (
+                  <>
+                    Máy trạm <strong>chưa mở phiên</strong>. Giờ chơi sẽ được cộng an toàn vào tài khoản khách, khách sẽ tự đăng nhập thủ công trên màn hình PC để mở máy.
+                  </>
+                )}
               </p>
               {paymentMethod === 'CASH' && status === 'PENDING_PAYMENT' && (
                 <div className="mt-1 p-2 rounded-lg bg-warning/20 border border-warning/40 text-[11px] text-warning font-semibold flex items-center gap-1.5">
@@ -149,11 +171,21 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-mist flex items-center gap-1.5">
                 <Monitor className="w-3.5 h-3.5 text-gold" />
-                Vị trí máy trạm:
+                Vị trí máy & Khu vực:
               </span>
-              <span className="font-heading font-bold text-sand text-sm">
-                {computerCode || 'Tại quầy / Mang về'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-heading font-bold text-sand text-sm">
+                  {computerCode || 'Tại quầy / Mang về'}
+                </span>
+                {computerZone && (
+                  <ZoneBadge zone={computerZone} size="sm" short={false} />
+                )}
+                {!sessionId && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    GỌI TẠI BÀN
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center justify-between">
@@ -286,8 +318,8 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
           )}
         </div>
 
-        {/* 3. Action Buttons (nếu đơn đang PENDING_PAYMENT) */}
-        {status === 'PENDING_PAYMENT' && (
+        {/* 3. Action Buttons (nếu đơn đang PENDING_PAYMENT hoặc WAITING_CONFIRMATION) */}
+        {(status === 'PENDING_PAYMENT' || status === 'WAITING_CONFIRMATION') && (
           <div className="p-4 border-t border-mist/15 bg-midnight/90 grid grid-cols-2 gap-3">
             <Button
               danger
@@ -302,18 +334,39 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
               Hủy đơn
             </Button>
 
-            <Button
-              type="primary"
-              icon={<CheckCircle2 className="w-4 h-4 text-midnight" />}
-              loading={isConfirming}
-              disabled={isConfirming || isCancelling}
-              onClick={() => {
-                if (onConfirmOrder) onConfirmOrder(order);
-              }}
-              className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer"
-            >
-              Xác nhận đơn
-            </Button>
+            {paymentMethod === 'QR' && status === 'PENDING_PAYMENT' ? (
+              <Tooltip title="Khách chưa bấm 'Tôi đã chuyển khoản' — CẤM DUYỆT!">
+                <span className="w-full">
+                  <Button
+                    type="primary"
+                    disabled
+                    icon={<CheckCircle2 className="w-4 h-4 text-midnight/40" />}
+                    className="w-full h-11 rounded-xl text-xs bg-slate/40 text-mist/50 font-bold border-mist/20 opacity-40 cursor-not-allowed"
+                  >
+                    Chờ khách CK
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : (
+              <Tooltip title={status === 'WAITING_CONFIRMATION' ? "Khách đã báo CK — Kiểm tra tài khoản ngân hàng trước khi bấm duyệt!" : undefined}>
+                <Button
+                  type="primary"
+                  icon={<CheckCircle2 className="w-4 h-4 text-midnight" />}
+                  loading={isConfirming}
+                  disabled={isConfirming || isCancelling}
+                  onClick={() => {
+                    if (onConfirmOrder) onConfirmOrder(order);
+                  }}
+                  className={`h-11 rounded-xl text-xs font-bold border-none cursor-pointer ${
+                    status === 'WAITING_CONFIRMATION'
+                      ? 'bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-midnight shadow-[0_0_16px_rgba(6,182,212,0.45)]'
+                      : 'bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight shadow-[0_4px_16px_rgba(189,152,117,0.3)]'
+                  }`}
+                >
+                  {status === 'WAITING_CONFIRMATION' ? 'Xác nhận chuyển khoản' : 'Xác nhận đơn'}
+                </Button>
+              </Tooltip>
+            )}
           </div>
         )}
       </div>

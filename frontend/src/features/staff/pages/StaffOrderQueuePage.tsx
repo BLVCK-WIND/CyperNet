@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Input, Button, Skeleton, Segmented, Select, Badge, App } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
@@ -14,18 +14,18 @@ import {
   Coins,
   Utensils,
   Zap,
-  AlertTriangle,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StaffOrderCard } from '../components/StaffOrderCard';
 import { StaffOrderDetailDrawer } from '../components/StaffOrderDetailDrawer';
+import { ConfirmOrderModal } from '../components/ConfirmOrderModal';
 import { useOrderQueue, type OrderQueueTab, type PaymentMethodFilter } from '../hooks/useOrderQueue';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { orderApi } from '@/api/orderApi';
 import type { OrderResponse } from '@/types/order';
 
 export const StaffOrderQueuePage: React.FC = () => {
-  const { message, modal } = App.useApp();
+  const { message, notification } = App.useApp();
   const queryClient = useQueryClient();
   useDocumentTitle('Hàng đợi đơn hàng (Order Queue) • CyberNet');
 
@@ -36,6 +36,12 @@ export const StaffOrderQueuePage: React.FC = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
   const [processingAction, setProcessingAction] = useState<'confirm' | 'cancel' | null>(null);
+  const [actionModalOrder, setActionModalOrder] = useState<OrderResponse | null>(null);
+  const [actionModalType, setActionModalType] = useState<'confirm' | 'cancel'>('confirm');
+
+  // Quản lý hiệu ứng Flash 3s cho đơn mới xuất hiện
+  const [flashOrderIds, setFlashOrderIds] = useState<Set<number>>(new Set());
+  const knownOrderIdsRef = useRef<Set<number>>(new Set());
 
   const {
     orders,
@@ -62,6 +68,76 @@ export const StaffOrderQueuePage: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(val);
   };
+
+  // Hiệu ứng thông báo nhanh 2-3s khi có đơn hàng mới xuất hiện
+  useEffect(() => {
+    if (orders.length === 0) return;
+
+    // Lần đầu vào trang: chỉ ghi nhận ID các đơn hiện tại, không spam thông báo
+    if (knownOrderIdsRef.current.size === 0) {
+      orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
+      return;
+    }
+
+    // Các lần kế tiếp: phát hiện đơn mới xuất hiện trong hàng đợi
+    const newlyArrived = orders.filter(
+      (o) =>
+        !knownOrderIdsRef.current.has(o.id) &&
+        (o.status === 'PENDING_PAYMENT' || o.status === 'WAITING_CONFIRMATION')
+    );
+
+    if (newlyArrived.length > 0) {
+      newlyArrived.forEach((newOrder) => {
+        knownOrderIdsRef.current.add(newOrder.id);
+
+        // Bật hiệu ứng Flash viền vàng phát sáng trên thẻ
+        setFlashOrderIds((prev) => new Set(prev).add(newOrder.id));
+
+        // Toast thông báo góc phải trong đúng 3s rồi tự biến mất
+        notification.open({
+          key: `new-order-${newOrder.id}`,
+          message: (
+            <div className="flex items-center gap-2 text-sand font-bold text-sm">
+              <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
+              <span>Đơn hàng mới #ORD-{newOrder.id}</span>
+            </div>
+          ),
+          description: (
+            <div className="text-xs text-sand/85 space-y-0.5">
+              <div>
+                Máy <strong className="text-gold font-mono">{newOrder.computerCode}</strong>
+                {newOrder.computerZone ? ` • Khu ${newOrder.computerZone}` : ''}
+              </div>
+              <div className="font-semibold text-gold font-mono">
+                {formatCurrency(newOrder.totalAmount)} (
+                {newOrder.paymentMethod === 'QR' ? 'VietQR' : 'Tiền mặt'})
+              </div>
+            </div>
+          ),
+          duration: 3, // Đúng 3 giây tự biến mất
+          placement: 'topRight',
+          style: {
+            backgroundColor: '#1b1e2b',
+            border: '1px solid rgba(189, 152, 117, 0.45)',
+            borderRadius: '16px',
+            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(189, 152, 117, 0.25)',
+          },
+        });
+
+        // Sau đúng 3s: gỡ hiệu ứng flash, đơn nằm bình tĩnh vào hàng đợi
+        setTimeout(() => {
+          setFlashOrderIds((prev) => {
+            const next = new Set(prev);
+            next.delete(newOrder.id);
+            return next;
+          });
+        }, 3000);
+      });
+    }
+
+    // Cập nhật danh sách ID đã biết
+    orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
+  }, [orders, notification]);
 
   // Phân chia 2 luồng đơn hàng đồng bộ trên mọi Tab:
   // 1. Cột Bếp: Đơn thuần món ăn & đồ uống (F&B only)
@@ -131,6 +207,7 @@ export const StaffOrderQueuePage: React.FC = () => {
       if (selectedOrder?.id === orderId) {
         setSelectedOrder(updatedOrder);
       }
+      setActionModalOrder(null);
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<{ message?: string }>;
       message.error(axiosErr.response?.data?.message || 'Không thể xác nhận đơn hàng lúc này!');
@@ -140,124 +217,42 @@ export const StaffOrderQueuePage: React.FC = () => {
     }
   };
 
-  const handleConfirmOrder = (order: OrderResponse) => {
-    const hasPlaytime = order.items.some((it) => it.itemType === 'PLAYTIME');
-    const isCash = order.paymentMethod === 'CASH';
-
-    // CẢNH BÁO AN TOÀN KHI DUYỆT ĐƠN NẠP GIỜ BẰNG TIỀN MẶT
-    if (isCash && hasPlaytime) {
-      modal.confirm({
-        title: (
-          <span className="text-sand font-bold text-base flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-warning" />
-            Xác nhận thu tiền mặt & nạp giờ chơi?
-          </span>
-        ),
-        content: (
-          <div className="text-xs text-sand/90 space-y-2.5 mt-2">
-            <p>
-              Đơn hàng <strong>#ORD-{order.id}</strong> tại máy{' '}
-              <strong className="text-gold">{order.computerCode}</strong> có nạp giờ chơi bằng{' '}
-              <strong className="text-warning font-bold">TIỀN MẶT</strong>.
-            </p>
-            <div className="p-3 rounded-xl bg-midnight/70 border border-gold/30 space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-mist">Khách hàng:</span>
-                <span className="text-sand font-bold">{order.customerName} ({order.customerPhone})</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-mist">Tổng tiền mặt cần thu:</span>
-                <span className="text-gold font-mono font-bold text-sm">
-                  {formatCurrency(order.totalAmount)}
-                </span>
-              </div>
-            </div>
-            <p className="text-[11px] text-warning italic">
-              ⚠️ Vui lòng đảm bảo bạn đã thu đủ tiền từ khách tại máy! Hệ thống sẽ tự động cộng giờ chơi vào máy ngay khi duyệt.
-            </p>
-          </div>
-        ),
-        okText: 'Đã thu tiền & Duyệt đơn',
-        cancelText: 'Chưa thu / Quay lại',
-        okButtonProps: {
-          className: 'bg-gold hover:bg-gold-light text-midnight font-bold border-none',
-        },
-        styles: {
-          body: {
-            backgroundColor: '#202332',
-            padding: '24px',
-            borderRadius: '16px',
-          },
-          mask: {
-            backdropFilter: 'blur(4px)',
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-          },
-        },
-        onOk: () => executeConfirmOrder(order.id, order.computerCode),
-      });
-      return;
+  const executeCancelOrder = async (orderId: number) => {
+    try {
+      setProcessingOrderId(orderId);
+      setProcessingAction('cancel');
+      await orderApi.cancelOrder(orderId);
+      message.success(`Đơn #ORD-${orderId} đã được hủy thành công.`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['staff-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-order-queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-topbar-pending-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-pending-orders-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-confirmed-orders-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-all-orders-summary'] }),
+      ]);
+      if (selectedOrder?.id === orderId) {
+        setIsDetailOpen(false);
+        setSelectedOrder(null);
+      }
+      setActionModalOrder(null);
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      message.error(axiosErr.response?.data?.message || 'Không thể hủy đơn hàng lúc này!');
+    } finally {
+      setProcessingOrderId(null);
+      setProcessingAction(null);
     }
+  };
 
-    // Đơn VietQR hoặc đơn thuần F&B: duyệt trực tiếp
-    executeConfirmOrder(order.id, order.computerCode);
+  const handleConfirmOrder = (order: OrderResponse) => {
+    setActionModalOrder(order);
+    setActionModalType('confirm');
   };
 
   const handleCancelOrder = (order: OrderResponse) => {
-    modal.confirm({
-      title: (
-        <span className="text-sand font-bold text-base">
-          Xác nhận hủy đơn hàng #ORD-{order.id}?
-        </span>
-      ),
-      content: (
-        <div className="text-xs text-mist space-y-2 mt-2">
-          <p>
-            Bạn có chắc chắn muốn hủy đơn hàng của khách hàng{' '}
-            <strong className="text-sand">{order.customerName}</strong> tại{' '}
-            <strong className="text-gold">{order.computerCode}</strong>?
-          </p>
-          <div className="p-2.5 rounded-lg bg-midnight/60 border border-mist/20 text-[11px]">
-            Tổng tiền đơn: <strong className="text-sand font-mono">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.totalAmount)}</strong>
-          </div>
-        </div>
-      ),
-      okText: 'Hủy đơn hàng',
-      okType: 'danger',
-      cancelText: 'Quay lại',
-      styles: {
-        body: {
-          backgroundColor: '#202332',
-          padding: '24px',
-          borderRadius: '16px',
-        },
-        mask: {
-          backdropFilter: 'blur(4px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        },
-      },
-      onOk: async () => {
-        try {
-          setProcessingOrderId(order.id);
-          setProcessingAction('cancel');
-          await orderApi.cancelOrder(order.id);
-          message.success(`Đơn #ORD-${order.id} đã được hủy thành công.`);
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['staff-orders'] }),
-            queryClient.invalidateQueries({ queryKey: ['staff-topbar-pending-orders'] }),
-          ]);
-          if (selectedOrder?.id === order.id) {
-            setIsDetailOpen(false);
-            setSelectedOrder(null);
-          }
-        } catch (err: unknown) {
-          const axiosErr = err as AxiosError<{ message?: string }>;
-          message.error(axiosErr.response?.data?.message || 'Không thể hủy đơn hàng lúc này!');
-        } finally {
-          setProcessingOrderId(null);
-          setProcessingAction(null);
-        }
-      },
-    });
+    setActionModalOrder(order);
+    setActionModalType('cancel');
   };
 
   return (
@@ -550,6 +545,7 @@ export const StaffOrderQueuePage: React.FC = () => {
                     onCancelOrder={handleCancelOrder}
                     isConfirming={processingOrderId === order.id && processingAction === 'confirm'}
                     isCancelling={processingOrderId === order.id && processingAction === 'cancel'}
+                    isFlashNew={flashOrderIds.has(order.id)}
                   />
                 ))
               )}
@@ -601,6 +597,7 @@ export const StaffOrderQueuePage: React.FC = () => {
                     onCancelOrder={handleCancelOrder}
                     isConfirming={processingOrderId === order.id && processingAction === 'confirm'}
                     isCancelling={processingOrderId === order.id && processingAction === 'cancel'}
+                    isFlashNew={flashOrderIds.has(order.id)}
                   />
                 ))
               )}
@@ -618,6 +615,17 @@ export const StaffOrderQueuePage: React.FC = () => {
         onCancelOrder={handleCancelOrder}
         isConfirming={selectedOrder ? processingOrderId === selectedOrder.id && processingAction === 'confirm' : false}
         isCancelling={selectedOrder ? processingOrderId === selectedOrder.id && processingAction === 'cancel' : false}
+      />
+
+      {/* 6. Popup Xác Nhận & Đối Soát Đơn Hàng (Custom CyberLux Modal) */}
+      <ConfirmOrderModal
+        isOpen={Boolean(actionModalOrder)}
+        order={actionModalOrder}
+        actionType={actionModalType}
+        isProcessing={processingOrderId === actionModalOrder?.id}
+        onClose={() => setActionModalOrder(null)}
+        onConfirm={executeConfirmOrder}
+        onCancelOrder={executeCancelOrder}
       />
     </div>
   );

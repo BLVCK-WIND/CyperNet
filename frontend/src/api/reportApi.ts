@@ -4,6 +4,7 @@ import type {
   DailyRevenueResponse,
   ComputerUsageResponse,
   TopItemResponse,
+  TopCustomerResponse,
   ReportDateParams,
 } from '@/types/report';
 
@@ -30,6 +31,16 @@ export const reportApi = {
    */
   getTopSellingItems(limit = 10, params?: ReportDateParams): Promise<TopItemResponse[]> {
     return axiosClient.get('/api/reports/items/top-selling', {
+      params: { limit, ...params },
+    });
+  },
+
+  /**
+   * Xếp hạng khách hàng chi tiêu nhiều nhất
+   * GET /api/reports/customers/top-spenders
+   */
+  getTopCustomers(limit = 10, params?: ReportDateParams): Promise<TopCustomerResponse[]> {
+    return axiosClient.get('/api/reports/customers/top-spenders', {
       params: { limit, ...params },
     });
   },

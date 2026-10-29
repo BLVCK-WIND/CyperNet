@@ -11,6 +11,19 @@ export interface Account {
   createdAt: string;
 }
 
+export interface CreateAccountRequest {
+  phone: string;
+  name: string;
+  password: string;
+  role: Role;
+}
+
+export interface UpdateAccountRequest {
+  name: string;
+  password?: string;
+  role: Role;
+}
+
 export interface SessionResponse {
   id: number;
   computerId: number;
@@ -43,7 +56,9 @@ export interface CustomerAuthResponse {
   refreshToken: string;
   expiresIn: number;
   account: Account;
-  session: SessionResponse;
+  session?: SessionResponse | null;
+  computerCode?: string;
+  computerZone?: ComputerZone | string;
   tokenType: string;
 }
 

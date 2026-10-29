@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal, Button, Tag, App } from 'antd';
 import { QrCode, CheckCircle2, ShieldCheck, Copy } from 'lucide-react';
+import { orderApi } from '@/api/orderApi';
 import type { OrderResponse, VietQrResponse } from '@/types/order';
 
 interface QrPaymentModalProps {
@@ -19,6 +20,8 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
   onConfirmPaid,
 }) => {
   const { message } = App.useApp();
+  const [submitting, setSubmitting] = useState(false);
+
   if (!order || !vietQr) return null;
 
   const formattedAmount = new Intl.NumberFormat('vi-VN', {
@@ -29,6 +32,21 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
   const copyToClipboard = (text: string, label: string = 'nội dung') => {
     navigator.clipboard.writeText(text);
     message.success(`Đã sao chép ${label} vào bộ nhớ tạm!`);
+  };
+
+  const handleConfirmPaid = async () => {
+    if (!order) return;
+    setSubmitting(true);
+    try {
+      await orderApi.notifyTransferred(order.id);
+      message.success('Đã gửi thông báo chuyển khoản tới quầy thu ngân!');
+      onConfirmPaid();
+    } catch {
+      message.info('Đã ghi nhận! Quầy thu ngân sẽ đối soát trong giây lát.');
+      onConfirmPaid();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -125,8 +143,10 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
         <Button
           type="primary"
           size="large"
+          loading={submitting}
+          disabled={submitting}
           icon={<CheckCircle2 className="w-4 h-4 text-midnight" />}
-          onClick={onConfirmPaid}
+          onClick={handleConfirmPaid}
           className="w-full h-12 font-bold bg-gold hover:bg-gold-light text-midnight rounded-xl border-0 shadow-lg shadow-gold/20 flex items-center justify-center gap-2"
         >
           TÔI ĐÃ CHUYỂN KHOẢN

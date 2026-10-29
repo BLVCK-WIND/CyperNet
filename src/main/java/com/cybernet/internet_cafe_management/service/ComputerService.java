@@ -16,6 +16,7 @@ import com.cybernet.internet_cafe_management.entity.Computer;
 import com.cybernet.internet_cafe_management.entity.Session;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.ComputerRepository;
+import com.cybernet.internet_cafe_management.repository.OrderRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.repository.specification.ComputerSpecification;
 
@@ -23,29 +24,42 @@ import com.cybernet.internet_cafe_management.repository.specification.ComputerSp
 public class ComputerService {
     private final ComputerRepository computerRepository;
     private final SessionRepository sessionRepository;
+    private final OrderRepository orderRepository;
     private final RealtimeNotificationService realtimeNotificationService;
 
     public ComputerService(
             ComputerRepository computerRepository,
             SessionRepository sessionRepository,
+            OrderRepository orderRepository,
             RealtimeNotificationService realtimeNotificationService) {
         this.computerRepository = computerRepository;
         this.sessionRepository = sessionRepository;
+        this.orderRepository = orderRepository;
         this.realtimeNotificationService = realtimeNotificationService;
     }
 
     // Tạo máy mới
     public ComputerResponse createComputer(CreateComputerRequest request) {
-        if (computerRepository.existsByCode(request.getCode())) {
-            throw new IllegalArgumentException("Máy tính đã tồn tại");
+        String cleanCode = request.getCode() != null ? request.getCode().trim().toUpperCase() : "";
+        if (computerRepository.existsByCode(cleanCode)) {
+            throw new IllegalArgumentException("Mã máy tính [" + cleanCode + "] đã tồn tại!");
         }
+
+        String cleanIp = request.getIpAddress() != null ? request.getIpAddress().trim() : "";
+        if (computerRepository.existsByIpAddress(cleanIp)) {
+            throw new IllegalArgumentException("Địa chỉ IP [" + cleanIp + "] đã được sử dụng bởi máy khác!");
+        }
+
         Computer computer = new Computer();
-        computer.setCode(request.getCode());
+        computer.setCode(cleanCode);
         computer.setPricePerHour(request.getPricePerHour());
-        computer.setIpAddress(request.getIpAddress());
-        computer.setStatus(Computer.Status.AVAILABLE);
+        computer.setIpAddress(cleanIp);
+        computer.setStatus(request.getStatus() != null ? request.getStatus() : Computer.Status.AVAILABLE);
         computer.setZone(request.getZone());
-        return ComputerResponse.fromEntity(computerRepository.save(computer));
+
+        Computer saved = computerRepository.save(computer);
+        realtimeNotificationService.broadcastComputerStatus(saved);
+        return ComputerResponse.fromEntity(saved);
     }
 
     // Lấy tất cả máy
@@ -94,6 +108,19 @@ public class ComputerService {
     public void deleteComputer(Long id) {
         Computer computer = computerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy có id:" + id));
+
+        if (computer.getStatus() == Computer.Status.IN_USE || sessionRepository.existsByComputerIdAndStatus(computer.getId(), Session.Status.ACTIVE)) {
+            throw new IllegalStateException("Không thể xóa máy trạm đang có phiên chơi hoạt động!");
+        }
+
+        if (sessionRepository.existsByComputerId(computer.getId())) {
+            throw new IllegalStateException("Không thể xóa máy trạm đã có lịch sử phiên chơi. Hãy chuyển trạng thái máy sang BẢO TRÌ!");
+        }
+
+        if (orderRepository.existsByComputerId(computer.getId())) {
+            throw new IllegalStateException("Không thể xóa máy trạm đã có lịch sử đơn hàng. Hãy chuyển trạng thái máy sang BẢO TRÌ!");
+        }
+
         computerRepository.delete(computer);
     }
 
@@ -103,10 +130,19 @@ public class ComputerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy có id:" + id));
 
         if (request.getCode() != null && !request.getCode().isBlank() && !request.getCode().trim().equalsIgnoreCase(computer.getCode())) {
-            if (computerRepository.existsByCode(request.getCode().trim())) {
-                throw new IllegalArgumentException("Mã máy tính [" + request.getCode().trim() + "] đã tồn tại!");
+            String cleanCode = request.getCode().trim().toUpperCase();
+            if (computerRepository.existsByCode(cleanCode)) {
+                throw new IllegalArgumentException("Mã máy tính [" + cleanCode + "] đã tồn tại!");
             }
-            computer.setCode(request.getCode().trim());
+            computer.setCode(cleanCode);
+        }
+
+        if (request.getIpAddress() != null && !request.getIpAddress().isBlank() && !request.getIpAddress().trim().equalsIgnoreCase(computer.getIpAddress())) {
+            String cleanIp = request.getIpAddress().trim();
+            if (computerRepository.existsByIpAddressAndIdNot(cleanIp, computer.getId())) {
+                throw new IllegalArgumentException("Địa chỉ IP [" + cleanIp + "] đã được sử dụng bởi máy khác!");
+            }
+            computer.setIpAddress(cleanIp);
         }
 
         if (request.getStatus() != null && request.getStatus() != computer.getStatus()) {
@@ -126,9 +162,6 @@ public class ComputerService {
         }
         if (request.getZone() != null) {
             computer.setZone(request.getZone());
-        }
-        if (request.getIpAddress() != null && !request.getIpAddress().isBlank()) {
-            computer.setIpAddress(request.getIpAddress().trim());
         }
 
         Computer saved = computerRepository.save(computer);
