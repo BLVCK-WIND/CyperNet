@@ -7,6 +7,7 @@ import { cyberLuxTheme } from './styles/antd-theme';
 import { router } from './routes';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { GlobalProgressBar } from './components/common/GlobalProgressBar';
+import { AuthExpiryFeedback } from './features/auth/AuthExpiryFeedback';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
       <QueryClientProvider client={queryClient}>
         <ConfigProvider theme={cyberLuxTheme}>
           <AntdApp>
+            <AuthExpiryFeedback />
             <GlobalProgressBar />
             <RouterProvider router={router} />
           </AntdApp>

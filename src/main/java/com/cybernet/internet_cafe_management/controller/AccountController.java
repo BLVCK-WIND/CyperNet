@@ -128,22 +128,7 @@ public class AccountController {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        Account target = accountRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với ID = " + id));
-
-        // Anti-privilege escalation & Security Isolation:
-        // Nhân viên (STAFF) TUYỆT ĐỐI không được phép sửa thông tin hay đổi mật khẩu của ADMIN hoặc đồng nghiệp STAFF
-        if (!isAdmin) {
-            if (target.getRole() != Account.Role.CUSTOMER) {
-                throw new org.springframework.security.access.AccessDeniedException(
-                        "Nhân viên chỉ có quyền cập nhật và đổi mật khẩu cho tài khoản Hội viên (CUSTOMER)!"
-                );
-            }
-            // Khóa vai trò: Nhân viên không được phép đổi vai trò khách sang vai trò khác
-            request.setRole(Account.Role.CUSTOMER);
-        }
-
-        AccountResponse response = accountService.updateAccount(id, request);
+        AccountResponse response = accountService.updateAccount(id, request, isAdmin);
         return ResponseEntity.ok(response);
     }
 }

@@ -27,17 +27,13 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-        String jwtError = (String) request.getAttribute("JWT_ERROR");
-        ErrorCode code;
-        String message;
-
-        if ("TOKEN_EXPIRED".equals(jwtError)) {
-            code = ErrorCode.TOKEN_EXPIRED;
-            message = "Phiên đăng nhập đã hết hạn! Vui lòng làm mới token hoặc đăng nhập lại.";
-        } else {
-            code = ErrorCode.UNAUTHORIZED;
-            message = "Vui lòng đăng nhập để truy cập!";
-        }
+        ErrorCode code = request.getAttribute("JWT_ERROR") instanceof ErrorCode errorCode
+                ? errorCode : ErrorCode.UNAUTHORIZED;
+        String message = switch (code) {
+            case TOKEN_EXPIRED -> "Phiên đăng nhập đã hết hạn! Vui lòng làm mới token hoặc đăng nhập lại.";
+            case UNAUTHORIZED -> "Vui lòng đăng nhập để truy cập!";
+            default -> code.getDefaultMessage();
+        };
 
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpServletResponse.SC_UNAUTHORIZED,

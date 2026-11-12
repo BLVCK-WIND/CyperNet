@@ -22,61 +22,26 @@ public class JwtService {
     @Value("${jwt.refresh-token-expiration-ms}")
     private long refreshTokenExpiration;
 
-    /**
-     * Sinh Access Token — chứa phone (subject) + role (custom claim)
-     * Payload: { "sub": "0912345678", "role": "STAFF", "iat": ..., "exp": ... }
-     */
+    /** The account ID and auth generation bind the signed role to a specific login state. */
     public String generateAccessToken(Account account) {
         return Jwts.builder()
                 .subject(account.getPhone())
+                .claim("accountId", account.getId())
                 .claim("role", account.getRole().name())
+                .claim("authGeneration", account.getAuthGeneration())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    /**
-     * Trích xuất phone (subject) từ token
-     */
-    public String extractPhone(String token) {
-        return extractAllClaims(token).getSubject();
+    AccessToken readAccessToken(String token) {
+        Claims claims = extractAllClaims(token);
+        return new AccessToken(claims.getSubject(), claims.get("accountId", Long.class),
+                claims.get("role", String.class), claims.get("authGeneration", String.class));
     }
 
-    /**
-     * Trích xuất role từ token
-     */
-    public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
-    }
-
-    public enum TokenStatus {
-        VALID,
-        EXPIRED,
-        INVALID
-    }
-
-    /**
-     * Xác thực trạng thái token (Hợp lệ / Hết hạn / Sai định dạng hoặc giả mạo)
-     */
-    public TokenStatus validateToken(String token) {
-        try {
-            extractAllClaims(token);
-            return TokenStatus.VALID;
-        } catch (ExpiredJwtException e) {
-            return TokenStatus.EXPIRED;
-        } catch (JwtException | IllegalArgumentException e) {
-            return TokenStatus.INVALID;
-        }
-    }
-
-    /**
-     * Kiểm tra token còn hạn và chữ ký hợp lệ
-     * Trả về false nếu token bị sửa, hết hạn hoặc sai format
-     */
-    public boolean isTokenValid(String token) {
-        return validateToken(token) == TokenStatus.VALID;
-    }
+    record AccessToken(String phone, Long accountId, String role, String authGeneration) {}
 
     /** Lấy thời hạn refresh token (ms) — dùng cho AuthService */
     public long getRefreshTokenExpirationMs() {

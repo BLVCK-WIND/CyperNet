@@ -6,7 +6,7 @@ V6.1 adds missing orders.transferred_at, computer_id and account_id, foreign key
 
 ## Fresh installation
 
-Use an empty disposable MySQL schema with the normal migration locations and `spring.jpa.hibernate.ddl-auto=validate`. Flyway must reach V12 before application use. Verify session-linked and sessionless orders. Repeat startup and confirm no pending migrations.
+Use an empty disposable MySQL schema with the normal migration locations and `spring.jpa.hibernate.ddl-auto=validate`. Flyway must reach V13 before application use. Verify session-linked and sessionless orders. Repeat startup and confirm no pending migrations.
 
 ## Existing installation
 
@@ -33,3 +33,9 @@ The ownership/billing test suite now includes disposable local MariaDB databases
 ## Revenue report indexes (V12)
 
 V12 adds `(status, confirmed_at)` indexes to `orders` and `time_purchases`. It applies in normal order from V11.1. The application writes timestamps in Vietnam wall time after startup. V12 leaves historical timestamp values as stored, so review any periods previously written by a JVM running in another time zone before relying on daily totals.
+
+## Role-change sign-out (V13)
+
+V13 assigns an authentication generation to existing accounts and adds a nullable generation to refresh tokens. Access and refresh tokens issued before V13 lack the binding and require a one-time sign-in after deployment. Deploy the backend and frontend together so the frontend can show the dedicated role-change message. Test a role change and a name-only edit on a restored test database before rollout.
+
+If V13 is interrupted, inspect both `auth_generation` columns and check that every existing account has a generation before retrying.

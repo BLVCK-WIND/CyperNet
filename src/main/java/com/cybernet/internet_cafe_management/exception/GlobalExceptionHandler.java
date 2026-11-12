@@ -20,6 +20,12 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(AuthRoleChangedException.class)
+    public ResponseEntity<ErrorResponse> handleAuthRoleChanged(AuthRoleChangedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(HttpStatus.UNAUTHORIZED.value(), ErrorCode.AUTH_ROLE_CHANGED, ex.getMessage()));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
         log.warn("ResourceNotFoundException: {}", ex.getMessage());

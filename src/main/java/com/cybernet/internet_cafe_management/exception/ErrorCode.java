@@ -11,6 +11,7 @@ public enum ErrorCode {
     MALFORMED_REQUEST("Yêu cầu không đúng định dạng JSON hoặc sai kiểu dữ liệu"),
     UNAUTHORIZED("Vui lòng đăng nhập để truy cập tài nguyên"),
     TOKEN_EXPIRED("Phiên đăng nhập đã hết hạn"),
+    AUTH_ROLE_CHANGED("Quyền tài khoản đã thay đổi. Vui lòng đăng nhập lại."),
     REFRESH_TOKEN_INVALID("Refresh token không hợp lệ hoặc đã hết hạn"),
     FORBIDDEN("Bạn không có quyền truy cập tài nguyên này"),
     NOT_FOUND("Không tìm thấy tài nguyên yêu cầu"),

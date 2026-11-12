@@ -268,26 +268,34 @@ public class AccountService {
     }
 
     // 5. Cập nhật thông tin tài khoản
-    public AccountResponse updateAccount(Long id, UpdateAccountRequest request) {
-        Account account = accountRepository.findById(id)
+    @Transactional
+    public AccountResponse updateAccount(Long id, UpdateAccountRequest request, boolean callerIsAdmin) {
+        Account account = accountRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Account với id = " + id));
 
+        if (!callerIsAdmin && account.getRole() != Account.Role.CUSTOMER) {
+            throw new AccessDeniedException(
+                    "Nhân viên chỉ có quyền cập nhật và đổi mật khẩu cho tài khoản Hội viên (CUSTOMER)!");
+        }
+        Account.Role requestedRole = callerIsAdmin ? request.getRole() : Account.Role.CUSTOMER;
+
         // Nếu có thay đổi vai trò (Role)
-        if (request.getRole() != null && request.getRole() != account.getRole()) {
+        if (requestedRole != null && requestedRole != account.getRole()) {
             // 1. Chặn đổi role nếu tài khoản đang có phiên chơi ACTIVE trên máy trạm
             if (sessionRepository.existsByAccountIdAndStatus(id, Session.Status.ACTIVE)) {
                 throw new IllegalArgumentException("Tài khoản đang có phiên chơi hoạt động trên máy trạm! Không thể thay đổi vai trò lúc này.");
             }
 
             // 2. Chặn hạ quyền Quản trị viên duy nhất còn lại
-            if (account.getRole() == Account.Role.ADMIN && request.getRole() != Account.Role.ADMIN) {
+            if (account.getRole() == Account.Role.ADMIN) {
                 long adminCount = accountRepository.countByRole(Account.Role.ADMIN);
                 if (adminCount <= 1) {
                     throw new IllegalArgumentException("Hệ thống chỉ còn 1 Quản trị viên duy nhất, không thể hạ quyền tài khoản này!");
                 }
             }
 
-            account.setRole(request.getRole());
+            account.setRole(requestedRole);
+            account.rotateAuthGeneration();
         }
 
         account.setName(request.getName().trim());

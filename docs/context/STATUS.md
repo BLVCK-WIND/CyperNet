@@ -6,11 +6,11 @@
 | Truy vấn và migration V12 | Tải chi tiết đơn theo lô sau phân trang. Trang 5 đơn giảm từ 10 xuống 3 câu SQL, trang 15 đơn từ 20 xuống 3, và tổng quan doanh thu từ 7 xuống 3. V12 thêm index theo trạng thái và thời điểm xác nhận cho đơn hàng và phiếu nạp. |
 | Đơn mua giờ duyệt muộn | Duyệt đơn cộng giờ cho tài khoản và gia hạn phiên khách đang chơi theo giá của phiên đó. Nếu khách đang nghỉ, giữ giờ trong tài khoản cho lần sau. Đơn vẫn ghi phiên lúc đặt. Đã kiểm tra trên API và trang khách của server demo. |
 | Chuyển máy và giao món | Đã thống nhất giữ cách quy đổi và làm tròn hiện tại. Đơn giao theo máy lúc đặt. Khách báo nhân viên nếu đổi chỗ trong khi chờ món. |
-| Đổi quyền tài khoản | Đã thống nhất yêu cầu đăng nhập lại sau khi đổi quyền. Còn chờ triển khai và kiểm thử. |
+| Đổi quyền tài khoản | Thu hồi cả access token và refresh token trên mọi thiết bị khi đổi vai trò. Giao diện yêu cầu đăng nhập lại ở yêu cầu kế tiếp. V13 yêu cầu đăng nhập lại một lần đối với token cấp từ phiên bản cũ. |
 
-**Kiểm chứng gần nhất.** Toàn bộ 190 test backend đạt trên MariaDB tạm, gồm ca duyệt đơn khi khách đã mở phiên mới, duyệt trùng và duyệt đồng thời với bộ quét hết giờ. 41 test frontend đạt. Build và lint frontend thành công, còn cảnh báo hooks và bundle lớn. [Ghi chú nghiệp vụ và kiểm thử](../notes/ownership-billing-review.md)
+**Kiểm chứng gần nhất.** Toàn bộ 196 test backend và 45 test frontend đạt. MariaDB tạm đã kiểm tra nâng quyền, hạ quyền, đổi quyền rồi đổi lại, giữ phiên khi sửa tên và refresh đồng thời với đổi quyền. Chrome trên server demo đã hiện thông báo và về trang đăng nhập sau khi đổi quyền. Build và lint frontend thành công, còn cảnh báo hooks và bundle lớn. [Nhật ký triển khai](../notes/LOG.md)
 
-**Các bước còn lại.** Kiểm thử thiết bị thật, rà kích thước bundle và hiệu năng với tải đại diện, xác minh backup/khôi phục, rồi nghiệm thu triển khai V12 trên môi trường đích. Bản sao CSDL quán đã diễn tập tới V11.1. V12 được kiểm thử trên schema tạm và chưa áp dụng cho CSDL quán. [Hướng dẫn migration](../notes/migration-rollout.md)
+**Các bước còn lại.** Kiểm thử thiết bị thật, rà kích thước bundle và hiệu năng với tải đại diện, xác minh backup/khôi phục, rồi nghiệm thu triển khai V13 trên môi trường đích. Bản sao CSDL quán đã diễn tập tới V11.1. V12 và V13 được kiểm thử trên schema tạm. [Hướng dẫn migration](../notes/migration-rollout.md)
 
 ---
 

@@ -30,6 +30,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+const expireAuth = (reason?: string) => {
+  storage.clearAuth();
+  window.dispatchEvent(new CustomEvent('auth:expired', { detail: reason }));
+};
+
 // Request Interceptor: Attach Bearer Token
 axiosClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -62,6 +67,15 @@ axiosClient.interceptors.response.use(
 
     const { status, data } = error.response;
 
+    if (status === 401 && data?.errorCode === 'AUTH_ROLE_CHANGED') {
+      const accessToken = storage.getAccessToken();
+      if (accessToken && originalRequest?.headers.get('Authorization') === `Bearer ${accessToken}`) {
+        processQueue(data);
+        expireAuth(data.errorCode);
+      }
+      return Promise.reject(data);
+    }
+
     // Check for 401 Unauthorized and attempt token rotation
     if (status === 401 && !originalRequest._retry) {
       // Avoid refreshing on login/refresh endpoints themselves
@@ -75,8 +89,7 @@ axiosClient.interceptors.response.use(
 
       const refreshToken = storage.getRefreshToken();
       if (!refreshToken) {
-        storage.clearAuth();
-        window.dispatchEvent(new CustomEvent('auth:expired'));
+        expireAuth();
         return Promise.reject(data || error);
       }
 
@@ -103,6 +116,11 @@ axiosClient.interceptors.response.use(
           { headers: { 'Content-Type': 'application/json' } }
         );
 
+        if (storage.getRefreshToken() !== refreshToken) {
+          processQueue(data || error);
+          return Promise.reject(data || error);
+        }
+
         const newAuth = response.data;
         storage.setAccessToken(newAuth.accessToken);
         storage.setRefreshToken(newAuth.refreshToken);
@@ -115,8 +133,10 @@ axiosClient.interceptors.response.use(
         return axiosClient(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        storage.clearAuth();
-        window.dispatchEvent(new CustomEvent('auth:expired'));
+        if (storage.getRefreshToken() === refreshToken) {
+          const failure = axios.isAxiosError<ErrorResponse>(refreshErr) ? refreshErr.response : undefined;
+          expireAuth(failure?.status === 401 ? failure.data?.errorCode : undefined);
+        }
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

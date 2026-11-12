@@ -27,6 +27,9 @@ public class RefreshToken {
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
+    @Column(length = 36)
+    private String authGeneration;
+
     // Thời điểm hết hạn
     @Column(nullable = false)
     private LocalDateTime expiresAt;

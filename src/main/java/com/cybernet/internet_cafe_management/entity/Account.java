@@ -1,6 +1,7 @@
 package com.cybernet.internet_cafe_management.entity;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -38,6 +39,13 @@ public class Account {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.CUSTOMER; // Mặc định là khách hàng (vì đa số tài khoản là khách)
+
+    @Column(nullable = false, length = 36)
+    private String authGeneration = UUID.randomUUID().toString();
+
+    public void rotateAuthGeneration() {
+        authGeneration = UUID.randomUUID().toString();
+    }
 
     // Số phút chơi còn lại — chỉ có ý nghĩa với CUSTOMER
     // Dùng int (không phải Integer) vì luôn có giá trị, mặc định = 0 (chưa mua giờ)

@@ -215,7 +215,7 @@ Biên dịch thành công 50 files source code (`mvn clean compile` BUILD SUCCES
 #### D. Luồng thực thi Filter Chain & `SecurityContextHolder`
 - `OncePerRequestFilter`: Đảm bảo `JwtAuthenticationFilter` chỉ được chạy đúng 1 lần cho mỗi HTTP Request, tránh chạy trùng lặp khi có forward hoặc include request nội bộ.
 - Bóc tách Token chuẩn RFC 6750: Kiểm tra Header `Authorization` bắt đầu bằng `Bearer `, cắt chuỗi 7 ký tự đầu để lấy JWT.
-- Nạp Authentication: Sau khi `jwtService.validateToken` thành công, tạo `UsernamePasswordAuthenticationToken` kèm danh sách quyền hạn `GrantedAuthority` và đưa vào `SecurityContextHolder.getContext().setAuthentication(auth)`.
+- Nạp Authentication sau khi xác thực chữ ký, hạn dùng và đối chiếu danh tính, vai trò cùng mã xác thực với tài khoản trong CSDL. Sau đó tạo `UsernamePasswordAuthenticationToken` và lưu vào `SecurityContextHolder`.
 - Các filter phía sau và các annotation `@PreAuthorize` ở Controller sẽ lấy quyền từ `SecurityContextHolder` để ra quyết định Cho phép (200) hoặc Từ chối (403).
 
 #### E. Phân biệt rõ rệt HTTP 401 Unauthorized và HTTP 403 Forbidden

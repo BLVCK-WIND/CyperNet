@@ -26,7 +26,7 @@ class MobileCustomerAccessTest {
         account.setRemainingMinutes(120);
         Computer computer = new Computer(); computer.setCode("PC-01");
         when(computers.findByCode("PC-01")).thenReturn(Optional.of(computer));
-        when(accounts.findByPhone("0901111111")).thenReturn(Optional.of(account));
+        when(accounts.findByPhoneWithLock("0901111111")).thenReturn(Optional.of(account));
         when(jwt.generateAccessToken(account)).thenReturn("customer-token");
         CustomerSessionLoginRequest request = new CustomerSessionLoginRequest();
         request.setComputerCode("PC-01"); request.setPhone("0901111111");
@@ -56,9 +56,9 @@ class MobileCustomerAccessTest {
             when(computers.findByCode("PC-01")).thenReturn(Optional.of(new Computer()));
             Account account = new Account();
             account.setRole(role);
-            when(accounts.findByPhone(request.getPhone())).thenReturn(Optional.of(account));
+            when(accounts.findByPhoneWithLock(request.getPhone())).thenReturn(Optional.of(account));
             assertThrows(AccessDeniedException.class, () -> service.customerSessionLogin(request));
-            when(accounts.findByPhone(request.getPhone())).thenReturn(Optional.empty());
+            when(accounts.findByPhoneWithLock(request.getPhone())).thenReturn(Optional.empty());
             assertThrows(ResourceNotFoundException.class, () -> service.customerSessionLogin(request));
             verifyNoInteractions(jwt, tokens);
             verify(accounts, never()).save(any());

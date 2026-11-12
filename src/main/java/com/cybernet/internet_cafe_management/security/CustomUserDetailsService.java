@@ -27,6 +27,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Không tìm thấy tài khoản với SĐT: " + phone));
 
+        return fromAccount(account);
+    }
+
+    static UserDetails fromAccount(Account account) {
         // Spring Security dùng prefix ROLE_ nội bộ
         // Khi kiểm tra hasRole('ADMIN') → Security tự thêm ROLE_ → so khớp với ROLE_ADMIN
         return User.builder()

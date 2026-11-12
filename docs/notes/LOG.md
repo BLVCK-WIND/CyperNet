@@ -1,5 +1,11 @@
 # 📒 Nhật ký học tập & phát triển — Dự án CyberNet
 
+### 13/11/2026 — Yêu cầu đăng nhập lại sau khi đổi quyền
+
+- V13 gắn access token và refresh token với một mã xác thực riêng của tài khoản. Khi đổi vai trò, backend đổi mã này dưới khóa tài khoản để thu hồi các phiên trên mọi thiết bị.
+- Chạy toàn bộ 196 test backend trên MariaDB tạm và 45 test frontend. Các ca bao gồm nâng quyền, hạ quyền, khôi phục vai trò cũ, chỉnh tên và refresh đồng thời với đổi quyền. Chrome trên server demo hiện cảnh báo, về trang đăng nhập và nhận quyền mới sau khi đăng nhập lại.
+- Token cấp trước V13 yêu cầu đăng nhập lại một lần khi triển khai.
+
 ### 13/11/2026 — Sửa mất giờ khi duyệt đơn muộn
 
 - Tái hiện trên demo với đơn gắn lượt A, được duyệt sau khi khách đã mở lượt B. Số dư tăng 60 phút, hạn B giữ nguyên và số dư về 0 khi B tự đóng. Ca nạp giờ tại quầy cho kết quả đúng.

@@ -11,6 +11,7 @@ import com.cybernet.internet_cafe_management.entity.Account;
 import com.cybernet.internet_cafe_management.entity.Computer;
 import com.cybernet.internet_cafe_management.entity.RefreshToken;
 import com.cybernet.internet_cafe_management.entity.Session;
+import com.cybernet.internet_cafe_management.exception.AuthRoleChangedException;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.ComputerRepository;
@@ -62,7 +63,7 @@ public class AuthService {
         }
 
         // Tìm account theo phone
-        Account account = accountRepository.findByPhone(request.getPhone().trim())
+        Account account = accountRepository.findByPhoneWithLock(request.getPhone().trim())
                 .orElseThrow(() -> new IllegalArgumentException("Sai số điện thoại hoặc mật khẩu!"));
 
         // Verify password BCrypt
@@ -98,9 +99,14 @@ public class AuthService {
             throw new IllegalArgumentException("Refresh token không được để trống!");
         }
 
-        // Tìm refresh token trong DB
-        RefreshToken storedToken = refreshTokenRepository.findByToken(request.getRefreshToken().trim())
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token không hợp lệ!"));
+        String token = request.getRefreshToken().trim();
+        Long accountId = refreshTokenRepository.findAccountIdByToken(token)
+                .orElseThrow(AuthService::invalidRefreshToken);
+        // Role updates and token issuance serialize on the account before touching a refresh row.
+        Account account = accountRepository.findByIdWithLock(accountId)
+                .orElseThrow(AuthService::invalidRefreshToken);
+        RefreshToken storedToken = refreshTokenRepository.findByTokenWithLock(token)
+                .orElseThrow(AuthService::invalidRefreshToken);
 
         // Kiểm tra hết hạn
         if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
@@ -108,7 +114,12 @@ public class AuthService {
             throw new IllegalArgumentException("Refresh token đã hết hạn! Vui lòng đăng nhập lại.");
         }
 
-        Account account = storedToken.getAccount();
+        if (!storedToken.getAccount().getId().equals(accountId) || storedToken.getAuthGeneration() == null) {
+            throw invalidRefreshToken();
+        }
+        if (!storedToken.getAuthGeneration().equals(account.getAuthGeneration())) {
+            throw new AuthRoleChangedException();
+        }
 
         // Rotation: xoá token cũ, tạo token mới
         refreshTokenRepository.delete(storedToken);
@@ -156,7 +167,7 @@ public class AuthService {
         // 2. Tìm phiên đang ACTIVE tại máy (nếu có)
         Session session = sessionRepository.findByComputerCodeAndStatus(pcCode, Session.Status.ACTIVE).orElse(null);
 
-        Account account = accountRepository.findByPhone(phone)
+        Account account = accountRepository.findByPhoneWithLock(phone)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Số điện thoại chưa được đăng ký. Vui lòng đăng ký tại quầy."));
         if (account.getRole() != Account.Role.CUSTOMER) {
@@ -184,11 +195,16 @@ public class AuthService {
 
     // === PRIVATE HELPER ===
 
+    private static IllegalArgumentException invalidRefreshToken() {
+        return new IllegalArgumentException("Refresh token không hợp lệ!");
+    }
+
     /** Tạo Refresh Token (UUID) và lưu vào DB */
     private String createRefreshToken(Account account) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(UUID.randomUUID().toString());
         refreshToken.setAccount(account);
+        refreshToken.setAuthGeneration(account.getAuthGeneration());
         refreshToken.setExpiresAt(LocalDateTime.now().plusSeconds(
                 jwtService.getRefreshTokenExpirationMs() / 1000));
         refreshTokenRepository.save(refreshToken);

@@ -46,11 +46,12 @@ Frontend QR rule approved 2026-11-10: `/customer?code=PC-02` preserves the code 
 ### 1.1 Cơ chế Xác thực & Quản lý Token (Authentication & Token Lifecycle)
 - **Cơ chế:** JWT Bearer Token truyền trong header HTTP: `Authorization: Bearer <accessToken>`.
 - **Thời gian sống:**
-  - **Access Token:** **30 phút** (`1800000 ms`). Chứa claims: `sub` (số điện thoại), `role` (`CUSTOMER` / `STAFF` / `ADMIN`), `iat`, `exp`.
+  - **Access Token:** **30 phút** (`1800000 ms`). Chứa `sub` (số điện thoại), `accountId`, `role`, `authGeneration`, `iat` và `exp`.
   - **Refresh Token:** **7 ngày** (`604800000 ms`), lưu mã UUID ngẫu nhiên trong bảng database `refresh_tokens`.
 - **Cơ chế Xoay vòng (Refresh Token Rotation):**
   - Khi Access Token hết hạn (nhận lỗi `401 Unauthorized` kèm `errorCode: "TOKEN_EXPIRED"`), Frontend gọi `POST /api/auth/refresh` mang theo `refreshToken`.
   - Backend xác thực, lập tức **xóa Refresh Token cũ** trong DB và cấp một cặp `accessToken` + `refreshToken` hoàn toàn mới.
+- Khi đổi vai trò, backend thu hồi access token và refresh token trên mọi thiết bị của tài khoản. Yêu cầu dùng token đã bị thu hồi nhận `401 AUTH_ROLE_CHANGED`. Frontend xóa phiên cục bộ và yêu cầu đăng nhập lại. Chỉnh tên với cùng vai trò giữ phiên đăng nhập.
 - **Tự động Thu hồi Token khi Phiên chơi Kết thúc (Security Enforcement):**
   - Khi phiên chơi đóng lại — dù do nhân viên bấm (`PATCH /api/sessions/{id}/end`) hay do server quét hết giờ (`autoEndExpiredSession`) — Backend **tự động xóa toàn bộ Refresh Token** của tài khoản khách đó (`refreshTokenRepository.deleteByAccountId()`).
   - Refresh token cũ trên điện thoại khách lập tức mất hiệu lực, chống lạm dụng sau khi rời tiệm.
@@ -101,7 +102,8 @@ Mọi phản hồi lỗi từ server đều tuân thủ cấu trúc JSON thống
 | **400** | `MALFORMED_REQUEST` | Request JSON sai cú pháp, sai kiểu dữ liệu param, thiếu tham số bắt buộc. |
 | **401** | `UNAUTHORIZED` | Thiếu header Authorization, sai tài khoản/mật khẩu, hoặc token không hợp lệ. |
 | **401** | `TOKEN_EXPIRED` | Access Token đã hết hạn (Frontend kích hoạt axios interceptor gọi refresh). |
-| **401** | `REFRESH_TOKEN_INVALID` | Refresh token đã bị thu hồi, hết hạn hoặc không tồn tại trong DB. |
+| **401** | `AUTH_ROLE_CHANGED` | Phiên đăng nhập bị thu hồi khi đổi vai trò. Người dùng cần đăng nhập lại. |
+| **400** | `REFRESH_TOKEN_INVALID` | Refresh token hết hạn, sai, không còn trong DB hoặc được cấp trước V13. |
 | **403** | `FORBIDDEN` | Sai Role truy cập tài nguyên, hoặc vi phạm bảo vệ IDOR phiên khách hàng. |
 | **404** | `NOT_FOUND` | Tài nguyên không tồn tại theo ID hoặc điều kiện truy vấn chung. |
 | **404** | `NOT_FOUND` | Máy trạm không tồn tại theo ID hoặc mã máy (`code`). |
@@ -370,6 +372,7 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `400 REFRESH_TOKEN_INVALID`: Refresh token đã hết hạn, sai hoặc đã bị thu hồi do phiên kết thúc.
+  - `401 AUTH_ROLE_CHANGED`: Refresh token được cấp trước lần đổi vai trò. Người dùng cần đăng nhập lại.
 
 ---
 

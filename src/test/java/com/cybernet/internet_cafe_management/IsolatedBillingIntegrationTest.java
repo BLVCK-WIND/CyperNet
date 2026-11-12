@@ -86,7 +86,7 @@ class IsolatedBillingIntegrationTest {
         } finally { pool.shutdownNow(); }
     }
     @Test void cleanSchemaMigratesAndValidates() {
-        assertEquals("12", flyway.info().current().getVersion().getVersion()); flyway.validate();
+        assertEquals("13", flyway.info().current().getVersion().getVersion()); flyway.validate();
         assertEquals(0, flyway.info().pending().length);
     }
     @Test void upgradePreservesHistoricalOrderAndCapturesLegacyBenefits() throws Exception {
