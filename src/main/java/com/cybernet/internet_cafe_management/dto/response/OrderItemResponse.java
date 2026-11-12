@@ -44,8 +44,8 @@ public class OrderItemResponse {
         return new OrderItemResponse(
                 orderItem.getId(),
                 orderItem.getItem().getId(),
-                orderItem.getItem().getName(),
-                orderItem.getItem().getType(),
+                orderItem.getItemNameSnapshot() != null ? orderItem.getItemNameSnapshot() : orderItem.getItem().getName(),
+                orderItem.getItemTypeSnapshot() != null ? orderItem.getItemTypeSnapshot() : orderItem.getItem().getType(),
                 orderItem.getQuantity(),
                 orderItem.getUnitPrice(),
                 orderItem.getSubtotal(),

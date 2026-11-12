@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { accountApi } from '@/api/accountApi';
 import { useNavigate } from 'react-router-dom';
-import { Button, Skeleton, App } from 'antd';
+import { Button, Skeleton, App, Alert } from 'antd';
 import {
   LogOut,
   Monitor,
@@ -27,11 +29,23 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 export const CustomerDashboardPage: React.FC = () => {
   const { message } = App.useApp();
   const navigate = useNavigate();
-  const { user, computerCode, logout } = useAuthStore();
+  const { user, computerCode, logout, sessionId, updateUser } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const { data: session, isLoading } = useSession({
+  const { data: session, isLoading, isError, error, refetch } = useSession({
     computerCode: computerCode || undefined,
+  });
+
+  useQuery({
+    queryKey: ['customer-account', user?.id],
+    queryFn: async () => {
+      const account = await accountApi.getCurrentAccount();
+      updateUser(account);
+      return account;
+    },
+    enabled: Boolean(user && !sessionId),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 
   useDocumentTitle(`Máy trạm ${computerCode || session?.computerCode || 'PC'} • Bảng điều khiển`);
@@ -69,6 +83,11 @@ export const CustomerDashboardPage: React.FC = () => {
       setIsLoggingOut(false);
     }
   };
+
+  // A missing active session is expected for table ordering; network/server errors are not.
+  if (isError && !session && (error as unknown as { status?: number })?.status !== 404) {
+    return <Alert type="error" title="Không thể tải thông tin máy trạm" action={<Button onClick={() => void refetch()}>Thử lại</Button>} />;
+  }
 
   return (
     <PageTransition>
@@ -112,6 +131,7 @@ export const CustomerDashboardPage: React.FC = () => {
               loading={isLoggingOut}
               disabled={isLoggingOut}
               icon={<LogOut className="w-4 h-4" />}
+              aria-label="Đăng xuất"
               onClick={handleLogout}
               className="text-xs text-danger hover:bg-danger/10 flex items-center"
             >
@@ -174,13 +194,14 @@ export const CustomerDashboardPage: React.FC = () => {
             </GlassCard>
 
             {/* Quick Action Buttons: Gọi món F&B & Xem Đơn hàng */}
-            <div className="grid grid-cols-2 gap-3 w-full">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 w-full">
               <Button
                 type="primary"
                 size="large"
                 icon={<Utensils className="w-4 h-4 text-midnight" />}
                 onClick={() => navigate('/customer/menu')}
-                className="h-13 font-bold text-sm bg-gold hover:bg-gold-light active:bg-gold-dark text-midnight rounded-xl border-0 shadow-lg shadow-gold/20 flex items-center justify-center gap-2 transition-all duration-300"
+                style={{ fontSize: 12, paddingInline: 8, minHeight: 48 }}
+                className="h-13 px-2 sm:px-4 font-bold text-xs sm:text-sm bg-gold hover:bg-gold-light active:bg-gold-dark text-midnight rounded-xl border-0 shadow-lg shadow-gold/20 flex items-center justify-center gap-2 transition-all duration-300"
               >
                 GỌI MÓN / NẠP GIỜ
               </Button>
@@ -189,7 +210,8 @@ export const CustomerDashboardPage: React.FC = () => {
                 size="large"
                 icon={<ReceiptText className="w-4 h-4 text-gold" />}
                 onClick={() => navigate('/customer/orders')}
-                className="h-13 font-semibold text-sm bg-slate/70 hover:bg-slate active:bg-midnight text-sand rounded-xl border border-gold/30 hover:border-gold shadow-md flex items-center justify-center gap-2 transition-all duration-300"
+                style={{ fontSize: 12, paddingInline: 8, minHeight: 48 }}
+                className="h-13 px-2 sm:px-4 font-semibold text-xs sm:text-sm bg-slate/70 hover:bg-slate active:bg-midnight text-sand rounded-xl border border-gold/30 hover:border-gold shadow-md flex items-center justify-center gap-2 transition-all duration-300"
               >
                 ĐƠN HÀNG CỦA TÔI
               </Button>
@@ -211,13 +233,14 @@ export const CustomerDashboardPage: React.FC = () => {
             />
 
             {/* Quick Action Buttons (Gọi món & Đơn hàng) */}
-            <div className="grid grid-cols-2 gap-3 w-full">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 w-full">
               <Button
                 type="primary"
                 size="large"
                 icon={<Utensils className="w-4 h-4 text-midnight" />}
                 onClick={() => navigate('/customer/menu')}
-                className="h-13 font-bold text-sm bg-gold hover:bg-gold-light active:bg-gold-dark text-midnight rounded-xl border-0 shadow-lg shadow-gold/20 flex items-center justify-center gap-2 transition-all duration-300"
+                style={{ fontSize: 12, paddingInline: 8, minHeight: 48 }}
+                className="h-13 px-2 sm:px-4 font-bold text-xs sm:text-sm bg-gold hover:bg-gold-light active:bg-gold-dark text-midnight rounded-xl border-0 shadow-lg shadow-gold/20 flex items-center justify-center gap-2 transition-all duration-300"
               >
                 GỌI MÓN F&B
               </Button>
@@ -226,7 +249,8 @@ export const CustomerDashboardPage: React.FC = () => {
                 size="large"
                 icon={<ReceiptText className="w-4 h-4 text-gold" />}
                 onClick={() => navigate('/customer/orders')}
-                className="h-13 font-semibold text-sm bg-slate/70 hover:bg-slate active:bg-midnight text-sand rounded-xl border border-gold/30 hover:border-gold shadow-md flex items-center justify-center gap-2 transition-all duration-300"
+                style={{ fontSize: 12, paddingInline: 8, minHeight: 48 }}
+                className="h-13 px-2 sm:px-4 font-semibold text-xs sm:text-sm bg-slate/70 hover:bg-slate active:bg-midnight text-sand rounded-xl border border-gold/30 hover:border-gold shadow-md flex items-center justify-center gap-2 transition-all duration-300"
               >
                 ĐƠN HÀNG
               </Button>

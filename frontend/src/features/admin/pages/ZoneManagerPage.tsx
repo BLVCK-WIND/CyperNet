@@ -445,7 +445,7 @@ export const ZoneManagerPage: React.FC = () => {
         okText={editingZone ? 'Lưu thay đổi' : 'Tạo khu vực'}
         cancelText="Đóng"
         width={520}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" className="mt-4 space-y-4">
           {/* Mã viết tắt hiển thị trên thẻ máy trạm */}

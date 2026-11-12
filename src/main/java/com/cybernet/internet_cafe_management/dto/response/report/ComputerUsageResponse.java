@@ -19,7 +19,7 @@ public class ComputerUsageResponse {
     private String computerCode;
 
     // Phân khu (STANDARD, VIP)
-    private Computer.Zone zone;
+    private String zone;
 
     // Tổng số lượt mở phiên chơi tại máy này
     private long totalSessions;

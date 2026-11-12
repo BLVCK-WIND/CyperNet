@@ -55,7 +55,7 @@ public class ComputerController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<PageResponse<ComputerResponse>> getAllComputers(
             @RequestParam(required = false) Computer.Status status,
-            @RequestParam(required = false) Computer.Zone zone,
+            @RequestParam(required = false) String zone,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String keyword,

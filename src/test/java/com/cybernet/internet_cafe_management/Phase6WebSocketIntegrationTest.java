@@ -37,7 +37,7 @@ public class Phase6WebSocketIntegrationTest {
         computer.setId(10L);
         computer.setCode("PC-VIP-99");
         computer.setStatus(Computer.Status.IN_USE);
-        computer.setZone(Computer.Zone.VIP);
+        computer.setZone("VIP");
         computer.setPricePerHour(BigDecimal.valueOf(15000));
         computer.setIpAddress("192.168.1.99");
 
@@ -50,7 +50,7 @@ public class Phase6WebSocketIntegrationTest {
         assertNotNull(event);
         assertEquals("PC-VIP-99", event.getComputerCode());
         assertEquals(Computer.Status.IN_USE, event.getStatus());
-        assertEquals(Computer.Zone.VIP, event.getZone());
+        assertEquals("VIP", event.getZone());
         assertNotNull(event.getTimestamp());
     }
 

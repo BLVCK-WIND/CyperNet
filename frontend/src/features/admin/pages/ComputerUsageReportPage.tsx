@@ -21,6 +21,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { reportApi } from '@/api/reportApi';
 import { PageTransition } from '@/components/animations/PageTransition';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { vietnamDate } from '@/utils/vietnamTime';
 import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { ComputerUsageResponse } from '@/types/report';
 
@@ -30,10 +31,10 @@ export const ComputerUsageReportPage: React.FC = () => {
   useDocumentTitle('Hiệu suất máy trạm • CyberNet');
 
   // Filter Date range state (mặc định 7 ngày gần nhất)
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
-    dayjs().subtract(6, 'day'),
-    dayjs(),
-  ]);
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => {
+    const today = dayjs(vietnamDate());
+    return [today.subtract(6, 'day'), today];
+  });
 
   const [quickPreset, setQuickPreset] = useState<string>('7D');
 
@@ -60,7 +61,7 @@ export const ComputerUsageReportPage: React.FC = () => {
 
   const handlePresetChange = (val: string) => {
     setQuickPreset(val);
-    const today = dayjs();
+    const today = dayjs(vietnamDate());
     if (val === 'TODAY') {
       setDateRange([today, today]);
     } else if (val === '7D') {
@@ -75,8 +76,17 @@ export const ComputerUsageReportPage: React.FC = () => {
   // Tính toán KPI Tổng hợp
   const stats = useMemo(() => {
     const totalComputers = usageData.length;
-    const totalSessions = usageData.reduce((sum, c) => sum + (c.totalSessions || 0), 0);
-    const totalMinutes = usageData.reduce((sum, c) => sum + (c.totalMinutesUsed || 0), 0);
+    let totalSessions = 0;
+    let totalMinutes = 0;
+    let topComputer: ComputerUsageResponse | undefined;
+    for (const computer of usageData) {
+      const minutes = computer.totalMinutesUsed || 0;
+      totalSessions += computer.totalSessions || 0;
+      totalMinutes += minutes;
+      if (minutes > (topComputer?.totalMinutesUsed ?? 0)) {
+        topComputer = computer;
+      }
+    }
     const totalHours = (totalMinutes / 60).toFixed(1);
 
     // Tính tỷ lệ lấp đầy bình quân toàn dàn máy
@@ -84,10 +94,6 @@ export const ComputerUsageReportPage: React.FC = () => {
     const avgUtilization = maxPossibleMinutes > 0
       ? ((totalMinutes / maxPossibleMinutes) * 100).toFixed(1)
       : '0';
-
-    // Máy có lượt phục vụ nhiều nhất
-    const sorted = [...usageData].sort((a, b) => (b.totalMinutesUsed || 0) - (a.totalMinutesUsed || 0));
-    const topComputer = sorted[0];
 
     return {
       totalComputers,
@@ -175,7 +181,7 @@ export const ComputerUsageReportPage: React.FC = () => {
                 '0%': '#bd9875',
                 '100%': '#10b981',
               }}
-              trailColor="rgba(255,255,255,0.06)"
+              railColor="rgba(255,255,255,0.06)"
               size="small"
             />
           </div>

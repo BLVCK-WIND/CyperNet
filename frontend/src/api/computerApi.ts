@@ -8,6 +8,23 @@ import type {
 import type { PageResponse } from '@/types/item';
 
 export const computerApi = {
+  async getAvailableComputers(): Promise<ComputerResponse[]> {
+    const first = await computerApi.getComputers({ status: 'AVAILABLE', page: 0, size: 100, sort: 'id,asc' });
+    const content = [...first.content];
+    for (let page = 1; page < first.totalPages; page++) {
+      content.push(...(await computerApi.getComputers({ status: 'AVAILABLE', page, size: 100, sort: 'id,asc' })).content);
+    }
+    return content;
+  },
+  async getAllComputers(): Promise<PageResponse<ComputerResponse>> {
+    const first = await computerApi.getComputers({ page: 0, size: 100, sort: 'id,asc' });
+    const content = [...first.content];
+    for (let page = 1; page < first.totalPages; page++) {
+      const next = await computerApi.getComputers({ page, size: 100, sort: 'id,asc' });
+      content.push(...next.content);
+    }
+    return { ...first, content };
+  },
   /**
    * Lấy danh sách máy trạm có hỗ trợ lọc theo status, zone, keyword
    * Endpoint: GET /api/computers

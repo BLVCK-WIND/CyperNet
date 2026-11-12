@@ -10,7 +10,7 @@ public class CustomerAuthResponse extends AuthResponse {
 
     private SessionResponse session;
     private String computerCode;
-    private Computer.Zone computerZone;
+    private String computerZone;
 
     public CustomerAuthResponse() {
         super();
@@ -28,7 +28,7 @@ public class CustomerAuthResponse extends AuthResponse {
 
     public CustomerAuthResponse(String accessToken, String refreshToken, long expiresIn,
                                 AccountResponse account, SessionResponse session,
-                                String computerCode, Computer.Zone computerZone) {
+                                String computerCode, String computerZone) {
         super(accessToken, refreshToken, expiresIn, account);
         this.session = session;
         this.computerCode = computerCode;
@@ -51,11 +51,11 @@ public class CustomerAuthResponse extends AuthResponse {
         this.computerCode = computerCode;
     }
 
-    public Computer.Zone getComputerZone() {
+    public String getComputerZone() {
         return computerZone;
     }
 
-    public void setComputerZone(Computer.Zone computerZone) {
+    public void setComputerZone(String computerZone) {
         this.computerZone = computerZone;
     }
 }

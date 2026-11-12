@@ -1,3 +1,154 @@
+# Tiến độ hiện tại — 13/11/2026
+
+| Hạng mục | Kết quả |
+|---|---|
+| Báo cáo và múi giờ | Backend và bộ lọc báo cáo dùng ngày Việt Nam. Thời lượng phiên qua nửa đêm được chia theo ngày. Lượt mở được tính vào ngày bắt đầu, và báo cáo công suất tính cả máy có 0 lượt. |
+| Truy vấn và migration V12 | Tải chi tiết đơn theo lô sau phân trang. Trang 5 đơn giảm từ 10 xuống 3 câu SQL, trang 15 đơn từ 20 xuống 3, và tổng quan doanh thu từ 7 xuống 3. V12 thêm index theo trạng thái và thời điểm xác nhận cho đơn hàng và phiếu nạp. |
+| Đơn mua giờ duyệt muộn | Duyệt đơn cộng giờ cho tài khoản và gia hạn phiên khách đang chơi theo giá của phiên đó. Nếu khách đang nghỉ, giữ giờ trong tài khoản cho lần sau. Đơn vẫn ghi phiên lúc đặt. Đã kiểm tra trên API và trang khách của server demo. |
+| Chuyển máy và giao món | Đã thống nhất giữ cách quy đổi và làm tròn hiện tại. Đơn giao theo máy lúc đặt. Khách báo nhân viên nếu đổi chỗ trong khi chờ món. |
+| Đổi quyền tài khoản | Đã thống nhất yêu cầu đăng nhập lại sau khi đổi quyền. Còn chờ triển khai và kiểm thử. |
+
+**Kiểm chứng gần nhất.** Toàn bộ 190 test backend đạt trên MariaDB tạm, gồm ca duyệt đơn khi khách đã mở phiên mới, duyệt trùng và duyệt đồng thời với bộ quét hết giờ. 41 test frontend đạt. Build và lint frontend thành công, còn cảnh báo hooks và bundle lớn. [Ghi chú nghiệp vụ và kiểm thử](../notes/ownership-billing-review.md)
+
+**Các bước còn lại.** Kiểm thử thiết bị thật, rà kích thước bundle và hiệu năng với tải đại diện, xác minh backup/khôi phục, rồi nghiệm thu triển khai V12 trên môi trường đích. Bản sao CSDL quán đã diễn tập tới V11.1. V12 được kiểm thử trên schema tạm và chưa áp dụng cho CSDL quán. [Hướng dẫn migration](../notes/migration-rollout.md)
+
+---
+
+# Tiến độ và nghiệm thu mục tiêu 1 — 11/11/2026
+
+Bảng này ghi kết quả nghiệm thu tại ngày 11/11/2026. Các mục phía dưới lưu diễn biến theo từng mốc.
+
+| Công việc trong mục tiêu 1 | Triển khai | Nghiệm thu của người dùng |
+|---|---|---|
+| Giới hạn đọc tài khoản STAFF/ADMIN | Xong | Đã xác nhận đạt |
+| Routing QR: giữ mã bàn, thiếu mã phải quét lại, đổi bàn xác thực lại | Xong | Đã xác nhận đạt |
+| Hội viên: server search/phân trang, thống kê tổng, bộ chọn khách chung | Xong | Đã xác nhận đạt |
+| Tải máy trống khi mở máy từ trang hội viên | Xong | Đã xác nhận đạt cùng nhóm hội viên |
+| Đơn hàng: lọc cả đơn không phiên, search server, phân trang chung hai cột | Xong | Người dùng báo hoàn tất ca 1 trên bản sao DB quán |
+| Lỗi duyệt/hủy: giữ thông báo backend, lỗi mạng tiếng Việt, giữ modal | Xong | Ca 2 đạt khi thử duyệt lại đơn #688 từ tab thứ hai |
+| Summary theo ngày Việt Nam và lỗi riêng từng nguồn Admin | Xong | Ca 3 đạt với số liệu trong ngày và bộ lọc. Ca 4 đạt khi chặn riêng doanh thu rồi thử lại. Trường hợp qua ngày đã có test tích hợp và còn chờ mẫu để đối chiếu trên giao diện |
+| Nhãn CONFIRMED hiển thị “Đã thanh toán” | Xong | Người dùng xác nhận đạt ngày 11/11/2026 |
+| Đối chiếu tài liệu và kiểm thử hồi quy mục tiêu 1 | Đã cập nhật tài liệu và chạy kiểm thử | Đã ghi nhận kết quả bốn ca trên `tiemnet_qa_v11` |
+
+**Nghiệm thu ngày 11/11/2026** dùng bản khôi phục `tiemnet_qa_v11` từ DB quán. Bản sao đã nâng từ V9 lên V11.1 và khởi động lại với `out-of-order=false`. Chi tiết các ca nằm trong [bản bàn giao](../notes/frontend-handoff.md#7-kết-quả-nghiệm-thu-trên-bản-sao-db-quán).
+
+**Các giai đoạn chưa hoàn tất:** QA thiết bị thật và gián đoạn (iPhone Safari, camera QR, bàn phím, background/resume, offline, reduced motion); rà hiệu năng/bundle; kiểm tra backup/khôi phục và triển khai/migration thật. Đã có kiểm thử backend, responsive/emulator và diễn tập migration trên bản sao trước đây; không coi đó là nghiệm thu thiết bị thật hoặc đã nâng CSDL thật.
+
+**Kiểm thử hồi quy ngày 11/11/2026.** 48 test backend trong 7 lớp và 41 test frontend offline đều đạt. Sáu lớp tích hợp dùng CSDL tạm riêng. Build và lint thành công, còn cảnh báo React hooks và bundle lớn. Danh sách test và checklist trình duyệt nằm trong bản bàn giao.
+
+---
+# Queue daily summary and independent Admin KPI errors — implemented 2026-11-10
+
+Approved rules: new orders use createdAt; paid count/F&B revenue use confirmedAt, on the Vietnam calendar day [start, next-day start). Pending totals include both waiting states across all history and separately identify prior-day backlog. Tab totals remain all-history; list search/pagination do not affect summary. New STAFF/ADMIN GET /api/orders/summary aggregates SQL without the 100-row cap or line-item count duplication; financial report APIs remain ADMIN-only. No schema/migration or payment-state changes.
+
+Staff UI consumes one summary query, refreshes after confirm/cancel, shows day/backlog and failure/retry states without hiding the order list. Admin KPI revenue, all computer pages and active-session metadata use separate scoped queries; a failed source shows unavailable values rather than zero, with its own retry and last-success timestamp. Day keys/timestamps use Asia/Ho_Chi_Minh and update at midnight/on focus. Admin has 125-machine and >100-session metadata regression coverage.
+
+Validation: 26 backend tests (OrderSummaryIntegrationTest 7, OrderQueueSearchIntegrationTest 11, Phase4ReportIntegrationTest 8), all pass. 41 offline frontend regressions pass (17 orders, 7 statistics, 7 accounts, 10 QR). Production build/lint pass with existing hook/large-chunk warnings. Boundary fixtures include 258 orders, mixed FOOD/DRINK/PLAYTIME/SERVICE lines, old-created/new-paid orders, empty data, exact day boundaries, confirm/cancel updates and RBAC. Browser acceptance remains for the user; no automated browser QA in this step.
+
+New disposable demo: frontend 5173/API 8081; 245 orders, 125 computers. Staff summary initially pending=80, backlog=10, createdToday=234, confirmedToday=145, F&B today=2,400,000 VND. Admin revenue=3,282,000 VND, machines=125 (1 in use, 101 available, 23 maintenance), active sessions=1. Order #82 was created yesterday and paid today. API checks verified these values and STAFF financial-report 403. Demo seed values reset on launcher restart; the live cafe database was not migrated.
+
+Next: propose/review remaining CONFIRMED paid labels and reconcile documentation/combined acceptance, then physical-device/interruption QA and deployment/performance gates. Earlier acceptance-pending entries record their own evidence; do not treat implementation completion as user acceptance.
+
+---
+
+# Order action error messages — implemented, acceptance pending 2026-11-10
+
+Approved scope: frontend confirm/cancel error presentation in the staff queue. Shared getApiErrorMessage reads direct ErrorResponse.message, raw Axios response.data.message, then the action fallback. Malformed/non-string messages do not render as objects or HTML. Network/timeout errors use Vietnamese connection/reload guidance. No interceptor, backend, database schema or payment-rule changes.
+
+Failure keeps the action modal open, stops processing, emits no success notification/cache refresh and sends no automatic retry. Existing success behavior still closes the modal and invalidates the queue/status summaries.
+
+Validation: 14 offline order UI/hook/API tests pass (7 additional cases cover message formats/network/malformed errors, deferred failures and successful confirm/cancel). Frontend build/lint pass with existing warnings. Backend tests were not rerun because no backend code changed. Browser acceptance remains for the user, using two tabs with the same pending CASH order; a stale second operation should show the backend state error and keep its modal open. Demo servers remain 5173/8081 on the existing disposable database.
+
+Next task to investigate and propose: daily queue statistics and Admin failure/zero states. CONFIRMED paid labels and remaining documentation reconciliation follow. No implementation of those tasks is authorized by this step.
+
+---
+
+# Order queue search/pagination — implemented, acceptance pending 2026-11-10
+
+Approved: exact #ID/ORD-ID search; ordinary keyword searches machine/phone/name (case/accent insensitive including Vietnamese d-stroke); one shared page for kitchen/cashier lanes, default 20 with 50 optional. Existing /api/orders/search now receives keyword; filters use direct order links with session fallback, including sessionless/legacy orders. Stable createdAt/id ordering preserves FIFO for both pending statuses and includes previous-day backlog. No database schema change.
+
+Frontend sends filters to the server, resets page on filter/size changes, cancels old requests, labels lane counts as page-local and returns to a valid page after rows disappear. Switching page/filter establishes the notification baseline; local confirm/cancel refreshes all status summaries. Statistics calculations, generic action-error handling and payment labels remain separate tasks.
+
+Validation: 16 backend integration tests (11 order-search regressions + 5 existing search/upload tests); 7 offline order UI/hook/API regressions, plus 7 account and 10 QR frontend regressions. Build/lint pass with hook/large-bundle warnings. Disposable demo uses 120 orders; user browser acceptance pending. Live cafe database untouched.
+
+Current completion tracker:
+- User-accepted: account read RBAC; QR routing; account directory/search/summary/shared selector; member quick-action machine loading.
+- Implemented, awaiting user acceptance: order filters/search/shared pagination (this step).
+- Next, requires proposal/approval: daily queue statistics and Admin error/zero handling; CONFIRMED label changed to paid; remaining documentation reconciliation and combined regression acceptance.
+- Later milestones: physical-device/interruption QA; performance/bundle and deployment/backup/migration gates.
+
+---
+
+# Account directory/search/summary — implemented 2026-11-10
+
+Approved scope: server pagination and keyword search (phone/name substring, accent/case insensitive including d/d-stroke; #ID exact), role-scoped SQL summary, shared paginated customer selector and cache refresh after account mutations. STAFF read restrictions remain enforced before search/pagination/counting. Summary is independent of list filters; minutes aggregate CUSTOMER standard minutes only. Selection is fetched by ID so an older/newly registered customer remains available outside the result page.
+
+Additional approved fix: opening a session from the member directory fetches AVAILABLE computers through the existing API, following all pages, with loading/retry/empty states. No payment or gaming business rules changed.
+
+Verification: 31 backend integration tests across five account-related classes, 7 offline frontend regression tests, production build and lint (existing hook/large-bundle warnings). Tests use disposable databases. User reported browser acceptance PASS in this chat; automated tests remain separate evidence. The live cafe database was not migrated.
+
+---
+
+# QR routing — implemented and user-accepted 2026-11-10
+
+Approved option A: preserve QR codes through root/customer redirects, require rescanning for missing/blank codes, and reauthenticate when scanning a different table. Clear the previous local customer auth/query cache, without ending the gaming session on that PC. Save the new context only after successful authentication; block unverified/invalid PC submission and ignore stale responses after navigation/table changes.
+
+Ten automated route/store/component tests pass via `npm --prefix frontend run test:qr`. These are offline unit tests, not browser/device acceptance. Frontend build/lint pass with warnings; the test harness uses Node experimental VM modules without new dependencies. Browser automation was denied permission to open the local site; the user subsequently reported browser acceptance PASS in this chat. No backend or database changes are part of this step.
+
+---
+
+# Account read permissions — completed 2026-11-10
+
+Approved scope: account reads only. STAFF lists are restricted to CUSTOMER before pagination/counting; explicit STAFF/ADMIN filters and reads of another management account return 403. STAFF can read their own profile; ADMIN access is retained. The Staff member page requests CUSTOMER and hides the role selector for STAFF. Both API contracts and the handoff describe these rules.
+
+Verification: 33 tests passed, zero failures/errors/skips across AccountReadAccessIntegrationTest (9 new cases), CurrentAccountIntegrationTest, Phase6CrudEndpointsIntegrationTest, ManageAccountsIntegrationTest and Phase3SecurityIntegrationTest. These used the existing disposable-database harness. Frontend production build and lint passed; large-bundle and React hook warnings remain. No browser QA or live database migration was performed in this step. QR, pagination, order statistics and payment labels remain separate work requiring review and approval.
+
+---
+
+# Emulator QA — completed 2026-11-09
+
+LDPlayer Android Chrome passed password-free login, menu/cart navigation, cash order submission and history checks. Responsive dashboard/menu checks passed at 320–412px and landscape; actions now have 48px minimum height and stack below 360px. Frontend build passes. See `docs/notes/emulator-qa.md`; physical iPhone/keyboard/camera testing remains pending.
+
+---
+
+# Restored-copy migration rehearsal — completed 2026-11-09
+
+The configured local V9 database copy upgraded to V11.1 with preserved business-table counts, valid order links and snapshots, repeat Flyway validation and Hibernate startup. The copy was removed; the source database was not upgraded. See `docs/notes/migration-rehearsal.md`. Next: physical Android/iPhone acceptance and a verified deployment backup before any live rollout.
+
+---
+
+# Browser/mobile QA — completed 2026-11-09
+
+Customer cash/QR ordering, staff approval, idle-account top-ups and Admin reports were verified using disposable QA data. Fixed balance refresh, QR failure feedback, revenue labels and narrow-screen actions. **147 backend tests / 28 classes pass; frontend build and lint pass with existing warnings.** See `docs/notes/browser-mobile-qa.md` for scope and limits. Restored-copy rehearsal is recorded above; physical-device acceptance remains pending.
+
+---
+
+# Full backend suite — verified 2026-11-09
+
+**144 tests / 27 classes passed; 0 failures, errors or skipped tests.** All 24 test databases were confirmed removed. Ordinary backend tests now use disposable databases by default. See `docs/notes/backend-suite-verification.md` for fixture corrections, command and limits. Browser/mobile QA is recorded above; migration rehearsal remains pending.
+
+---
+
+# Ownership and billing safety update — 2026-11-09
+
+Ownership guards, serialized payment/session transitions, expiry recheck, package/tariff snapshots and sessionless spending aggregation are implemented. See `docs/notes/ownership-billing-review.md` for behavior and verification, and `docs/notes/migration-rollout.md` before deployment. Mobile ordering remains password-free.
+
+---
+
+# Implementation reconciliation ? 2026-11-09
+
+This section supersedes older snapshot claims below. Source manifests declare Java 17, Spring Boot 4.1.1, React 19, Ant Design 6, Tailwind 4, Zustand and TanStack Query.
+
+- Customer mobile ordering remains password-free. Existing CUSTOMER phone numbers only; unknown numbers return 404 NOT_FOUND with counter-registration guidance; STAFF/ADMIN return 403 FORBIDDEN before tokens are issued.
+- PC gaming login continues to require a password. Idle-PC QR login returns session=null and does not start play or deduct minutes.
+- Zone codes are catalog-backed strings, not a fixed enum. New assignments require an active zone; unchanged inactive assignments remain editable. Computer price remains authoritative.
+- Staff dashboard contains operational metrics and does not query Admin financial reports. Counts load all computer pages.
+- Admin CRUD, reports and dashboard already exist. Shared reduced-motion behavior and dashboard loading/retry states have been implemented; browser-wide visual QA remains pending.
+- Verification: Java/test compilation and 7 isolated customer/zone/error tests passed; frontend production build passed with a large-bundle warning. Lint exits successfully with warnings. Later backend integration and browser verification results are recorded above.
+- Migration rollout: see `docs/notes/migration-rollout.md`. Existing applied scripts were preserved; startup no longer repairs migration checksums automatically.
+
+---
+
 # 📌 CyberNet Project Status Snapshot
 
 > **Mục đích:** File trạng thái "nóng" (Hot Memory) siêu ngắn gọn (~30 dòng). AI chỉ cần đọc file này để biết chính xác tiến độ hiện tại mà không cần nạp `PLAN.md` hay `LOG.md`.
@@ -143,7 +294,7 @@
   - **Frontend & Backend MS-4.1b: Chuẩn hóa Luồng Đặt Hàng QR 2 Bước & Rào Chắn An Toàn Tài Chính (Đã hoàn tất 100%):**
     - **Nghiệp vụ QR 2 bước chuẩn hóa:**
       + *Bước 1 (Chờ chuyển khoản):* Khách đặt đơn QR -> Đơn trạng thái `PENDING_PAYMENT` ("Chờ chuyển khoản"). Phía Staff: Nút xác nhận bị VÔ HIỆU HÓA (DISABLED) kèm tooltip cảnh báo cấm duyệt. Backend: Chặn tuyệt đối `confirmOrder` nếu là đơn QR ở trạng thái `PENDING_PAYMENT` (ném HTTP 400 Bad Request).
-      + *Bước 2 (Chờ quầy xác nhận):* Khách chuyển khoản VietQR xong, bấm "TÔI ĐÃ CHUYỂN KHOẢN" trên modal -> Gọi `PATCH /api/orders/{id}/notify-transferred` -> Chuyển sang `WAITING_CONFIRMATION` ("Đã CK • Chờ quầy duyệt"), lưu `transferredAt`. Staff nhận thông báo realtime, nút Xác nhận đổi sang cyan/emerald bật sáng.
+      + *Bước 2 (Chờ quầy xác nhận):* Khách chuyển khoản VietQR xong, bấm "TÔI ĐÃ CHUYỂN KHOẢN" trên modal -> Gọi `PATCH /api/orders/{id}/notify-transferred` -> Chuyển sang `WAITING_CONFIRMATION` ("Đã CK • Chờ quầy duyệt"), lưu `transferredAt`. Hàng đợi Staff nhận trạng thái qua polling, nút Xác nhận đổi sang cyan/emerald bật sáng.
       + *Bước 3 (Đối soát tài chính an toàn QR):* Staff bấm "Xác nhận chuyển khoản", hệ thống bật Popup an toàn CyberLux rộng 580px: *"Bạn có chắc khách hàng có SĐT: [sdt] (Khách [tên] tại máy [mã máy]) đã chuyển khoản rồi chứ?"* kèm số tiền cần đối soát, cú pháp CK `ORDER-CYBERNET-{id}` và cảnh báo kiểm tra app ngân hàng trước khi duyệt. Staff xác nhận -> Đơn chuyển `CONFIRMED`.
       + *Bước 4 (Đối soát thu tiền mặt CASH):* Khi nhân viên bấm duyệt đơn Tiền mặt (CASH), hệ thống hiển thị Popup an toàn xác nhận *"Bạn có chắc chắn đã nhận đủ [số tiền] tiền mặt từ khách hàng [tên] (máy [mã máy]) rồi chứ?"* kèm mã đơn, cảnh báo cầm đủ tiền trên tay trước khi duyệt.
       + *Bước 5 (Định vị Khu vực Zone Bắt buộc):* Bổ sung thuộc tính `computerZone` vào `OrderResponse` và tích hợp `ZoneBadge` trên toàn bộ thẻ đơn hàng (`StaffOrderCard`, `StaffOrderDetailDrawer`, `ConfirmOrderModal`, `OrderCard`, `OrderDetailDrawer`) để nhân viên quầy và phục vụ luôn biết chính xác khu vực máy trạm cần giao món (VD: VIP-02 thuộc Zone VIP).

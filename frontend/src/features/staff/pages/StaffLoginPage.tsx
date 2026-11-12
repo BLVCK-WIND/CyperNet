@@ -111,7 +111,7 @@ export const StaffLoginPage: React.FC = () => {
 
             <div className="flex items-center justify-center gap-2">
               <Tag
-                bordered={false}
+                variant="filled"
                 className="px-3 py-1 rounded-full text-xs font-semibold bg-gold/15 text-gold border border-gold/35 shadow-[0_0_12px_rgba(189,152,117,0.15)] inline-flex items-center gap-1.5"
               >
                 <SparklesIcon className="w-3 h-3 text-gold" />

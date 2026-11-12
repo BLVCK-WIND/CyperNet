@@ -185,7 +185,7 @@ export const ComputerDetailDrawer: React.FC<ComputerDetailDrawerProps> = ({
             <div className="flex items-center justify-between text-xs pt-1 border-t border-mist/15">
               <span className="text-mist">Trạng thái:</span>
               <Tag
-                bordered={false}
+                variant="filled"
                 className={`m-0 font-medium text-xs px-2.5 py-0.5 rounded-full ${
                   status === 'AVAILABLE'
                     ? 'bg-success/15 text-success border border-success/30'
@@ -416,7 +416,7 @@ export const ComputerDetailDrawer: React.FC<ComputerDetailDrawerProps> = ({
                         {ses.accountName || 'Khách chơi'}
                       </span>
                       <Tag
-                        bordered={false}
+                        variant="filled"
                         className={`m-0 text-[10px] font-bold px-1.5 py-0.2 rounded ${
                           ses.status === 'ACTIVE'
                             ? 'bg-success/20 text-success'

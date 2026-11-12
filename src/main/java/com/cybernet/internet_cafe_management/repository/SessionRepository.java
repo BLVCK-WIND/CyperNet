@@ -16,6 +16,15 @@ import java.util.Optional;
 @Repository
 public interface SessionRepository extends JpaRepository<Session, Long> {
 
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM sessions WHERE id = :id FOR UPDATE", nativeQuery = true)
+    java.util.Optional<Session> findByIdWithLock(@org.springframework.data.repository.query.Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Query("select s.account.id from Session s where s.id = :id")
+    java.util.Optional<Long> findAccountId(@org.springframework.data.repository.query.Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM sessions WHERE account_id = :id AND status = 'ACTIVE' FOR UPDATE", nativeQuery = true)
+    java.util.Optional<Session> findActiveByAccountIdWithLock(@org.springframework.data.repository.query.Param("id") Long id);
+
     // Phân trang danh sách phiên theo trạng thái
     Page<Session> findByStatus(Status status, Pageable pageable);
 
@@ -56,31 +65,51 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     @Query("SELECT s FROM Session s LEFT JOIN FETCH s.computer LEFT JOIN FETCH s.account WHERE s.status = :status AND s.expiresAt <= :dateTime")
     List<Session> findByStatusAndExpiresAtLessThanEqual(@Param("status") Status status, @Param("dateTime") LocalDateTime dateTime);
 
-    // === PHASE 4: AGGREGATION QUERIES FOR UTILIZATION & GAMER STATS ===
+    interface ComputerUsageRow {
+        Long getComputerId();
+        String getComputerCode();
+        String getZone();
+        long getTotalSessions();
+        long getTotalMinutesUsed();
+    }
 
-    // 1. Thống kê số lượt sử dụng máy trạm trong khoảng thời gian
-    @Query("SELECT s.computer.id, s.computer.code, s.computer.zone, COUNT(s) " +
-           "FROM Session s " +
-           "WHERE s.startedAt BETWEEN :from AND :to " +
-           "GROUP BY s.computer.id, s.computer.code, s.computer.zone " +
-           "ORDER BY COUNT(s) DESC")
-    List<Object[]> findComputerUsageCount(
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
+    interface CustomerUsageRow {
+        Long getAccountId();
+        long getTotalMinutesPlayed();
+    }
 
-    // 2. Lấy dữ liệu mốc thời gian phiên chơi để tính tổng thời lượng sử dụng máy
-    @Query("SELECT s.computer.id, s.startedAt, s.endedAt " +
-           "FROM Session s " +
-           "WHERE s.startedAt BETWEEN :from AND :to")
-    List<Object[]> findComputerSessionDurations(
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
+    // Elapsed play is the intersection of a session with the requested date window.
+    String OVERLAP_SECONDS = """
+            GREATEST(0, TIMESTAMPDIFF(SECOND, GREATEST(s.started_at, :fromTime),
+                LEAST(COALESCE(s.ended_at, s.expires_at), :usageEnd)))
+            """;
 
-    // 3. Lấy dữ liệu mốc thời gian phiên chơi theo tài khoản khách hàng để tính tổng thời gian chơi
-    @Query("SELECT s.account.id, s.account.name, s.account.phone, s.startedAt, s.endedAt " +
-           "FROM Session s " +
-           "WHERE s.startedAt BETWEEN :from AND :to")
-    List<Object[]> findCustomerSessionDurations(
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
+    @Query(value = """
+            SELECT c.id AS computerId, c.code AS computerCode, c.zone AS zone,
+                   COUNT(CASE WHEN s.started_at >= :fromTime THEN 1 END) AS totalSessions,
+                   COALESCE(SUM(
+            """ + OVERLAP_SECONDS + """
+                   ), 0) DIV 60 AS totalMinutesUsed
+            FROM computers c LEFT JOIN sessions s ON s.computer_id = c.id
+                AND s.started_at < :toTime
+                AND (s.started_at >= :fromTime OR COALESCE(s.ended_at, s.expires_at) > :fromTime)
+            GROUP BY c.id, c.code, c.zone
+            ORDER BY totalSessions DESC, totalMinutesUsed DESC, c.id
+            """, nativeQuery = true)
+    List<ComputerUsageRow> findComputerUsage(
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime,
+            @Param("usageEnd") LocalDateTime usageEnd);
+
+    @Query(value = """
+            SELECT s.account_id AS accountId, SUM(
+            """ + OVERLAP_SECONDS + """
+                   ) DIV 60 AS totalMinutesPlayed
+            FROM sessions s
+            WHERE s.started_at < :usageEnd AND COALESCE(s.ended_at, s.expires_at) > :fromTime
+            GROUP BY s.account_id
+            """, nativeQuery = true)
+    List<CustomerUsageRow> findCustomerUsage(
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("usageEnd") LocalDateTime usageEnd);
 }

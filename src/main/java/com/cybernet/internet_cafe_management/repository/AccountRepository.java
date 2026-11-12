@@ -9,7 +9,25 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface AccountRepository extends JpaRepository<Account, Long> {
+public interface AccountRepository extends JpaRepository<Account, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Account> {
+
+    interface RoleTotals {
+        Account.Role getRole();
+        long getAccountCount();
+        long getRemainingMinutes();
+    }
+
+    @org.springframework.data.jpa.repository.Query("select a.role as role, count(a) as accountCount, coalesce(sum(a.remainingMinutes), 0) as remainingMinutes from Account a group by a.role")
+    java.util.List<RoleTotals> summarizeRoles();
+
+    @org.springframework.data.jpa.repository.Query("select a.role as role, count(a) as accountCount, coalesce(sum(a.remainingMinutes), 0) as remainingMinutes from Account a where a.role = :role group by a.role")
+    java.util.List<RoleTotals> summarizeRole(@org.springframework.data.repository.query.Param("role") Account.Role role);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM accounts WHERE id = :id FOR UPDATE", nativeQuery = true)
+    java.util.Optional<Account> findByIdWithLock(@org.springframework.data.repository.query.Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM accounts WHERE phone = :phone FOR UPDATE", nativeQuery = true)
+    java.util.Optional<Account> findByPhoneWithLock(@org.springframework.data.repository.query.Param("phone") String phone);
 
     // Tìm kiếm tài khoản theo SĐT (dùng khi đăng nhập hoặc kiểm tra)
     Optional<Account> findByPhone(String phone);

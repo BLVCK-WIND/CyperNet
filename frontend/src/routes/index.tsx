@@ -23,13 +23,14 @@ import { AccountManagerPage } from '@/features/staff/pages/AccountManagerPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RouteErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
+import { CustomerLoginRedirect } from '@/features/auth/CustomerLoginRedirect';
 import { RoleGuard } from '@/features/auth/RoleGuard';
 
 export const router = createBrowserRouter([
   {
     path: '/',
     errorElement: <RouteErrorBoundary />,
-    element: <Navigate to="/customer/login" replace />,
+    element: <CustomerLoginRedirect />,
   },
   {
     path: '/customer/login',

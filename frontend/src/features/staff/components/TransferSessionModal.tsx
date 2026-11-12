@@ -89,7 +89,7 @@ export const TransferSessionModal: React.FC<TransferSessionModalProps> = ({
       onCancel={onClose}
       footer={null}
       centered
-      maskClosable={false}
+      mask={{ closable: false }}
       width={520}
       styles={{
         body: {

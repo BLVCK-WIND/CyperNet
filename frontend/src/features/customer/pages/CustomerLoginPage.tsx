@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Input, Button, Tag, App } from 'antd';
 import { Phone, Monitor, AlertTriangle, Sparkles as SparklesIcon, LogIn, ArrowRight } from 'lucide-react';
@@ -12,18 +13,22 @@ import { useAuthStore } from '@/store/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { ComputerCheckResponse } from '@/types/session';
 import type { ErrorResponse } from '@/types/auth';
+import { qrComputerCode } from '@/utils/customerRoute';
 
 export const CustomerLoginPage: React.FC = () => {
   const { message } = App.useApp();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const setCustomerAuth = useAuthStore((state) => state.setCustomerAuth);
+  const clearCustomerAuth = useAuthStore((state) => state.clearCustomerAuth);
+  const queryClient = useQueryClient();
 
   useDocumentTitle('Đăng nhập máy trạm');
 
-  // Lấy mã máy từ query param ?code=... hoặc máy đã lưu, mặc định PC-01
-  const storedComputerCode = useAuthStore((s) => s.computerCode);
-  const computerCode = searchParams.get('code') || storedComputerCode || 'PC-01';
+  // An explicit QR is the only source of the table being authenticated.
+  const computerCode = qrComputerCode(searchParams.toString());
+  const currentCode = useRef(computerCode);
+  const requestVersion = useRef<symbol | null>(null);
 
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,9 +37,28 @@ export const CustomerLoginPage: React.FC = () => {
   const [computerError, setComputerError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
 
+  useEffect(() => {
+    clearCustomerAuth();
+    void queryClient.cancelQueries();
+    queryClient.clear();
+  }, [clearCustomerAuth, queryClient]);
+
+  useLayoutEffect(() => {
+    currentCode.current = computerCode;
+    requestVersion.current = Symbol();
+    return () => { currentCode.current = null; requestVersion.current = null; };
+  }, [computerCode]);
+
   // Kiểm tra mã máy khi load trang
   useEffect(() => {
-    if (!computerCode) return;
+    setComputerInfo(null);
+    setComputerError(null);
+    setPhone('');
+    setLoading(false);
+    if (!computerCode) {
+      setCheckingComputer(false);
+      return;
+    }
 
     let isMounted = true;
     setCheckingComputer(true);
@@ -78,6 +102,10 @@ export const CustomerLoginPage: React.FC = () => {
       triggerShake();
       return;
     }
+    if (computerError || computerInfo?.computerCode !== computerCode) {
+      message.error('Chưa xác minh được mã máy. Vui lòng kiểm tra lại mã QR hoặc kết nối mạng.');
+      return;
+    }
 
     const trimmedPhone = phone.trim();
     // Validate định dạng số điện thoại (9 đến 11 chữ số bắt đầu bằng 0, chuẩn viễn thông & backend)
@@ -88,6 +116,8 @@ export const CustomerLoginPage: React.FC = () => {
       return;
     }
 
+    const attempt = Symbol();
+    requestVersion.current = attempt;
     setLoading(true);
     try {
       const res = await authApi.customerSessionLogin({
@@ -95,7 +125,12 @@ export const CustomerLoginPage: React.FC = () => {
         phone: trimmedPhone,
       });
 
+      if (currentCode.current !== computerCode || requestVersion.current !== attempt) return;
+
       // Lưu thông tin phiên và token vào Zustand store + storage
+      await queryClient.cancelQueries();
+      if (currentCode.current !== computerCode || requestVersion.current !== attempt) return;
+      queryClient.clear();
       setCustomerAuth(res, computerCode);
       if (res.session) {
         message.success(`Chào mừng ${res.account.name || 'bạn'} vào phiên chơi!`);
@@ -104,19 +139,12 @@ export const CustomerLoginPage: React.FC = () => {
       }
       navigate('/customer/dashboard', { replace: true });
     } catch (err: unknown) {
+      if (currentCode.current !== computerCode || requestVersion.current !== attempt) return;
       triggerShake();
       const error = err as ErrorResponse;
-      if (error?.errorCode === 'SESSION_NOT_ACTIVE') {
-        message.error('Máy trạm này hiện chưa có phiên chơi hoạt động. Vui lòng liên hệ quầy thu ngân để mở máy!');
-      } else if (error?.errorCode === 'FORBIDDEN') {
-        message.error('Số điện thoại không khớp với người đang mở phiên máy này!');
-      } else if (error?.message) {
-        message.error(error.message);
-      } else {
-        message.error('Đăng nhập thất bại. Vui lòng thử lại!');
-      }
+      message.error(error?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
     } finally {
-      setLoading(false);
+      if (currentCode.current === computerCode && requestVersion.current === attempt) setLoading(false);
     }
   };
 
@@ -229,7 +257,7 @@ export const CustomerLoginPage: React.FC = () => {
               htmlType="submit"
               size="large"
               loading={loading}
-              disabled={!computerCode || checkingComputer || loading}
+              disabled={!computerCode || checkingComputer || loading || Boolean(computerError) || computerInfo?.computerCode !== computerCode}
               className="w-full h-12 mt-2 text-base font-bold bg-gold hover:bg-gold-light active:bg-gold-dark text-midnight rounded-lg border-0 shadow-lg shadow-gold/20 transition-all duration-300"
             >
               {loading ? (

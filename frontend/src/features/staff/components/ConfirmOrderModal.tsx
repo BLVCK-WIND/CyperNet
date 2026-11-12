@@ -126,7 +126,7 @@ export const ConfirmOrderModal: React.FC<ConfirmOrderModalProps> = ({
             <div className="flex-1 min-w-0 pr-6">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <Tag
-                  bordered={false}
+                  variant="filled"
                   className={`font-mono text-xs font-bold px-2 py-0.5 rounded m-0 ${
                     isCancel
                       ? 'bg-danger/20 text-danger border border-danger/30'
@@ -138,7 +138,7 @@ export const ConfirmOrderModal: React.FC<ConfirmOrderModalProps> = ({
                   #ORD-{order.id}
                 </Tag>
                 <Tag
-                  bordered={false}
+                  variant="filled"
                   className="bg-midnight/80 text-mist text-xs px-2 py-0.5 rounded border border-mist/20 m-0"
                 >
                   {isQr ? 'Chuyển khoản VietQR' : 'Tiền mặt tại bàn'}
@@ -261,7 +261,7 @@ export const ConfirmOrderModal: React.FC<ConfirmOrderModalProps> = ({
                     </span>
                     <span className="truncate">{item.itemName}</span>
                     {item.itemType === 'PLAYTIME' && (
-                      <Tag bordered={false} className="m-0 text-[10px] px-1 py-0 bg-gold/20 text-gold border-0">
+                      <Tag variant="filled" className="m-0 text-[10px] px-1 py-0 bg-gold/20 text-gold border-0">
                         Nạp giờ
                       </Tag>
                     )}

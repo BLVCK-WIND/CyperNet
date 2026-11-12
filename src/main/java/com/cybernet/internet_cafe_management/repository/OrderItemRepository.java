@@ -1,6 +1,7 @@
 package com.cybernet.internet_cafe_management.repository;
 
 import com.cybernet.internet_cafe_management.entity.Order;
+import com.cybernet.internet_cafe_management.entity.Item;
 import com.cybernet.internet_cafe_management.entity.OrderItem;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,11 @@ import java.util.List;
 @Repository
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
+    @Query("SELECT COALESCE(SUM(oi.subtotal), 0) FROM OrderItem oi WHERE oi.order.status = :status " +
+           "AND oi.order.confirmedAt >= :from AND oi.order.confirmedAt < :to AND oi.itemTypeSnapshot IN :types")
+    java.math.BigDecimal sumRevenueInWindow(@Param("status") Order.Status status,
+            @Param("types") List<Item.Type> types, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     // Kiểm tra xem món ăn đã từng có trong đơn hàng nào chưa
     boolean existsByItemId(Long itemId);
 
@@ -23,11 +29,11 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     // === PHASE 4: AGGREGATION QUERIES FOR ITEM SALES & BREAKDOWN ===
 
     // 1. Thống kê món bán chạy nhất (Top-selling items)
-    @Query("SELECT oi.item.id, oi.item.name, oi.item.type, " +
+    @Query("SELECT oi.item.id, oi.itemNameSnapshot, oi.itemTypeSnapshot, " +
            "SUM(oi.quantity), SUM(oi.subtotal) " +
            "FROM OrderItem oi " +
-           "WHERE oi.order.status = :status AND oi.order.confirmedAt BETWEEN :from AND :to " +
-           "GROUP BY oi.item.id, oi.item.name, oi.item.type " +
+           "WHERE oi.order.status = :status AND oi.order.confirmedAt >= :from AND oi.order.confirmedAt < :to " +
+           "GROUP BY oi.item.id, oi.itemNameSnapshot, oi.itemTypeSnapshot " +
            "ORDER BY SUM(oi.quantity) DESC")
     List<Object[]> findTopSellingItems(
             @Param("status") Order.Status status,
@@ -36,10 +42,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             Pageable pageable);
 
     // 2. Thống kê cơ cấu doanh thu theo loại mặt hàng (DRINK, FOOD, SERVICE, PLAYTIME)
-    @Query("SELECT oi.item.type, COALESCE(SUM(oi.subtotal), 0) " +
+    @Query("SELECT oi.itemTypeSnapshot, COALESCE(SUM(oi.subtotal), 0) " +
            "FROM OrderItem oi " +
-           "WHERE oi.order.status = :status AND oi.order.confirmedAt BETWEEN :from AND :to " +
-           "GROUP BY oi.item.type")
+           "WHERE oi.order.status = :status AND oi.order.confirmedAt >= :from AND oi.order.confirmedAt < :to " +
+           "GROUP BY oi.itemTypeSnapshot")
     List<Object[]> sumRevenueByItemType(
             @Param("status") Order.Status status,
             @Param("from") LocalDateTime from,

@@ -23,16 +23,19 @@ import com.cybernet.internet_cafe_management.repository.specification.ComputerSp
 @Service
 public class ComputerService {
     private final ComputerRepository computerRepository;
+    private final com.cybernet.internet_cafe_management.repository.ZoneRepository zoneRepository;
     private final SessionRepository sessionRepository;
     private final OrderRepository orderRepository;
     private final RealtimeNotificationService realtimeNotificationService;
 
     public ComputerService(
             ComputerRepository computerRepository,
+            com.cybernet.internet_cafe_management.repository.ZoneRepository zoneRepository,
             SessionRepository sessionRepository,
             OrderRepository orderRepository,
             RealtimeNotificationService realtimeNotificationService) {
         this.computerRepository = computerRepository;
+        this.zoneRepository = zoneRepository;
         this.sessionRepository = sessionRepository;
         this.orderRepository = orderRepository;
         this.realtimeNotificationService = realtimeNotificationService;
@@ -55,7 +58,7 @@ public class ComputerService {
         computer.setPricePerHour(request.getPricePerHour());
         computer.setIpAddress(cleanIp);
         computer.setStatus(request.getStatus() != null ? request.getStatus() : Computer.Status.AVAILABLE);
-        computer.setZone(request.getZone());
+        computer.setZone(validateZone(request.getZone(), null));
 
         Computer saved = computerRepository.save(computer);
         realtimeNotificationService.broadcastComputerStatus(saved);
@@ -71,7 +74,7 @@ public class ComputerService {
     }
 
     // Lấy danh sách máy có phân trang & lọc theo status/zone
-    public PageResponse<ComputerResponse> getAllComputers(Computer.Status status, Computer.Zone zone, Pageable pageable) {
+    public PageResponse<ComputerResponse> getAllComputers(Computer.Status status, String zone, Pageable pageable) {
         Page<Computer> page;
         if (status != null) {
             page = computerRepository.findByStatus(status, pageable);
@@ -86,13 +89,13 @@ public class ComputerService {
     // Tìm kiếm và lọc máy tính nâng cao (Specification Pattern)
     public PageResponse<ComputerResponse> searchComputers(
             Computer.Status status,
-            Computer.Zone zone,
+            String zone,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             String keyword,
             Pageable pageable) {
 
-        Specification<Computer> spec = ComputerSpecification.filter(status, zone, minPrice, maxPrice, keyword);
+        Specification<Computer> spec = ComputerSpecification.filter(status, zone == null ? null : zone.trim().toUpperCase(java.util.Locale.ROOT), minPrice, maxPrice, keyword);
         Page<Computer> page = computerRepository.findAll(spec, pageable);
         return PageResponse.fromPage(page, ComputerResponse::fromEntity);
     }
@@ -161,11 +164,21 @@ public class ComputerService {
             computer.setPricePerHour(request.getPricePerHour());
         }
         if (request.getZone() != null) {
-            computer.setZone(request.getZone());
+            computer.setZone(validateZone(request.getZone(), computer.getZone()));
         }
 
         Computer saved = computerRepository.save(computer);
         realtimeNotificationService.broadcastComputerStatus(saved);
         return ComputerResponse.fromEntity(saved);
+    }
+    private String validateZone(String value, String existing) {
+        if (value == null || value.isBlank()) throw new IllegalArgumentException("Zone code is required.");
+        String code = value.trim().toUpperCase(java.util.Locale.ROOT);
+        var zone = zoneRepository.findByCodeIgnoreCase(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Zone does not exist: " + code));
+        if (!zone.isActive() && !code.equals(existing)) {
+            throw new IllegalArgumentException("Zone is inactive: " + code);
+        }
+        return code;
     }
 }

@@ -115,7 +115,7 @@ public class ItemImageUrlIntegrationTest {
             Computer c = new Computer();
             c.setCode("PC-01");
             c.setPricePerHour(BigDecimal.valueOf(10000));
-            c.setZone(Computer.Zone.STANDARD);
+            c.setZone("STANDARD");
             c.setStatus(Computer.Status.IN_USE);
             c.setIpAddress("192.168.1.101");
             return computerRepository.save(c);

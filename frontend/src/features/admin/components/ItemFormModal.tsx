@@ -136,7 +136,7 @@ export const ItemFormModal: React.FC<ItemFormModalProps> = ({
       open={open}
       onCancel={onClose}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       width={560}
       centered
       className="twinkle-modal"

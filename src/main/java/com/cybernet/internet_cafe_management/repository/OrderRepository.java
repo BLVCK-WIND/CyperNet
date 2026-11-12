@@ -17,6 +17,42 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
+    interface QueueTotals {
+        Status getStatus();
+        long getOrderCount();
+        BigDecimal getTotalAmount();
+        long getCreatedToday();
+        long getConfirmedToday();
+        long getBacklogCount();
+        BigDecimal getBacklogAmount();
+    }
+
+    @Query("SELECT o.status AS status, COUNT(o) AS orderCount, COALESCE(SUM(o.totalAmount), 0) AS totalAmount, " +
+           "COALESCE(SUM(CASE WHEN o.createdAt >= :from AND o.createdAt < :to THEN 1 ELSE 0 END), 0) AS createdToday, " +
+           "COALESCE(SUM(CASE WHEN o.confirmedAt >= :from AND o.confirmedAt < :to THEN 1 ELSE 0 END), 0) AS confirmedToday, " +
+           "COALESCE(SUM(CASE WHEN o.createdAt < :from THEN 1 ELSE 0 END), 0) AS backlogCount, " +
+           "COALESCE(SUM(CASE WHEN o.createdAt < :from THEN o.totalAmount ELSE 0 END), 0) AS backlogAmount " +
+           "FROM Order o GROUP BY o.status")
+    List<QueueTotals> summarizeQueue(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("""
+            SELECT o FROM Order o
+            LEFT JOIN FETCH o.orderItems line
+            LEFT JOIN FETCH line.item
+            LEFT JOIN FETCH o.account
+            LEFT JOIN FETCH o.computer
+            LEFT JOIN FETCH o.session playSession
+            LEFT JOIN FETCH playSession.account
+            LEFT JOIN FETCH playSession.computer
+            LEFT JOIN FETCH o.confirmedByStaff
+            WHERE o.id IN :ids
+            ORDER BY line.id
+            """)
+    List<Order> fetchDetailsByIds(@Param("ids") List<Long> ids);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM orders WHERE id = :id FOR UPDATE", nativeQuery = true)
+    java.util.Optional<Order> findByIdWithLock(@org.springframework.data.repository.query.Param("id") Long id);
+
     // Phân trang danh sách đơn hàng theo trạng thái
     Page<Order> findByStatus(Status status, Pageable pageable);
 
@@ -49,32 +85,15 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     // Phân trang danh sách đơn hàng theo SĐT khách hàng (hỗ trợ cả đơn có phiên và đơn máy trống)
     @Query("SELECT o FROM Order o LEFT JOIN o.account a LEFT JOIN o.session s LEFT JOIN s.account sa " +
-           "WHERE a.phone = :phone OR sa.phone = :phone ORDER BY o.createdAt DESC")
+           "WHERE COALESCE(a.phone, sa.phone) = :phone ORDER BY o.createdAt DESC")
     Page<Order> findByAccountPhone(@Param("phone") String phone, Pageable pageable);
 
     // === PHASE 4: AGGREGATION QUERIES FOR REVENUE REPORTING ===
 
-    // 1. Tính tổng doanh thu đơn hàng trong khoảng thời gian
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o " +
-           "WHERE o.status = :status AND o.confirmedAt BETWEEN :from AND :to")
-    BigDecimal sumRevenueByStatusAndDateRange(
-            @Param("status") Status status,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
-
-    // 2. Đếm số lượng đơn hàng hoàn tất trong khoảng thời gian
-    @Query("SELECT COUNT(o) FROM Order o " +
-           "WHERE o.status = :status AND o.confirmedAt BETWEEN :from AND :to")
-    long countByStatusAndDateRange(
-            @Param("status") Status status,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
-
-    // 3. Gom nhóm doanh thu đơn hàng theo phương thức thanh toán (CASH vs QR)
-    @Query("SELECT o.paymentMethod, COALESCE(SUM(o.totalAmount), 0) FROM Order o " +
-           "WHERE o.status = :status AND o.confirmedAt BETWEEN :from AND :to " +
+    @Query("SELECT o.paymentMethod, SUM(o.totalAmount), COUNT(o) FROM Order o " +
+           "WHERE o.status = :status AND o.confirmedAt >= :from AND o.confirmedAt < :to " +
            "GROUP BY o.paymentMethod")
-    List<Object[]> sumRevenueByPaymentMethod(
+    List<Object[]> findRevenueByPaymentMethod(
             @Param("status") Status status,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
@@ -82,7 +101,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     // 4. Doanh thu theo từng ngày
     @Query("SELECT FUNCTION('DATE', o.confirmedAt), COALESCE(SUM(o.totalAmount), 0), COUNT(o) " +
            "FROM Order o " +
-           "WHERE o.status = :status AND o.confirmedAt BETWEEN :from AND :to " +
+           "WHERE o.status = :status AND o.confirmedAt >= :from AND o.confirmedAt < :to " +
            "GROUP BY FUNCTION('DATE', o.confirmedAt) " +
            "ORDER BY FUNCTION('DATE', o.confirmedAt) ASC")
     List<Object[]> findDailyOrderRevenue(
@@ -91,11 +110,12 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             @Param("to") LocalDateTime to);
 
     // 5. Thống kê chi tiêu của từng khách hàng qua đơn hàng
-    @Query("SELECT o.session.account.id, o.session.account.name, o.session.account.phone, " +
-           "COALESCE(SUM(o.totalAmount), 0) " +
-           "FROM Order o " +
-           "WHERE o.status = :status AND o.confirmedAt BETWEEN :from AND :to " +
-           "GROUP BY o.session.account.id, o.session.account.name, o.session.account.phone")
+    @Query("SELECT COALESCE(a.id, sa.id), COALESCE(a.name, sa.name), COALESCE(a.phone, sa.phone), " +
+           "COALESCE(SUM(o.totalAmount), 0) FROM Order o LEFT JOIN o.account a " +
+           "LEFT JOIN o.session s LEFT JOIN s.account sa " +
+           "WHERE o.status = :status AND o.confirmedAt >= :from AND o.confirmedAt < :to " +
+           "AND COALESCE(a.id, sa.id) IS NOT NULL " +
+           "GROUP BY COALESCE(a.id, sa.id), COALESCE(a.name, sa.name), COALESCE(a.phone, sa.phone)")
     List<Object[]> findSpendingByAccount(
             @Param("status") Status status,
             @Param("from") LocalDateTime from,

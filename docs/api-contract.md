@@ -1,3 +1,36 @@
+## Current-account refresh — 2026-11-09
+
+`GET /api/accounts/me`: authenticated CUSTOMER, STAFF or ADMIN; returns 200 `AccountResponse` for the authenticated principal only, including the current standard-minute balance and excluding password hashes. No account selector is accepted. Missing authentication returns 401. Idle mobile dashboards poll this endpoint every 15 seconds; it does not start a gaming session.
+
+---
+
+## Ownership and billing update — 2026-11-09
+
+Customer cancellation, transfer notification, session history and active-session lookup require ownership (403 FORBIDDEN for another account). Both order creation selectors enforce ownership. No password is added to mobile ordering. Staff/Admin access remains role-controlled.
+
+SessionResponse.pricePerHour is the purchased segment tariff, unaffected by later machine-price edits. OrderItemResponse.itemName/itemType are the purchase snapshot. Confirmation uses snapshotted package minutes. Existing monetary response shapes and HTTP state-error conventions remain unchanged. Top-customer spending includes sessionless orders. See `docs/notes/ownership-billing-review.md` for migration and concurrency details.
+
+---
+
+## Current contract additions ? 2026-11-09
+
+This section takes precedence over historical examples below. Examples were not freshly captured from a live server.
+
+Frontend QR rule approved 2026-11-10: `/customer?code=PC-02` preserves the code through login. Missing/blank codes require rescanning; no saved-table or PC-01 fallback. A customer switching from table A to B must authenticate B again. Only local mobile auth/query state is cleared; no gaming-session end API is called. Failed verification cannot save B as the authenticated table. The password-free API request/response shapes below are unchanged.
+
+- `POST /api/auth/customer-session-login`: public; `{computerCode, phone}`; existing CUSTOMER only, no password. Unknown phone: 404 NOT_FOUND. Non-customer: 403 FORBIDDEN. Successful `session` may be null, with computerCode/computerZone identifying the table. It never starts gaming.
+- `POST /api/orders`: authenticated; `{sessionId?, computerCode?, paymentMethod, items}`; provide sessionId or computerCode. Return 201 OrderResponse; sessionId may be null.
+- `GET /api/orders/my-orders`: authenticated; paginated current-account history including table orders without sessions.
+- `PATCH /api/orders/{id}/notify-transferred`: authenticated customer ownership enforced; QR PENDING_PAYMENT -> WAITING_CONFIRMATION, sets transferredAt. Staff must verify the bank transfer before confirm -> CONFIRMED.
+- `GET /api/zones` requires STAFF/ADMIN and includes inactive zones; `/active` also allows CUSTOMER. Computer create/update/filter zone fields accept catalog code strings.
+- `GET /api/reports/**` remains ADMIN-only. Staff dashboard does not call it.
+- JWT claims are sub, role, iat and exp. Account ID is supplied by the account response, not a JWT claim. expiresIn is milliseconds.
+- ErrorResponse remains `{status,errorCode,message,fieldErrors,timestamp}`. Missing resources use generic NOT_FOUND/404. Business argument/state rejections use 400; lock conflicts use 409. Invalid password login currently returns 400 INVALID_CREDENTIALS; missing/expired Bearer authentication returns 401. Frontend refreshes 401 protected requests, not login failures.
+- ErrorCode enum is authoritative. Legacy business errors still use message classification; codes must not be inferred solely from an endpoint name. Unknown business messages fall back to MALFORMED_REQUEST. Refresh-token and existing-active-session classification now take priority over generic wording.
+- Pagination returns content, pageNumber, pageSize, totalElements, totalPages, first, last, hasNext and hasPrevious; report and zone endpoints return arrays where declared.
+
+---
+
 # 📜 CyberNet — Hợp Đồng Giao Tiếp API (API Contract)
 
 > **Mục tiêu:** Cung cấp tài liệu kỹ thuật chuẩn xác, đầy đủ cho đội ngũ Frontend (Web PC & Mobile QR) tích hợp với Backend Spring Boot.  
@@ -13,7 +46,7 @@
 ### 1.1 Cơ chế Xác thực & Quản lý Token (Authentication & Token Lifecycle)
 - **Cơ chế:** JWT Bearer Token truyền trong header HTTP: `Authorization: Bearer <accessToken>`.
 - **Thời gian sống:**
-  - **Access Token:** **30 phút** (`1800000 ms`). Chứa claims: `sub` (số điện thoại), `role` (`CUSTOMER` / `STAFF` / `ADMIN`), `accountId`, `iat`, `exp`.
+  - **Access Token:** **30 phút** (`1800000 ms`). Chứa claims: `sub` (số điện thoại), `role` (`CUSTOMER` / `STAFF` / `ADMIN`), `iat`, `exp`.
   - **Refresh Token:** **7 ngày** (`604800000 ms`), lưu mã UUID ngẫu nhiên trong bảng database `refresh_tokens`.
 - **Cơ chế Xoay vòng (Refresh Token Rotation):**
   - Khi Access Token hết hạn (nhận lỗi `401 Unauthorized` kèm `errorCode: "TOKEN_EXPIRED"`), Frontend gọi `POST /api/auth/refresh` mang theo `refreshToken`.
@@ -55,6 +88,11 @@ Mọi phản hồi lỗi từ server đều tuân thủ cấu trúc JSON thống
 }
 ```
 
+**Frontend xử lý lỗi thao tác đơn hàng — cập nhật 10/11/2026:**
+- Axios interceptor thường reject trực tiếp `ErrorResponse`; hàm đọc lỗi ưu tiên `message` của đối tượng này. Trường hợp còn nguyên Axios error (ví dụ lỗi refresh token), đọc `response.data.message`; nếu thiếu thông báo hợp lệ thì dùng thông báo dự phòng theo thao tác.
+- Mất mạng/timeout (`NETWORK_ERROR`, status 0 hoặc mã mạng/timeout Axios) hiển thị tiếng Việt, hướng dẫn kiểm tra kết nối và tải lại đơn trước khi thử lại. Không kết luận đơn đã thành công hay thất bại chỉ từ lỗi kết nối.
+- Trang hàng đợi áp dụng cho duyệt/hủy: thất bại giữ modal, tắt loading, không báo thành công, không tự gửi lại thao tác. Thành công mới đóng modal và làm mới dữ liệu. Cơ chế interceptor/refresh và các endpoint backend giữ nguyên.
+
 #### Bảng danh mục `errorCode` toàn hệ thống:
 
 | HTTP Status | `errorCode` | Ý nghĩa & Tình huống xuất hiện |
@@ -66,22 +104,22 @@ Mọi phản hồi lỗi từ server đều tuân thủ cấu trúc JSON thống
 | **401** | `REFRESH_TOKEN_INVALID` | Refresh token đã bị thu hồi, hết hạn hoặc không tồn tại trong DB. |
 | **403** | `FORBIDDEN` | Sai Role truy cập tài nguyên, hoặc vi phạm bảo vệ IDOR phiên khách hàng. |
 | **404** | `NOT_FOUND` | Tài nguyên không tồn tại theo ID hoặc điều kiện truy vấn chung. |
-| **404** | `COMPUTER_NOT_FOUND` | Máy trạm không tồn tại theo ID hoặc mã máy (`code`). |
-| **404** | `SESSION_NOT_FOUND` | Phiên chơi không tồn tại. |
-| **404** | `ORDER_NOT_FOUND` | Đơn hàng không tồn tại. |
-| **404** | `TIME_PURCHASE_NOT_FOUND` | Giao dịch nạp giờ không tồn tại. |
-| **404** | `ACCOUNT_NOT_FOUND` | Tài khoản khách hàng/nhân viên không tồn tại. |
-| **404** | `ITEM_NOT_FOUND` | Món ăn / dịch vụ không tồn tại trong thực đơn. |
+| **404** | `NOT_FOUND` | Máy trạm không tồn tại theo ID hoặc mã máy (`code`). |
+| **404** | `NOT_FOUND` | Phiên chơi không tồn tại. |
+| **404** | `NOT_FOUND` | Đơn hàng không tồn tại. |
+| **404** | `NOT_FOUND` | Giao dịch nạp giờ không tồn tại. |
+| **404** | `NOT_FOUND` | Tài khoản khách hàng/nhân viên không tồn tại. |
+| **404** | `NOT_FOUND` | Món ăn / dịch vụ không tồn tại trong thực đơn. |
 | **409** | `CONFLICT` | Xung đột trạng thái tài nguyên tổng quát. |
-| **409** | `COMPUTER_NOT_AVAILABLE` | Máy trạm đang bận (`IN_USE`) hoặc đang bảo trì (`MAINTENANCE`). |
-| **409** | `COMPUTER_ALREADY_EXISTS` | Mã máy trạm đã tồn tại trong hệ thống. |
-| **409** | `SESSION_NOT_ACTIVE` | Phiên chơi đã kết thúc (`ENDED`), không thể thao tác thêm. |
-| **409** | `SESSION_INSUFFICIENT_TIME` | Tài khoản không đủ số phút chơi để mở máy. |
-| **409** | `SESSION_ACCOUNT_IN_USE` | Tài khoản này đang có một phiên chơi khác đang hoạt động. |
-| **409** | `ORDER_INVALID_STATUS` | Đơn hàng không ở trạng thái hợp lệ để duyệt/hủy (đã CONFIRMED hoặc CANCELLED). |
+| **400** | `COMPUTER_NOT_AVAILABLE` | Máy trạm đang bận (`IN_USE`) hoặc đang bảo trì (`MAINTENANCE`). |
+| **400** | `MALFORMED_REQUEST` | Mã máy trạm đã tồn tại trong hệ thống. |
+| **400** | `SESSION_NOT_ACTIVE` | Phiên chơi đã kết thúc (`ENDED`), không thể thao tác thêm. |
+| **400** | `INSUFFICIENT_TIME` | Tài khoản không đủ số phút chơi để mở máy. |
+| **400** | `ACTIVE_SESSION_EXISTS` | Tài khoản này đang có một phiên chơi khác đang hoạt động. |
+| **400** | `ORDER_NOT_PENDING` | Đơn hàng không ở trạng thái hợp lệ để duyệt/hủy (đã CONFIRMED hoặc CANCELLED). |
 | **400** | `ORDER_OUT_OF_STOCK` | Món ăn/nước uống đã hết hàng (`available = false`). |
-| **409** | `TIME_PURCHASE_INVALID_STATUS` | Giao dịch nạp giờ đã được xử lý trước đó. |
-| **409** | `ACCOUNT_PHONE_EXISTS` | Số điện thoại đã được đăng ký cho tài khoản khác. |
+| **400** | `MALFORMED_REQUEST` | Giao dịch nạp giờ đã được xử lý trước đó. |
+| **400** | `MALFORMED_REQUEST` | Số điện thoại đã được đăng ký cho tài khoản khác. |
 | **429** | `RATE_LIMITED` | Vượt quá tần suất gửi request cho phép. Header trả kèm `Retry-After: 60`. |
 | **500** | `INTERNAL_ERROR` | Lỗi máy chủ nội bộ. Chi tiết kỹ thuật ghi log server, client nhận message an toàn. |
 
@@ -115,6 +153,7 @@ Mọi phản hồi lỗi từ server đều tuân thủ cấu trúc JSON thống
   - *Múi giờ vận hành:* `Asia/Ho_Chi_Minh` (GMT+7).
   - *Khuyến nghị Frontend:* Cấu hình dayjs toàn cục: `dayjs.tz.setDefault("Asia/Ho_Chi_Minh")`.
   - *Tham số query lọc ngày:* Định dạng ISO Date: `fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD`.
+    Các báo cáo bao gồm cả hai ngày theo giờ Việt Nam. Truy vấn lấy từ đầu ngày `fromDate` đến trước đầu ngày sau `toDate`.
   - *CORS Exposed Headers:* Backend đã cấu hình `Access-Control-Expose-Headers` bao gồm: `Authorization`, `X-Trace-Id`, `Date`, và `Retry-After`. Frontend có thể đọc header `Date` của response hoặc trường `serverTime` trong payload.
 
 - **Đồng Bộ Giờ Server & Cách Tính Đếm Ngược Chuẩn (Countdown Formula):**
@@ -293,9 +332,9 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `400 VALIDATION_ERROR`: Thiếu `computerCode` hoặc `phone`.
-  - `404 COMPUTER_NOT_FOUND`: Mã máy trạm không tồn tại.
-  - `404 ACCOUNT_NOT_FOUND`: Số điện thoại chưa có tài khoản trong hệ thống.
-  - `409 SESSION_NOT_ACTIVE`: Máy trạm hiện chưa có phiên chơi nào đang chạy.
+  - `404 NOT_FOUND`: Mã máy trạm không tồn tại.
+  - `404 NOT_FOUND`: Số điện thoại chưa có tài khoản trong hệ thống.
+  - `400 SESSION_NOT_ACTIVE`: Máy trạm hiện chưa có phiên chơi nào đang chạy.
   - `403 FORBIDDEN`: Khách nhập SĐT khác với SĐT của người đang ngồi phiên máy này.
 
 ---
@@ -370,7 +409,7 @@ sequenceDiagram
   }
   ```
 - **Mã lỗi có thể gặp:**
-  - `404 COMPUTER_NOT_FOUND`: Mã máy trạm không tồn tại.
+  - `404 NOT_FOUND`: Mã máy trạm không tồn tại.
 
 ---
 
@@ -411,9 +450,9 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `401 UNAUTHORIZED`: Sai mật khẩu tài khoản.
-  - `409 COMPUTER_NOT_AVAILABLE`: Máy đang có người chơi hoặc đang bảo trì.
-  - `409 SESSION_INSUFFICIENT_TIME`: Số dư tài khoản không đủ để mở máy.
-  - `409 SESSION_ACCOUNT_IN_USE`: Tài khoản này đang chơi tại một máy khác.
+  - `400 COMPUTER_NOT_AVAILABLE`: Máy đang có người chơi hoặc đang bảo trì.
+  - `400 INSUFFICIENT_TIME`: Số dư tài khoản không đủ để mở máy.
+  - `400 ACTIVE_SESSION_EXISTS`: Tài khoản này đang chơi tại một máy khác.
 
 ---
 
@@ -461,10 +500,10 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `400 VALIDATION_ERROR`: Thiếu `computerId` hoặc `accountId`.
-  - `404 COMPUTER_NOT_FOUND`: Máy không tồn tại.
-  - `404 ACCOUNT_NOT_FOUND`: Khách không tồn tại.
-  - `409 COMPUTER_NOT_AVAILABLE`: Máy PC-02 đang bận.
-  - `409 SESSION_INSUFFICIENT_TIME`: Khách hết số phút trong tài khoản.
+  - `404 NOT_FOUND`: Máy không tồn tại.
+  - `404 NOT_FOUND`: Khách không tồn tại.
+  - `400 COMPUTER_NOT_AVAILABLE`: Máy PC-02 đang bận.
+  - `400 INSUFFICIENT_TIME`: Khách hết số phút trong tài khoản.
 
 ---
 
@@ -534,8 +573,8 @@ sequenceDiagram
       $$\text{refundStandardMinutes} = \left\lfloor \frac{\text{remainingMachineMinutes} \times \text{computer.pricePerHour}}{10,000} \right\rfloor$$
     - Bảo toàn 100% tài sản cho khách hàng, không gây sai lệch doanh thu của quán.
 - **Mã lỗi có thể gặp:**
-  - `404 SESSION_NOT_FOUND`: Phiên không tồn tại.
-  - `409 SESSION_NOT_ACTIVE`: Phiên đã kết thúc từ trước.
+  - `404 NOT_FOUND`: Phiên không tồn tại.
+  - `400 SESSION_NOT_ACTIVE`: Phiên đã kết thúc từ trước.
 
 ---
 
@@ -576,8 +615,8 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `400 VALIDATION_ERROR`: Thiếu `toComputerId` hoặc `toComputerCode`.
-  - `409 COMPUTER_NOT_AVAILABLE`: Máy mới đang có khách hoặc bảo trì.
-  - `409 SESSION_NOT_ACTIVE`: Phiên nguồn đã kết thúc.
+  - `400 COMPUTER_NOT_AVAILABLE`: Máy mới đang có khách hoặc bảo trì.
+  - `400 SESSION_NOT_ACTIVE`: Phiên nguồn đã kết thúc.
 
 ---
 
@@ -717,7 +756,7 @@ sequenceDiagram
 }
 ```
 - **Mã lỗi có thể gặp:**
-  - `404 COMPUTER_NOT_FOUND`: Máy không tồn tại.
+  - `404 NOT_FOUND`: Máy không tồn tại.
 
 ---
 
@@ -775,8 +814,8 @@ sequenceDiagram
   - `400 VALIDATION_ERROR`: Thiếu món hoặc số lượng $\le 0$.
   - `400 ORDER_OUT_OF_STOCK`: Món ăn đã hết hàng (`available = false`), message: `"Món [Tên món] hiện đã hết hàng!"`.
   - `403 FORBIDDEN`: Vi phạm IDOR (khách cố tạo đơn cho `sessionId` của người khác).
-  - `404 SESSION_NOT_FOUND`: Phiên không tồn tại.
-  - `409 SESSION_NOT_ACTIVE`: Phiên chơi đã kết thúc, không thể đặt món.
+  - `404 NOT_FOUND`: Phiên không tồn tại.
+  - `400 SESSION_NOT_ACTIVE`: Phiên chơi đã kết thúc, không thể đặt món.
 
 ---
 
@@ -788,6 +827,7 @@ sequenceDiagram
   - URL: `/api/orders/{id}/confirm` (ví dụ `/api/orders/352/confirm`)
   - Headers: `Authorization: Bearer <staffToken>`
   - *(Lưu ý bảo mật: Danh tính nhân viên tự động trích xuất từ JWT, KHÔNG truyền `staffId` qua query/body).*
+- Đơn có gói giờ cộng phút chuẩn cho tài khoản và gia hạn phiên khách đang chơi tại thời điểm duyệt theo đơn giá của phiên đó. Nếu khách đang nghỉ, phút mua được giữ trong tài khoản. Trường `sessionId` vẫn ghi nhận phiên lúc đặt đơn.
 - **Response Ví dụ Thực Tế (200 OK):**
 ```json
 {
@@ -817,8 +857,8 @@ sequenceDiagram
 }
 ```
 - **Mã lỗi có thể gặp:**
-  - `404 ORDER_NOT_FOUND`: Đơn hàng không tồn tại.
-  - `409 ORDER_INVALID_STATUS`: Đơn hàng đã được xác nhận hoặc đã hủy trước đó.
+  - `404 NOT_FOUND`: Đơn hàng không tồn tại.
+  - `400 ORDER_NOT_PENDING`: Đơn hàng đã được xác nhận hoặc đã hủy trước đó.
 
 ---
 
@@ -857,8 +897,8 @@ sequenceDiagram
 }
 ```
 - **Mã lỗi có thể gặp:**
-  - `404 ORDER_NOT_FOUND`: Đơn hàng không tồn tại.
-  - `409 ORDER_INVALID_STATUS`: Đơn đã `CONFIRMED`, không thể hủy.
+  - `404 NOT_FOUND`: Đơn hàng không tồn tại.
+  - `400 ORDER_NOT_PENDING`: Đơn đã `CONFIRMED`, không thể hủy.
 
 ---
 
@@ -962,9 +1002,52 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `403 FORBIDDEN`: Khách xem lịch sử phiên của tài khoản khác.
-  - `404 SESSION_NOT_FOUND`: Phiên không tồn tại.
+  - `404 NOT_FOUND`: Phiên không tồn tại.
 
 ---
+
+#### 3.6b. Thống Kê Vận Hành Đơn Hàng — cập nhật 10/11/2026
+- **Request:** `GET /api/orders/summary`, STAFF hoặc ADMIN; thiếu xác thực trả `401`, CUSTOMER trả `403`. Quyền gọi `/api/reports/**` vẫn chỉ dành cho ADMIN.
+- Không nhận bộ lọc danh sách, ngày tùy chọn hoặc phân trang. Backend tổng hợp bằng SQL trên toàn bộ đơn, không giới hạn 100 bản ghi và không đếm lặp đơn có nhiều dòng hàng.
+- `date` là ngày hiện tại tại `Asia/Ho_Chi_Minh`; cửa sổ ngày từ 00:00 (bao gồm) đến 00:00 ngày kế tiếp (không bao gồm).
+- `countsByStatus`: số đơn toàn bộ lịch sử theo từng trạng thái, chứa đủ bốn trạng thái kể cả khi bằng 0. Số đếm các tab lấy từ đây; Chờ xử lý cộng `PENDING_PAYMENT` và `WAITING_CONFIRMATION`.
+- `pendingCount`, `pendingAmount`: toàn bộ đơn chưa xử lý và tổng giá trị tạm tính của chúng, bao gồm phần tồn từ ngày trước.
+- `backlogCount`, `backlogAmount`: phần đơn chưa xử lý có `createdAt` trước đầu ngày hôm nay.
+- `todayCreatedCount`: số đơn tạo trong ngày theo `createdAt`, bất kể trạng thái hiện tại.
+- `todayConfirmedCount`: số đơn hiện CONFIRMED có `confirmedAt` trong ngày, kể cả đơn tạo từ hôm trước.
+- `todayFoodAndDrinkRevenue`: tổng `subtotal` các dòng FOOD/DRINK theo snapshot, thuộc đơn CONFIRMED trong ngày theo `confirmedAt`. Không cộng PLAYTIME/SERVICE hoặc nạp giờ POS; không cộng đơn đang chờ/hủy.
+- Ví dụ CSDL demo 245 đơn:
+```json
+{
+  "date": "2026-11-10",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "countsByStatus": { "PENDING_PAYMENT": 40, "WAITING_CONFIRMATION": 40, "CONFIRMED": 145, "CANCELLED": 20 },
+  "pendingCount": 80,
+  "pendingAmount": 1818000,
+  "backlogCount": 10,
+  "backlogAmount": 229000,
+  "todayCreatedCount": 234,
+  "todayConfirmedCount": 145,
+  "todayFoodAndDrinkRevenue": 2400000
+}
+```
+- Frontend polling summary mỗi 5 giây, độc lập truy vấn danh sách; làm mới sau duyệt/hủy. Không đọc được summary thì hiển thị `—`, thông báo lỗi/nút thử lại và vẫn giữ danh sách đơn.
+- Ngày trên giao diện dùng múi giờ Việt Nam; đổi query key khi qua ngày hoặc quay lại cửa sổ. Không dùng summary của ngày trước làm số liệu hôm nay.
+- Admin KPI đọc doanh thu, máy và phiên bằng ba query riêng. Lỗi nguồn nào chỉ nhóm tương ứng hiện `—`/Thử lại; timestamp là lần tải thành công của nguồn đó, không thay bằng giờ lỗi. Số máy lấy đủ các trang; số phiên dùng `totalElements` của API, không đếm trang đầu. Số 0 chỉ hiển thị khi API thực sự trả dữ liệu 0.
+
+#### 3.6a. Tìm Kiếm / Lọc / Phân Trang Hàng Đợi — cập nhật 10/11/2026
+- **Request:** `GET /api/orders/search`, JWT STAFF hoặc ADMIN; thiếu JWT trả `401`, CUSTOMER trả `403`.
+- **Response:** `PageResponse<OrderResponse>` như danh sách bên dưới. Không đổi schema hoặc nghiệp vụ xác nhận/hủy/thanh toán.
+- Bộ lọc tùy chọn kết hợp AND: `status`, `paymentMethod`, `fromDate`, `toDate`, `minAmount`, `maxAmount`, `computerCode`, `customerPhone`, `keyword`; áp dụng trước khi đếm và phân trang.
+- `computerCode` và `customerPhone` tìm bằng giá trị chính xác (trim). Máy/khách ưu tiên liên kết trực tiếp trên đơn, nếu thiếu lấy từ phiên; bao gồm đơn `session=null` và đơn cũ chỉ liên kết qua phiên.
+- `keyword`: trim; `#12` hoặc `ORD-12`/`ord-12` tìm chính xác ID 12. `#` trên URL phải encode thành `%23`; ID không hợp lệ, âm, 0 hoặc tràn số trả trang rỗng.
+- Chuỗi thường tìm chuỗi con của mã máy, SĐT hoặc tên khách; chuỗi số thường không tìm ID. Tên không phân biệt hoa thường/dấu tiếng Việt (kể cả `đ`/`d`). `%`, `_`, `!` được hiểu là ký tự thường.
+- `status=PENDING_PAYMENT` vẫn gom cả `PENDING_PAYMENT` và `WAITING_CONFIRMATION`; `status=WAITING_CONFIRMATION` chỉ trả trạng thái đó. Không tự thêm bộ lọc ngày, vì đơn tồn hôm trước vẫn phải được xử lý.
+- `page` bắt đầu từ 0; dùng `size`, `sort` như quy ước chung. Nếu chưa sắp xếp theo ID, backend thêm ID cùng chiều với `createdAt` để ổn định thứ tự khi trùng thời gian. Mặc định `createdAt,desc` rồi `id,desc`.
+- UI dùng FIFO `createdAt,asc` cho Chờ xử lý, các tab khác `createdAt,desc`; mặc định 20 đơn, tùy chọn 50. Hai cột Bếp/Thu ngân chia cùng một trang, số đếm mỗi cột ghi rõ "trên trang này". Tổng kết quả lấy `totalElements`, độc lập với thẻ thống kê hiện có.
+- Tìm kiếm debounce 300 ms; đổi tab/phương thức/từ khóa hoặc cỡ trang thì về trang đầu. Hủy request cũ khi đổi truy vấn, không dùng dữ liệu truy vấn cũ làm kết quả mới. Sau duyệt/hủy làm mới danh sách, nếu trang cuối hết dữ liệu thì về trang hợp lệ cuối cùng. Chuyển trang/bộ lọc không được xem là đơn mới để thông báo.
+- Ví dụ: `/api/orders/search?status=PENDING_PAYMENT&paymentMethod=QR&keyword=nguyen&page=0&size=20&sort=createdAt,asc`.
+- Giao diện hiển thị `CONFIRMED` là “Đã thanh toán” và `WAITING_CONFIRMATION` là chờ quầy xác nhận. Thẻ thống kê dùng `GET /api/orders/summary`. Hàng đợi chờ và tab Tất cả polling mỗi 5 giây, các tab còn lại polling mỗi 15 giây.
 
 #### 3.6. Danh Sách Đơn Chờ Xử Lý Cho Quầy / Bếp (Order Queue)
 - **Sử dụng tại:** `MS-2.7` (Order Queue Polling).
@@ -1066,7 +1149,7 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `400 VALIDATION_ERROR`: `minutes` hoặc `amount` $\le 0$.
-  - `404 ACCOUNT_NOT_FOUND`: Khách không tồn tại.
+  - `404 NOT_FOUND`: Khách không tồn tại.
 
 ---
 
@@ -1081,7 +1164,7 @@ sequenceDiagram
     - Nếu khách hàng đang có phiên chơi đang hoạt động (`SessionStatus.ACTIVE`), Backend sẽ **tự động gia hạn mốc hết hạn `expiresAt`** của phiên chơi theo công thức quy đổi động:
       $$\text{extraMachineMinutes} = \left\lfloor \frac{\text{purchase.minutes} \times 10,000}{\text{computer.pricePerHour}} \right\rfloor$$
       $$\text{session.expiresAt} = \text{session.expiresAt}.plusMinutes(\text{extraMachineMinutes})$$
-    - Hệ thống phát sự kiện WebSocket STOMP notification `SESSION_EXTENDED` để màn hình máy trạm và Floor Map của nhân viên cập nhật tức thì mà không cần thao tác tay.
+    - Giao diện lấy trạng thái phiên mới qua HTTP polling trong cấu hình MVP hiện tại. WebSocket mặc định tắt.
     - Tài khoản `account.remainingMinutes` được bảo toàn (số phút nạp vào được tiêu dùng ngay vào phiên đang chạy; khi kết thúc phiên sẽ được hoàn trả đối xứng).
 - **Response Ví dụ Thực Tế (200 OK):**
 ```json
@@ -1101,8 +1184,8 @@ sequenceDiagram
 }
 ```
 - **Mã lỗi có thể gặp:**
-  - `404 TIME_PURCHASE_NOT_FOUND`: Phiếu nạp không tồn tại.
-  - `409 TIME_PURCHASE_INVALID_STATUS`: Phiếu nạp đã được xác nhận trước đó.
+  - `404 NOT_FOUND`: Phiếu nạp không tồn tại.
+  - `400 MALFORMED_REQUEST`: Phiếu nạp đã được xác nhận trước đó.
 
 ---
 
@@ -1246,9 +1329,20 @@ sequenceDiagram
 #### 7.1. Danh Sách Tài Khoản Phân Trang
 - **Sử dụng tại:** `MS-2.5` (Select Khách Hàng), `MS-3.6` (Manage Accounts).
 - **Quyền hạn:** `STAFF`, `ADMIN`
+- **Quy tắc đọc tài khoản — chốt 10/11/2026:**
+  - `ADMIN`: xem mọi tài khoản; tùy chọn lọc theo `role` giữ nguyên.
+  - `STAFF`: không truyền `role` hoặc truyền `role=CUSTOMER` đều chỉ nhận CUSTOMER. Backend lọc trước phân trang, nên `totalElements` cũng chỉ đếm CUSTOMER.
+  - `STAFF` truyền `role=STAFF` hoặc `role=ADMIN`: `403 FORBIDDEN`, không trả danh sách.
+  - `GET /api/accounts/{id}`: ADMIN xem mọi tài khoản; STAFF chỉ xem CUSTOMER hoặc chính mình. Xem ADMIN/STAFF khác trả `403 FORBIDDEN`; ID không tồn tại trả `404 NOT_FOUND`.
+  - `GET /api/accounts/me`: CUSTOMER/STAFF/ADMIN chỉ xem hồ sơ của chính mình; tham số ID do client gửi không đổi danh tính được đọc.
+  - Các endpoint quản lý danh sách/chi tiết theo ID vẫn chặn CUSTOMER bằng `403`; thiếu xác thực trả `401`. Response không chứa `passwordHash`.
+  - Trang hội viên của STAFF chỉ yêu cầu CUSTOMER và không hiển thị bộ lọc ADMIN/STAFF. Quyền sửa/xóa không thay đổi trong bước này.
 - **Request:**
   - Method: `GET`
-  - URL: `/api/accounts?role=CUSTOMER&page=0&size=50`
+  - URL: `/api/accounts?role=CUSTOMER&keyword=Nguyen&page=0&size=20&sort=id,desc`
+  - `keyword` tùy chọn, trim khoảng trắng; tìm chuỗi con trong SĐT/tên, không phân biệt hoa thường/dấu tiếng Việt (kể cả `đ`/`d`). `%`, `_`, `!` là ký tự thường, không phải wildcard.
+  - `keyword=#123` tìm đúng ID 123; trên URL phải encode thành `%23123`. Chuỗi số không có `#` chỉ tìm trong SĐT/tên. ID không hợp lệ hoặc ngoài phạm vi trả trang rỗng.
+  - Backend áp dụng quyền và bộ lọc trước khi phân trang/đếm. Đổi từ khóa/vai trò trên UI đưa về trang đầu; không tải trước 100 tài khoản rồi lọc ở client.
 - **Response Ví dụ Thực Tế (200 OK):**
 ```json
 {
@@ -1307,6 +1401,22 @@ sequenceDiagram
 
 ---
 
+#### 7.1a. Tổng Quan Tài Khoản
+- **Request:** `GET /api/accounts/summary`, JWT `STAFF` hoặc `ADMIN`.
+- Không áp dụng `keyword`, `role` hay phân trang của danh sách; thống kê trên toàn bộ phạm vi được phép đọc.
+- `ADMIN`: `totalAccounts` đếm mọi vai trò; `countsByRole` chứa `ADMIN`, `STAFF`, `CUSTOMER` (kể cả số 0).
+- `STAFF`: chỉ đếm CUSTOMER; `countsByRole` chỉ chứa `CUSTOMER`, không lộ số lượng ADMIN/STAFF.
+- `totalRemainingMinutes`: tổng `remainingMinutes` của CUSTOMER, đơn vị phút chuẩn Standard; không cộng số dư quản trị/nhân viên.
+- Thiếu JWT trả `401`; CUSTOMER trả `403`. Ví dụ STAFF:
+```json
+{
+  "totalAccounts": 125,
+  "countsByRole": { "CUSTOMER": 125 },
+  "totalRemainingMinutes": 15000
+}
+```
+- Frontend dùng endpoint này cho thẻ thống kê; sau thêm/sửa/nạp giờ làm mới danh sách, tổng quan và chi tiết hội viên đang chọn. Dropdown hội viên tìm trên server sau 300 ms, mỗi trang 20, có nút tải thêm; giữ hội viên đã chọn bằng API chi tiết theo ID.
+
 #### 7.2. Tạo Tài Khoản Mới
 - **Sử dụng tại:** `MS-3.6` (Thêm Tài Khoản).
 - **Quyền hạn:** `STAFF`, `ADMIN` (Chỉ ADMIN tạo được STAFF/ADMIN).
@@ -1335,7 +1445,7 @@ sequenceDiagram
 ```
 - **Mã lỗi có thể gặp:**
   - `400 VALIDATION_ERROR`: SĐT sai định dạng hoặc password < 6 ký tự.
-  - `409 ACCOUNT_PHONE_EXISTS`: Số điện thoại đã được đăng ký.
+  - `400 MALFORMED_REQUEST`: Số điện thoại đã được đăng ký.
 
 ---
 
@@ -1366,7 +1476,7 @@ sequenceDiagram
 }
 ```
 - **Mã lỗi có thể gặp:**
-  - `404 ACCOUNT_NOT_FOUND`: Tài khoản không tồn tại.
+  - `404 NOT_FOUND`: Tài khoản không tồn tại.
   - `403 FORBIDDEN`: Không phải ADMIN.
 
 ---
@@ -1536,7 +1646,9 @@ sequenceDiagram
   }
 ]
 ```
-  *(Lưu ý: Tỷ lệ sử dụng % và tổng số giờ được tính toán trên Frontend: `totalHours = (totalUsageMinutes / 60).toFixed(1)`, `utilizationRate = totalUsageMinutes / (days * 24 * 60) * 100`).*
+  `totalSessions` đếm lượt mở phiên trong khoảng ngày đã chọn. `totalMinutesUsed` cộng phần thời lượng giao với khoảng đó, kể cả phiên mở trước ngày đầu. API trả cả máy có 0 lượt và 0 phút để tỷ lệ sử dụng tính trên toàn bộ danh mục máy.
+
+  *(Tỷ lệ sử dụng và tổng số giờ được tính trên Frontend: `totalHours = (totalUsageMinutes / 60).toFixed(1)`, `utilizationRate = totalUsageMinutes / (days * 24 * 60) * 100`).*
 
 ---
 

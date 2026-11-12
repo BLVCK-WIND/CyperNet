@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -18,10 +19,13 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -62,6 +66,9 @@ public class Phase4ReportIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     private Account adminAccount;
     private Account staffAccount;
@@ -128,7 +135,7 @@ public class Phase4ReportIntegrationTest {
             pc.setCode("PC-REP-01");
             pc.setPricePerHour(BigDecimal.valueOf(10000));
             pc.setIpAddress("192.168.254.99");
-            pc.setZone(Computer.Zone.VIP);
+            pc.setZone("VIP");
             pc.setStatus(Computer.Status.AVAILABLE);
             return computerRepository.save(pc);
         });
@@ -211,7 +218,7 @@ public class Phase4ReportIntegrationTest {
         order1.setPaymentMethod(Order.PaymentMethod.CASH);
         order1.setStatus(Order.Status.CONFIRMED);
         order1.setConfirmedByStaff(staffAccount);
-        order1.setConfirmedAt(LocalDateTime.now().minusMinutes(30));
+        order1.setConfirmedAt(LocalDate.now().atTime(12, 0));
         order1.setTotalAmount(BigDecimal.valueOf(45000));
 
         List<OrderItem> items1 = new ArrayList<>();
@@ -258,7 +265,7 @@ public class Phase4ReportIntegrationTest {
         tpConfirmed.setPaymentMethod(TimePurchase.PaymentMethod.QR);
         tpConfirmed.setStatus(TimePurchase.Status.CONFIRMED);
         tpConfirmed.setConfirmedByStaff(staffAccount);
-        tpConfirmed.setConfirmedAt(LocalDateTime.now().minusMinutes(20));
+        tpConfirmed.setConfirmedAt(LocalDate.now().atTime(12, 10));
         timePurchaseRepository.save(tpConfirmed);
 
         // Giao dịch Nạp giờ quầy: PENDING_PAYMENT (10,000 - chưa duyệt, phải bị loại)
@@ -349,7 +356,84 @@ public class Phase4ReportIntegrationTest {
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$[0].computerCode").value(availablePc.getCode()))
                 .andExpect(jsonPath("$[0].totalSessions").value(greaterThanOrEqualTo(1)))
-                .andExpect(jsonPath("$[0].zone").value(availablePc.getZone().name()));
+                .andExpect(jsonPath("$[0].zone").value(availablePc.getZone()));
+    }
+
+    @Test
+    void reportsSplitUsageAtMidnightAndCountNewOpenings() throws Exception {
+        LocalDate firstDay = LocalDate.of(2026, 1, 2);
+        LocalDate secondDay = firstDay.plusDays(1);
+        Session session = new Session();
+        session.setAccount(customerAccount);
+        session.setComputer(availablePc);
+        session.setStartedAt(firstDay.atTime(23, 30));
+        session.setEndedAt(secondDay.atTime(0, 30));
+        session.setExpiresAt(secondDay.atTime(1, 0));
+        session.setStatus(Session.Status.ENDED);
+        sessionRepository.save(session);
+
+        String computer = "$[?(@.computerId == " + availablePc.getId() + ")]";
+        for (LocalDate day : List.of(firstDay, secondDay)) {
+            mockMvc.perform(get("/api/reports/computers/usage")
+                            .header("Authorization", "Bearer " + adminToken)
+                            .param("fromDate", day.toString())
+                            .param("toDate", day.toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(Math.toIntExact(computerRepository.count()))))
+                    .andExpect(jsonPath(computer + ".totalSessions", contains(day.equals(firstDay) ? 1 : 0)))
+                    .andExpect(jsonPath(computer + ".totalMinutesUsed", contains(30)));
+        }
+
+        saveConfirmedPurchase(secondDay.atTime(12, 0), 10000);
+        mockMvc.perform(get("/api/reports/customers/top-spenders")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("fromDate", secondDay.toString())
+                        .param("toDate", secondDay.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].totalMinutesPlayed").value(30));
+    }
+
+    @Test
+    void reportsUseVietnamWallTimeAndExcludeTheNextMidnight() throws Exception {
+        ZoneId cafeZone = ZoneId.of("Asia/Ho_Chi_Minh");
+        assertEquals(cafeZone, ZoneId.systemDefault());
+        assertEquals("+07:00", jdbc.queryForObject("SELECT @@session.time_zone", String.class));
+
+        LocalDate day = LocalDate.of(2026, 1, 2);
+        Order order = new Order();
+        order.setAccount(customerAccount);
+        order.setComputer(availablePc);
+        order.setPaymentMethod(Order.PaymentMethod.CASH);
+        order.setStatus(Order.Status.CONFIRMED);
+        order.setConfirmedAt(day.atTime(23, 59, 59));
+        order.setTotalAmount(BigDecimal.valueOf(20000));
+        LocalDateTime beforeInsert = LocalDateTime.now(cafeZone).withNano(0);
+        Order saved = orderRepository.save(order);
+        assertTrue(!saved.getCreatedAt().isBefore(beforeInsert)
+                && !saved.getCreatedAt().isAfter(LocalDateTime.now(cafeZone)));
+
+        saveConfirmedPurchase(day.atStartOfDay(), 10000);
+        saveConfirmedPurchase(day.plusDays(1).atStartOfDay(), 15000);
+
+        mockMvc.perform(get("/api/reports/revenue/summary")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("fromDate", day.toString())
+                        .param("toDate", day.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalRevenue").value(30000))
+                .andExpect(jsonPath("$.totalOrders").value(1))
+                .andExpect(jsonPath("$.totalTimePurchases").value(1));
+    }
+
+    private void saveConfirmedPurchase(LocalDateTime confirmedAt, int amount) {
+        TimePurchase purchase = new TimePurchase();
+        purchase.setAccount(customerAccount);
+        purchase.setMinutes(60);
+        purchase.setAmount(BigDecimal.valueOf(amount));
+        purchase.setPaymentMethod(TimePurchase.PaymentMethod.CASH);
+        purchase.setStatus(TimePurchase.Status.CONFIRMED);
+        purchase.setConfirmedAt(confirmedAt);
+        timePurchaseRepository.save(purchase);
     }
 
     @Test

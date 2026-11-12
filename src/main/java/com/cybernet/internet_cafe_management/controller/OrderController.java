@@ -10,6 +10,8 @@ import com.cybernet.internet_cafe_management.entity.Order.Status;
 import com.cybernet.internet_cafe_management.exception.ResourceNotFoundException;
 import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.service.OrderService;
+import com.cybernet.internet_cafe_management.service.OrderSummaryService;
+import com.cybernet.internet_cafe_management.dto.response.OrderSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -34,10 +36,19 @@ public class OrderController {
 
     private final OrderService orderService;
     private final AccountRepository accountRepository;
+    private final OrderSummaryService summaryService;
 
-    public OrderController(OrderService orderService, AccountRepository accountRepository) {
+    public OrderController(OrderService orderService, AccountRepository accountRepository, OrderSummaryService summaryService) {
         this.orderService = orderService;
         this.accountRepository = accountRepository;
+        this.summaryService = summaryService;
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Thống kê vận hành đơn hàng", description = "Ngày Việt Nam; tổng trạng thái/toàn bộ đơn tồn và số đơn/doanh thu F&B hôm nay. Không áp dụng bộ lọc danh sách.")
+    public ResponseEntity<OrderSummaryResponse> getSummary() {
+        return ResponseEntity.ok(summaryService.getSummary());
     }
 
     /**
@@ -110,8 +121,8 @@ public class OrderController {
     @Operation(summary = "Hủy đơn hàng", description = "Hủy đơn hàng khi khách đổi ý hoặc hết món (chỉ hủy được đơn đang PENDING_PAYMENT).")
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
-    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Long id) {
-        OrderResponse response = orderService.cancelOrder(id);
+    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Long id, Authentication authentication) {
+        OrderResponse response = orderService.cancelOrder(id, authentication.getName());
         return ResponseEntity.ok(response);
     }
 
@@ -187,9 +198,10 @@ public class OrderController {
             @RequestParam(required = false) BigDecimal maxAmount,
             @RequestParam(required = false) String computerCode,
             @RequestParam(required = false) String customerPhone,
+            @RequestParam(required = false) String keyword,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         PageResponse<OrderResponse> response = orderService.searchOrders(
-                status, paymentMethod, fromDate, toDate, minAmount, maxAmount, computerCode, customerPhone, pageable);
+                status, paymentMethod, fromDate, toDate, minAmount, maxAmount, computerCode, customerPhone, keyword, pageable);
         return ResponseEntity.ok(response);
     }
 }

@@ -584,7 +584,7 @@ export const ManageComputersPage: React.FC = () => {
         okText={editingComputer ? 'Lưu thay đổi' : 'Thêm máy'}
         cancelText="Đóng"
         width={500}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" className="mt-4 space-y-3.5">
           {/* Mã máy */}

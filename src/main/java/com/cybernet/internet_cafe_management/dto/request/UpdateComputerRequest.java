@@ -1,7 +1,6 @@
 package com.cybernet.internet_cafe_management.dto.request;
 
 import com.cybernet.internet_cafe_management.entity.Computer.Status;
-import com.cybernet.internet_cafe_management.entity.Computer.Zone;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -36,6 +35,6 @@ public class UpdateComputerRequest {
     )
     private String ipAddress;
 
-    @NotNull(message = "Khu vực máy (Zone) không được để trống")
-    private Zone zone;
+    @NotNull(message = "Khu vực máy (String) không được để trống")
+    private String zone;
 }

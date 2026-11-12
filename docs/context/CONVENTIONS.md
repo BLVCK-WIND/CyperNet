@@ -1,3 +1,17 @@
+# Implementation reconciliation ? 2026-11-09
+
+This section supersedes older snapshot claims below. Source manifests declare Java 17, Spring Boot 4.1.1, React 19, Ant Design 6, Tailwind 4, Zustand and TanStack Query.
+
+- Customer mobile ordering remains password-free. Existing CUSTOMER phone numbers only; unknown numbers return 404 NOT_FOUND with counter-registration guidance; STAFF/ADMIN return 403 FORBIDDEN before tokens are issued.
+- PC gaming login continues to require a password. Idle-PC QR login returns session=null and does not start play or deduct minutes.
+- Zone codes are catalog-backed strings, not a fixed enum. New assignments require an active zone; unchanged inactive assignments remain editable. Computer price remains authoritative.
+- Staff dashboard contains operational metrics and does not query Admin financial reports. Counts load all computer pages.
+- Admin CRUD, reports and dashboard already exist. Shared reduced-motion behavior and dashboard loading/retry states have been implemented; browser-wide visual QA remains pending.
+- Verification: Java/test compilation and 7 isolated customer/zone/error tests passed; frontend production build passed with a large-bundle warning. Lint exits successfully with warnings. Full database integration and browser verification have not been performed.
+- Migration rollout: see `docs/notes/migration-rollout.md`. Existing applied scripts were preserved; startup no longer repairs migration checksums automatically.
+
+---
+
 # 🏛️ CyberNet Architecture & Coding Conventions
 
 > **Mục đích:** File này là "Kim chỉ nam" cho AI và Dev. Mọi đoạn code được sinh ra BẮT BUỘC phải tuân thủ 100% các quy ước dưới đây để đảm bảo tính đồng nhất và tối ưu chi phí token.
@@ -49,7 +63,7 @@
    - Chặn xóa hoặc thay đổi Role của tài khoản khi đang có phiên chơi `ACTIVE` trên máy trạm.
 7. **Quy chuẩn Cân đối Báo cáo Tài chính (Zero Revenue Leakage):**
    - Gom đầy đủ cả `Item.Type.SERVICE` và `Item.Type.PLAYTIME` vào nhóm Giờ chơi/Dịch vụ để đảm bảo cân đối kế toán 100%: $\text{totalRevenue} = \text{F&B} + \text{Playtime} = \text{Cash} + \text{QR}$.
-   - Chuẩn hóa mốc thời gian lọc báo cáo: Dùng `end.atTime(23, 59, 59)` để tránh tràn sang ngày hôm sau trên MySQL.
+   - Báo cáo tính theo giờ `Asia/Ho_Chi_Minh`, dùng khoảng từ đầu ngày bắt đầu đến trước đầu ngày sau ngày kết thúc.
 8. **Quy chuẩn Dynamic Tariff Bất Biến (Immutable Tariff Rules):**
    - Số phút lưu trong `Account.remainingMinutes` **LUÔN LUÔN là Phút Chuẩn (Standard Minutes)** (neo theo giá chuẩn `BASE_PRICE_PER_HOUR = 10.000 VNĐ`).
    - Mọi quy đổi ra phút máy thực tế chỉ diễn ra tại `Session` khi khách ngồi máy cụ thể qua công thức: $\text{playableMinutes} = \lfloor \text{standardMinutes} \times \frac{10.000}{\text{pricePerHour}} \rfloor$.

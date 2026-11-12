@@ -8,12 +8,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface TimePurchaseRepository extends JpaRepository<TimePurchase, Long> {
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM time_purchases WHERE id = :id FOR UPDATE", nativeQuery = true)
+    java.util.Optional<TimePurchase> findByIdWithLock(@org.springframework.data.repository.query.Param("id") Long id);
 
     // Phân trang danh sách giao dịch nạp giờ theo trạng thái
     Page<TimePurchase> findByStatus(TimePurchase.Status status, Pageable pageable);
@@ -36,27 +38,10 @@ public interface TimePurchaseRepository extends JpaRepository<TimePurchase, Long
 
     // === PHASE 4: AGGREGATION QUERIES FOR REVENUE REPORTING ===
 
-    // 1. Tính tổng tiền nạp giờ chơi trong khoảng thời gian
-    @Query("SELECT COALESCE(SUM(tp.amount), 0) FROM TimePurchase tp " +
-           "WHERE tp.status = :status AND tp.confirmedAt BETWEEN :from AND :to")
-    BigDecimal sumRevenueByStatusAndDateRange(
-            @Param("status") TimePurchase.Status status,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
-
-    // 2. Đếm số lượt nạp giờ hoàn tất trong khoảng thời gian
-    @Query("SELECT COUNT(tp) FROM TimePurchase tp " +
-           "WHERE tp.status = :status AND tp.confirmedAt BETWEEN :from AND :to")
-    long countByStatusAndDateRange(
-            @Param("status") TimePurchase.Status status,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
-
-    // 3. Gom nhóm tiền nạp giờ theo phương thức thanh toán (CASH vs QR)
-    @Query("SELECT tp.paymentMethod, COALESCE(SUM(tp.amount), 0) FROM TimePurchase tp " +
-           "WHERE tp.status = :status AND tp.confirmedAt BETWEEN :from AND :to " +
+    @Query("SELECT tp.paymentMethod, SUM(tp.amount), COUNT(tp) FROM TimePurchase tp " +
+           "WHERE tp.status = :status AND tp.confirmedAt >= :from AND tp.confirmedAt < :to " +
            "GROUP BY tp.paymentMethod")
-    List<Object[]> sumRevenueByPaymentMethod(
+    List<Object[]> findRevenueByPaymentMethod(
             @Param("status") TimePurchase.Status status,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
@@ -64,7 +49,7 @@ public interface TimePurchaseRepository extends JpaRepository<TimePurchase, Long
     // 4. Doanh thu nạp giờ theo từng ngày
     @Query("SELECT FUNCTION('DATE', tp.confirmedAt), COALESCE(SUM(tp.amount), 0), COUNT(tp) " +
            "FROM TimePurchase tp " +
-           "WHERE tp.status = :status AND tp.confirmedAt BETWEEN :from AND :to " +
+           "WHERE tp.status = :status AND tp.confirmedAt >= :from AND tp.confirmedAt < :to " +
            "GROUP BY FUNCTION('DATE', tp.confirmedAt) " +
            "ORDER BY FUNCTION('DATE', tp.confirmedAt) ASC")
     List<Object[]> findDailyTimePurchaseRevenue(
@@ -76,7 +61,7 @@ public interface TimePurchaseRepository extends JpaRepository<TimePurchase, Long
     @Query("SELECT tp.account.id, tp.account.name, tp.account.phone, " +
            "COALESCE(SUM(tp.amount), 0) " +
            "FROM TimePurchase tp " +
-           "WHERE tp.status = :status AND tp.confirmedAt BETWEEN :from AND :to " +
+           "WHERE tp.status = :status AND tp.confirmedAt >= :from AND tp.confirmedAt < :to " +
            "GROUP BY tp.account.id, tp.account.name, tp.account.phone")
     List<Object[]> findSpendingByAccount(
             @Param("status") TimePurchase.Status status,

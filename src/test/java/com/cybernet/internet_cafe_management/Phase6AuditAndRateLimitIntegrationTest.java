@@ -65,9 +65,9 @@ public class Phase6AuditAndRateLimitIntegrationTest {
         rateLimitingFilter.clearLimits();
         ReflectionTestUtils.setField(rateLimitingFilter, "authLimit", 100);
 
-        Account admin = accountRepository.findByPhone("0901111111").orElseGet(() -> {
+        Account admin = accountRepository.findByPhone("0999000001").orElseGet(() -> {
             Account newAdmin = new Account();
-            newAdmin.setPhone("0901111111");
+            newAdmin.setPhone("0999000001");
             newAdmin.setName("Admin Root");
             newAdmin.setPasswordHash(passwordEncoder.encode("admin123"));
             newAdmin.setRole(Account.Role.ADMIN);
@@ -92,7 +92,7 @@ public class Phase6AuditAndRateLimitIntegrationTest {
     void testAuditLogService_ShouldPersistLog() {
         long initialCount = auditLogRepository.count();
 
-        auditLogService.log("0901111111", "ADMIN", "TEST_ACTION", "Computer", 99L, "Kiểm thử audit log", "127.0.0.1");
+        auditLogService.log("0999000001", "ADMIN", "TEST_ACTION", "Computer", 99L, "Kiểm thử audit log", "127.0.0.1");
 
         long newCount = auditLogRepository.count();
         assertTrue(newCount > initialCount);
@@ -121,7 +121,7 @@ public class Phase6AuditAndRateLimitIntegrationTest {
     void testRateLimit_HeadersPresent() throws Exception {
         String loginJson = """
                 {
-                    "phone": "0901111111",
+                    "phone": "0999000001",
                     "password": "admin123"
                 }
                 """;
@@ -142,7 +142,7 @@ public class Phase6AuditAndRateLimitIntegrationTest {
 
         String loginJson = """
                 {
-                    "phone": "0901111111",
+                    "phone": "0999000001",
                     "password": "admin123"
                 }
                 """;

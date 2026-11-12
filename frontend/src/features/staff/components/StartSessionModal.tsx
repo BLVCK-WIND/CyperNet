@@ -1,5 +1,9 @@
+import { CustomerSelect } from '@/components/common/CustomerSelect';
+import { useCustomerAccount } from '@/hooks/useAccountDirectory';
 import React, { useState, useEffect } from 'react';
-import { Modal, Select, Button, Skeleton, App } from 'antd';
+import { Modal, Select, Button, App, Alert } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { computerApi } from '@/api/computerApi';
 import {
   PlayCircle,
   Monitor,
@@ -9,19 +13,18 @@ import {
   ShieldAlert,
   UserPlus,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { accountApi } from '@/api/accountApi';
 import { sessionApi } from '@/api/sessionApi';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ZoneBadge } from '@/components/common/ZoneBadge';
 import { RegisterCustomerModal } from './RegisterCustomerModal';
 import type { FloorMapComputerItem } from '@/types/computer';
-import type { Account, ErrorResponse, SessionResponse } from '@/types/auth';
+import type { ErrorResponse, SessionResponse } from '@/types/auth';
 
 interface StartSessionModalProps {
   open: boolean;
   computer: FloorMapComputerItem | null;
   availableComputers?: FloorMapComputerItem[];
+  initialAccountId?: number | null;
   onClose: () => void;
   onSuccess: (session: SessionResponse) => void;
 }
@@ -30,6 +33,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
   open,
   computer,
   availableComputers = [],
+  initialAccountId,
   onClose,
   onSuccess,
 }) => {
@@ -38,6 +42,13 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+
+  const availableQuery = useQuery({ queryKey: ['staff-start-available-computers'],
+    queryFn: () => computerApi.getAvailableComputers(),
+    enabled: open && !computer && availableComputers.length === 0,
+    refetchInterval: 10000 });
+  const computerOptions: FloorMapComputerItem[] = availableComputers.length > 0 ? availableComputers
+    : (availableQuery.data || []).map((item) => ({ ...item, activeSession: null }));
 
   // Chỉ khởi tạo state khi modal mở lên (open = true)
   useEffect(() => {
@@ -49,27 +60,19 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
       } else {
         setSelectedComputerId(null);
       }
-      setSelectedAccountId(null);
+      setSelectedAccountId(initialAccountId ?? null);
     }
-  }, [open, computer?.id]);
+  }, [open, computer?.id, initialAccountId]);
 
-  // Lấy danh sách tài khoản khách hàng (CUSTOMER)
-  const { data: accountsData, isLoading: isLoadingAccounts } = useQuery({
-    queryKey: ['staff-customer-accounts'],
-    queryFn: () => accountApi.getAccounts({ role: 'CUSTOMER', size: 100 }),
-    enabled: open,
-  });
-
-  const accounts: Account[] = accountsData?.content || [];
+  const { data: selectedAccount } = useCustomerAccount(selectedAccountId, open);
 
   // Tìm máy đang chọn
   const activeComputer =
     (computer?.id === selectedComputerId ? computer : null) ||
-    availableComputers.find((c) => c.id === selectedComputerId) ||
+    computerOptions.find((c) => c.id === selectedComputerId) ||
     computer;
 
   // Tìm khách hàng đang chọn
-  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
   const remainingMinutes = selectedAccount?.remainingMinutes ?? 0;
   const isInsufficient = selectedAccount && remainingMinutes <= 0;
 
@@ -89,7 +92,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
     : '0 ₫';
 
   const handleConfirm = async () => {
-    if (!activeComputer || !selectedAccountId) {
+    if (!activeComputer || !selectedAccount) {
       message.warning('Vui lòng chọn đầy đủ máy trạm và khách hàng!');
       return;
     }
@@ -103,7 +106,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
     try {
       const res = await sessionApi.startSession({
         computerId: activeComputer.id,
-        accountId: selectedAccountId,
+        accountId: selectedAccount.id,
       });
 
       message.success(
@@ -134,7 +137,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
       onCancel={onClose}
       footer={null}
       centered
-      maskClosable={false}
+      mask={{ closable: false }}
       width={520}
       styles={{
         body: {
@@ -166,7 +169,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
         </div>
 
         {/* 2. Chọn máy tính (nếu mở dạng Quick Action không chỉ định trước) */}
-        {!computer && availableComputers.length > 0 && (
+        {!computer && (
           <div>
             <label className="block text-xs font-semibold text-mist uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Monitor className="w-3.5 h-3.5 text-gold" />
@@ -174,9 +177,12 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
             </label>
             <Select
               className="w-full h-11"
+              loading={availableQuery.isFetching}
+              placeholder={availableQuery.isFetching ? 'Đang tải máy trống...' : 'Chọn máy trạm sẵn sàng'}
+              notFoundContent={availableQuery.isError ? 'Không tải được máy trống' : 'Không có máy trống'}
               value={selectedComputerId}
               onChange={(val) => setSelectedComputerId(val)}
-              options={availableComputers.map((c) => ({
+              options={computerOptions.map((c) => ({
                 value: c.id,
                 label: `${c.code} (${c.zone}) • ${new Intl.NumberFormat('vi-VN').format(c.pricePerHour)}đ/h`,
               }))}
@@ -214,6 +220,9 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
           </GlassCard>
         )}
 
+        {availableQuery.isError && !computer && availableComputers.length === 0 && <Alert type="error" title="Không thể tải máy trống"
+          action={<Button onClick={() => void availableQuery.refetch()}>Thử lại</Button>} />}
+
         {/* 4. Chọn Khách Hàng (Search by Phone & Name) */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -232,53 +241,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
             </button>
           </div>
 
-          {isLoadingAccounts ? (
-            <Skeleton.Input active className="w-full h-11 rounded-xl" />
-          ) : (
-            <Select
-              showSearch
-              placeholder="Nhập SĐT hoặc tên khách hàng..."
-              optionFilterProp="label"
-              value={selectedAccountId}
-              onChange={(val) => setSelectedAccountId(val)}
-              className="w-full h-11"
-              options={accounts.map((acc) => ({
-                value: acc.id,
-                label: `${acc.phone} • ${acc.name}`,
-              }))}
-              optionRender={(oriOption) => {
-                const acc = accounts.find((a) => a.id === oriOption.value);
-                if (!acc) return oriOption.label;
-                const accPlayableMins = Math.floor((acc.remainingMinutes * baseTariff) / computerPrice);
-                const isZero = acc.remainingMinutes <= 0;
-
-                return (
-                  <div className="flex items-center justify-between py-0.5 text-xs">
-                    <div className="flex items-center gap-2 min-w-0 pr-2">
-                      <span className="font-mono text-sand font-bold shrink-0">
-                        {acc.phone}
-                      </span>
-                      <span className="text-sand/90 truncate font-medium">
-                        {acc.name}
-                      </span>
-                    </div>
-
-                    <div className="shrink-0">
-                      {isZero ? (
-                        <span className="text-danger text-[10px] font-mono font-bold bg-danger/10 px-2 py-0.5 rounded border border-danger/25">
-                          0 phút
-                        </span>
-                      ) : (
-                        <span className="text-gold font-mono font-bold text-[11px] bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
-                          {accPlayableMins}p (~{(accPlayableMins / 60).toFixed(1)}h)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              }}
-            />
-          )}
+          <CustomerSelect value={selectedAccountId} onChange={setSelectedAccountId} enabled={open} pricePerHour={computerPrice} />
         </div>
 
         {/* 5. Tóm tắt Khách Hàng & Cảnh Báo Số Dư */}
@@ -364,7 +327,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({
             type="primary"
             onClick={handleConfirm}
             loading={submitting}
-            disabled={!activeComputer || !selectedAccountId || isInsufficient}
+            disabled={!activeComputer || !selectedAccount || isInsufficient}
             icon={!submitting && <PlayCircle className="w-4 h-4" />}
             className="rounded-xl h-10 text-xs px-6 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >

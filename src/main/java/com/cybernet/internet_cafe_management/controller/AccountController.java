@@ -4,6 +4,7 @@ import com.cybernet.internet_cafe_management.dto.request.CreateAccountRequest;
 import com.cybernet.internet_cafe_management.dto.request.RegisterCustomerWithDepositRequest;
 import com.cybernet.internet_cafe_management.dto.request.UpdateAccountRequest;
 import com.cybernet.internet_cafe_management.dto.response.AccountResponse;
+import com.cybernet.internet_cafe_management.dto.response.AccountSummaryResponse;
 import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.dto.response.RegisterCustomerResponse;
 import com.cybernet.internet_cafe_management.entity.Account;
@@ -38,6 +39,20 @@ public class AccountController {
         this.accountRepository = accountRepository;
     }
 
+    @Operation(summary = "Get the authenticated account", description = "Returns only the account identified by the authenticated principal.")
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'STAFF', 'ADMIN')")
+    public ResponseEntity<AccountResponse> getCurrentAccount(Authentication authentication) {
+        return ResponseEntity.ok(accountService.getCurrentAccount(authentication.getName()));
+    }
+
+    @Operation(summary = "Thống kê tài khoản trong phạm vi được phép", description = "Không phụ thuộc tìm kiếm/phân trang. Tổng phút chỉ cộng CUSTOMER. STAFF không nhận thống kê ADMIN/STAFF.")
+    @GetMapping("/summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<AccountSummaryResponse> getSummary(Authentication authentication) {
+        return ResponseEntity.ok(accountService.getAccountSummary(authentication.getName()));
+    }
+
     // 1. Tạo mới tài khoản (POST /api/accounts) -> Trả về 201 CREATED
     @Operation(summary = "Tạo mới tài khoản", description = "Tạo tài khoản khách hàng hoặc nhân viên mới. Yêu cầu quyền ADMIN hoặc STAFF.")
     @PostMapping
@@ -70,22 +85,24 @@ public class AccountController {
     }
 
     // 2. Lấy danh sách tài khoản có phân trang & sắp xếp (GET /api/accounts) -> Trả về 200 OK
-    @Operation(summary = "Lấy danh sách tài khoản (phân trang)", description = "Lấy danh sách tài khoản theo vai trò (Role) có phân trang và sắp xếp. Yêu cầu quyền ADMIN hoặc STAFF.")
+    @Operation(summary = "Lấy danh sách tài khoản (phân trang)", description = "ADMIN xem mọi vai trò. STAFF chỉ xem CUSTOMER; lọc ADMIN/STAFF trả 403.")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<PageResponse<AccountResponse>> getAllAccounts(
             @RequestParam(required = false) Account.Role role,
-            @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        PageResponse<AccountResponse> responses = accountService.getAllAccounts(role, pageable);
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
+            Authentication authentication) {
+        PageResponse<AccountResponse> responses = accountService.getAllAccounts(role, keyword, pageable, authentication.getName());
         return ResponseEntity.ok(responses);
     }
 
     // 3. Lấy chi tiết 1 tài khoản (GET /api/accounts/{id}) -> Trả về 200 OK
-    @Operation(summary = "Lấy chi tiết tài khoản theo ID", description = "Xem thông tin chi tiết của một tài khoản theo ID. Yêu cầu quyền ADMIN hoặc STAFF.")
+    @Operation(summary = "Lấy chi tiết tài khoản theo ID", description = "ADMIN xem mọi tài khoản. STAFF chỉ xem CUSTOMER hoặc chính mình; tài khoản quản lý khác trả 403.")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<AccountResponse> getAccountById(@PathVariable Long id) {
-        AccountResponse response = accountService.getAccountById(id);
+    public ResponseEntity<AccountResponse> getAccountById(@PathVariable Long id, Authentication authentication) {
+        AccountResponse response = accountService.getAccountById(id, authentication.getName());
         return ResponseEntity.ok(response);
     }
 

@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useAccountDirectory, useAccountSummary } from '@/hooks/useAccountDirectory';
+import { invalidateAccountQueries } from '@/utils/accountQueries';
+import React, { useState } from 'react';
 import {
   Table,
+  Alert,
   Input,
   Button,
   Tag,
@@ -23,7 +26,7 @@ import {
   Phone,
   Zap,
 } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { accountApi } from '@/api/accountApi';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -59,37 +62,15 @@ export const AccountManagerPage: React.FC = () => {
   const [editPassword, setEditPassword] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
 
-  // Query accounts
-  const {
-    data: accountsData,
-    isLoading,
-    isFetching,
-    refetch,
-  } = useQuery({
-    queryKey: ['staff-accounts-list'],
-    queryFn: () => accountApi.getAccounts({ size: 200, sort: 'id,desc' }),
-    refetchInterval: 15000,
-  });
-
-  const allAccounts: Account[] = accountsData?.content || [];
-
-  // Filtered accounts
-  const filteredAccounts = useMemo(() => {
-    return allAccounts.filter((acc) => {
-      const matchRole = roleFilter === 'ALL' || acc.role === roleFilter;
-      const cleanSearch = searchTerm.trim().toLowerCase();
-      const matchSearch =
-        !cleanSearch ||
-        acc.phone.toLowerCase().includes(cleanSearch) ||
-        acc.name.toLowerCase().includes(cleanSearch);
-      return matchRole && matchSearch;
-    });
-  }, [allAccounts, searchTerm, roleFilter]);
-
-  // Telemetry KPIs
-  const totalCustomers = allAccounts.filter((a) => a.role === 'CUSTOMER').length;
-  const totalPlayableMinutes = allAccounts.reduce((sum, a) => sum + (a.remainingMinutes || 0), 0);
-  const totalPlayableHours = (totalPlayableMinutes / 60).toFixed(0);
+  const directory = useAccountDirectory('staff-accounts-list', searchTerm,
+    isAdmin ? (roleFilter === 'ALL' ? undefined : roleFilter) : 'CUSTOMER');
+  const { data: accountsData, isLoading, isFetching, refetch } = directory;
+  const summaryQuery = useAccountSummary();
+  const summary = summaryQuery.isError ? undefined : summaryQuery.data;
+  const filteredAccounts: Account[] = accountsData?.content || [];
+  const totalCustomers = summary?.countsByRole.CUSTOMER ?? '—';
+  const totalPlayableMinutes = summary?.totalRemainingMinutes ?? '—';
+  const totalPlayableHours = summary ? (summary.totalRemainingMinutes / 60).toFixed(0) : '—';
 
   // Handlers for quick actions
   const handleOpenSellTime = (account: Account) => {
@@ -133,7 +114,7 @@ export const AccountManagerPage: React.FC = () => {
       });
       message.success(`Đã cập nhật thông tin tài khoản ${targetAccount.phone}!`);
       setEditModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['staff-accounts-list'] });
+      void invalidateAccountQueries(queryClient);
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } } };
       message.error(errorObj.response?.data?.message || 'Không thể cập nhật thông tin tài khoản!');
@@ -269,6 +250,8 @@ export const AccountManagerPage: React.FC = () => {
 
   return (
     <div className="space-y-6 select-none">
+      {(directory.isError || summaryQuery.isError) && <Alert type="error" title="Không thể tải danh sách hoặc thống kê hội viên"
+        action={<Button onClick={() => { void refetch(); void summaryQuery.refetch(); }}>Thử lại</Button>} />}
       {/* 1. Header Bar: Tiêu đề & Nút Tạo Hội Viên */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl twinkle-hero-flow shadow-xl">
         <div className="space-y-1.5">
@@ -377,16 +360,16 @@ export const AccountManagerPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 flex-1 max-w-lg">
             <Input
               prefix={<Search className="w-4 h-4 text-mist mr-1" />}
-              placeholder="Tìm theo số điện thoại hoặc tên khách..."
+              placeholder="Tìm SĐT, tên không dấu hoặc #ID..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); directory.resetPage(); }}
               allowClear
               className="h-10 bg-midnight/70 text-sand border-mist/30 hover:border-gold/50 focus:border-gold rounded-xl text-xs flex-1"
             />
 
-            <Select
+            {isAdmin && <Select
               value={roleFilter}
-              onChange={(val) => setRoleFilter(val)}
+              onChange={(val) => { setRoleFilter(val); directory.resetPage(); }}
               className="h-10 w-36"
               options={[
                 { value: 'ALL', label: 'Tất cả vai trò' },
@@ -394,12 +377,12 @@ export const AccountManagerPage: React.FC = () => {
                 { value: 'STAFF', label: 'Nhân viên' },
                 { value: 'ADMIN', label: 'Quản trị' },
               ]}
-            />
+            />}
           </div>
 
           <div className="flex items-center gap-2.5">
             <span className="text-xs text-mist font-mono">
-              Hiển thị: <strong className="text-sand">{filteredAccounts.length}</strong> / {allAccounts.length}
+              Hiển thị: <strong className="text-sand">{filteredAccounts.length}</strong> / {accountsData?.totalElements ?? 0}
             </span>
 
             <Button
@@ -420,7 +403,10 @@ export const AccountManagerPage: React.FC = () => {
           rowKey="id"
           loading={isLoading}
           pagination={{
-            pageSize: 10,
+            current: directory.page,
+            pageSize: directory.pageSize,
+            total: accountsData?.totalElements ?? 0,
+            onChange: directory.changePage,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50'],
             showTotal: (total) => `Tổng cộng ${total} tài khoản`,
@@ -437,7 +423,7 @@ export const AccountManagerPage: React.FC = () => {
         onCancel={() => setRegisterModalOpen(false)}
         onSuccess={() => {
           setRegisterModalOpen(false);
-          queryClient.invalidateQueries({ queryKey: ['staff-accounts-list'] });
+          void invalidateAccountQueries(queryClient);
         }}
       />
 
@@ -452,7 +438,7 @@ export const AccountManagerPage: React.FC = () => {
         onSuccess={() => {
           setSellTimeModalOpen(false);
           setTargetAccount(null);
-          queryClient.invalidateQueries({ queryKey: ['staff-accounts-list'] });
+          void invalidateAccountQueries(queryClient);
         }}
       />
 
@@ -460,6 +446,7 @@ export const AccountManagerPage: React.FC = () => {
       <StartSessionModal
         open={startSessionModalOpen}
         computer={null}
+        initialAccountId={targetAccount?.id}
         onClose={() => {
           setStartSessionModalOpen(false);
           setTargetAccount(null);
@@ -467,7 +454,7 @@ export const AccountManagerPage: React.FC = () => {
         onSuccess={() => {
           setStartSessionModalOpen(false);
           setTargetAccount(null);
-          queryClient.invalidateQueries({ queryKey: ['staff-accounts-list'] });
+          void invalidateAccountQueries(queryClient);
         }}
       />
 

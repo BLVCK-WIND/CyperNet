@@ -19,6 +19,7 @@ import { computerApi } from '@/api/computerApi';
 import { sessionApi } from '@/api/sessionApi';
 import { useAuthStore } from '@/store/authStore';
 import { soundAlert } from '@/utils/soundAlert';
+import { vietnamTimestamp } from '@/utils/vietnamTime';
 import { ZoneBadge } from '@/components/common/ZoneBadge';
 
 dayjs.extend(relativeTime);
@@ -265,7 +266,7 @@ export const StaffTopBar: React.FC<StaffTopBarProps> = ({
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-mist mt-1">
                         <span className="truncate max-w-[120px]">{order.customerName}</span>
-                        <span className="font-mono">{dayjs(order.createdAt).fromNow()}</span>
+                        <span className="font-mono">{dayjs(vietnamTimestamp(order.createdAt)).fromNow()}</span>
                       </div>
                     </div>
                   ))}

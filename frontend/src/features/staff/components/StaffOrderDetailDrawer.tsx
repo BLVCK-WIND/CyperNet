@@ -97,25 +97,25 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
                 </h2>
                 {status === 'PENDING_PAYMENT' ? (
                   paymentMethod === 'QR' ? (
-                    <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    <Tag variant="filled" className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
                       Chờ chuyển khoản
                     </Tag>
                   ) : (
-                    <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-warning/20 text-warning border border-warning/40">
+                    <Tag variant="filled" className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-warning/20 text-warning border border-warning/40">
                       Chờ thu tiền mặt
                     </Tag>
                   )
                 ) : status === 'WAITING_CONFIRMATION' ? (
-                  <Tag bordered={false} className="m-0 text-xs font-bold px-2.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 inline-flex items-center gap-1.5">
+                  <Tag variant="filled" className="m-0 text-xs font-bold px-2.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 inline-flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-ping" />
                     <span>Đã CK • Chờ quầy duyệt</span>
                   </Tag>
                 ) : status === 'CONFIRMED' ? (
-                  <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-success/20 text-success border border-success/40">
-                    Đã duyệt
+                  <Tag variant="filled" className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-success/20 text-success border border-success/40">
+                    Đã thanh toán
                   </Tag>
                 ) : (
-                  <Tag bordered={false} className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-danger/20 text-danger border border-danger/40">
+                  <Tag variant="filled" className="m-0 text-xs font-bold px-2 py-0.5 rounded bg-danger/20 text-danger border border-danger/40">
                     Đã hủy
                   </Tag>
                 )}
@@ -306,7 +306,7 @@ export const StaffOrderDetailDrawer: React.FC<StaffOrderDetailDrawerProps> = ({
             <div className="p-3.5 rounded-xl bg-success/10 border border-success/20 text-xs space-y-1">
               <div className="flex items-center gap-1.5 text-success font-semibold">
                 <ShieldCheck className="w-4 h-4" />
-                Đơn hàng đã được xác nhận
+                Đã xác nhận thanh toán
               </div>
               <p className="text-mist text-[11px]">
                 Nhân viên duyệt: <strong className="text-sand">{confirmedByStaffName}</strong>

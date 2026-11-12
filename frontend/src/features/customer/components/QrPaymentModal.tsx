@@ -41,9 +41,10 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
       await orderApi.notifyTransferred(order.id);
       message.success('Đã gửi thông báo chuyển khoản tới quầy thu ngân!');
       onConfirmPaid();
-    } catch {
-      message.info('Đã ghi nhận! Quầy thu ngân sẽ đối soát trong giây lát.');
-      onConfirmPaid();
+    } catch (error) {
+      const detail = error as { message?: string };
+      message.error(detail?.message || 'Không thể gửi thông báo. Vui lòng thử lại.');
+      // Keep the modal open: a rejected request is not a successful payment notification.
     } finally {
       setSubmitting(false);
     }

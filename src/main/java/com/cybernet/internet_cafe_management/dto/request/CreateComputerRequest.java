@@ -2,7 +2,6 @@ package com.cybernet.internet_cafe_management.dto.request;
 
 import java.math.BigDecimal;
 import com.cybernet.internet_cafe_management.entity.Computer.Status;
-import com.cybernet.internet_cafe_management.entity.Computer.Zone;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -27,13 +26,13 @@ public class CreateComputerRequest {
     )
     private String ipAddress;
 
-    @NotNull(message = "Khu vực máy (Zone) không được để trống")
-    private Zone zone;
+    @NotNull(message = "Khu vực máy (String) không được để trống")
+    private String zone;
 
     public CreateComputerRequest() {
     }
 
-    public CreateComputerRequest(String code, BigDecimal pricePerHour, Status status, String ipAddress, Zone zone) {
+    public CreateComputerRequest(String code, BigDecimal pricePerHour, Status status, String ipAddress, String zone) {
         this.code = code;
         this.pricePerHour = pricePerHour;
         this.status = status;
@@ -65,11 +64,11 @@ public class CreateComputerRequest {
         this.ipAddress = ipAddress;
     }
 
-    public Zone getZone() {
+    public String getZone() {
         return zone;
     }
 
-    public void setZone(Zone zone) {
+    public void setZone(String zone) {
         this.zone = zone;
     }
 

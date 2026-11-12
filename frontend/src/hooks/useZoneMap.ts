@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/authStore';
 import { zoneApi } from '@/api/zoneApi';
 import type { ZoneResponse } from '@/types/zone';
 
 export function useZoneMap() {
+  const role = useAuthStore((state) => state.role);
+  const privileged = role === 'ADMIN' || role === 'STAFF';
   const { data: zones = [], isLoading, refetch } = useQuery({
-    queryKey: ['active-zones'],
-    queryFn: () => zoneApi.getActiveZones(),
+    queryKey: ['active-zones', privileged],
+    queryFn: () => privileged ? zoneApi.getAllZones() : zoneApi.getActiveZones(),
     staleTime: 60 * 1000, // 1 minute cache
   });
 

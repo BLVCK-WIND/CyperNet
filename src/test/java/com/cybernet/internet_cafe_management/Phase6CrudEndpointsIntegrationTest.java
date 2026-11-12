@@ -95,7 +95,7 @@ public class Phase6CrudEndpointsIntegrationTest {
             Computer c = new Computer();
             c.setCode("PC-03");
             c.setPricePerHour(BigDecimal.valueOf(10000));
-            c.setZone(Computer.Zone.STANDARD);
+            c.setZone("STANDARD");
             c.setStatus(Computer.Status.AVAILABLE);
             c.setIpAddress("192.168.1.103");
             return computerRepository.save(c);
@@ -104,7 +104,7 @@ public class Phase6CrudEndpointsIntegrationTest {
         UpdateComputerRequest request = UpdateComputerRequest.builder()
                 .code("PC-03")
                 .pricePerHour(BigDecimal.valueOf(15000))
-                .zone(Computer.Zone.VIP)
+                .zone("VIP")
                 .status(Computer.Status.MAINTENANCE)
                 .ipAddress("192.168.1.103")
                 .build();
@@ -122,7 +122,7 @@ public class Phase6CrudEndpointsIntegrationTest {
         // Rollback trạng thái về AVAILABLE để không ảnh hưởng test khác
         computer.setStatus(Computer.Status.AVAILABLE);
         computer.setPricePerHour(BigDecimal.valueOf(10000));
-        computer.setZone(Computer.Zone.STANDARD);
+        computer.setZone("STANDARD");
         computerRepository.save(computer);
     }
 

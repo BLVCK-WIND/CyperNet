@@ -1,7 +1,6 @@
 package com.cybernet.internet_cafe_management.dto.response;
 
 import com.cybernet.internet_cafe_management.entity.Computer.Status;
-import com.cybernet.internet_cafe_management.entity.Computer.Zone;
 
 import java.math.BigDecimal;
 
@@ -11,7 +10,7 @@ import java.math.BigDecimal;
 public class SessionCheckResponse {
 
     private String computerCode;
-    private Zone zone;
+    private String zone;
     private BigDecimal pricePerHour;
     private Status status;
     private boolean hasActiveSession;
@@ -19,7 +18,7 @@ public class SessionCheckResponse {
     public SessionCheckResponse() {
     }
 
-    public SessionCheckResponse(String computerCode, Zone zone, BigDecimal pricePerHour,
+    public SessionCheckResponse(String computerCode, String zone, BigDecimal pricePerHour,
                                 Status status, boolean hasActiveSession) {
         this.computerCode = computerCode;
         this.zone = zone;
@@ -36,11 +35,11 @@ public class SessionCheckResponse {
         this.computerCode = computerCode;
     }
 
-    public Zone getZone() {
+    public String getZone() {
         return zone;
     }
 
-    public void setZone(Zone zone) {
+    public void setZone(String zone) {
         this.zone = zone;
     }
 

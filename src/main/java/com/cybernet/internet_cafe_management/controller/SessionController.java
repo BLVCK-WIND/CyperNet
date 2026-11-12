@@ -128,8 +128,8 @@ public class SessionController {
     @Operation(summary = "Tra cứu phiên đang chạy theo mã máy", description = "Phục vụ quét mã QR tại máy trạm để lấy thông tin phiên chơi hiện tại.")
     @GetMapping("/active/computer/{computerCode}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
-    public ResponseEntity<SessionResponse> getActiveSessionByComputerCode(@PathVariable String computerCode) {
-        SessionResponse response = sessionService.getActiveSessionByComputerCode(computerCode);
+    public ResponseEntity<SessionResponse> getActiveSessionByComputerCode(@PathVariable String computerCode, org.springframework.security.core.Authentication authentication) {
+        SessionResponse response = sessionService.getActiveSessionByComputerCode(computerCode, authentication.getName());
         return ResponseEntity.ok(response);
     }
 

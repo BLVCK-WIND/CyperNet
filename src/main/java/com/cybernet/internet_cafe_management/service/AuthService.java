@@ -156,25 +156,15 @@ public class AuthService {
         // 2. Tìm phiên đang ACTIVE tại máy (nếu có)
         Session session = sessionRepository.findByComputerCodeAndStatus(pcCode, Session.Status.ACTIVE).orElse(null);
 
-        Account account;
-        if (session != null) {
-            // Máy đang có phiên chơi: SĐT phải khớp với tài khoản phiên
-            account = session.getAccount();
-            if (!account.getPhone().equals(phone)) {
-                throw new IllegalArgumentException("Số điện thoại không khớp với người đang chơi tại máy " + pcCode + "!");
-            }
-        } else {
-            // Máy đang TRỐNG (chưa mở phiên): Khách dùng điện thoại quét QR để gọi món / nạp giờ
-            // Quy tắc: Tuyệt đối không tự động mở phiên, không trừ bất kỳ phút nào của khách!
-            account = accountRepository.findByPhone(phone).orElseGet(() -> {
-                Account newAcc = new Account();
-                newAcc.setPhone(phone);
-                newAcc.setName("Khách " + (phone.length() >= 4 ? phone.substring(phone.length() - 4) : phone));
-                newAcc.setPasswordHash(passwordEncoder.encode("123456"));
-                newAcc.setRole(Account.Role.CUSTOMER);
-                newAcc.setRemainingMinutes(0);
-                return accountRepository.save(newAcc);
-            });
+        Account account = accountRepository.findByPhone(phone)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Số điện thoại chưa được đăng ký. Vui lòng đăng ký tại quầy."));
+        if (account.getRole() != Account.Role.CUSTOMER) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Trang gọi món chỉ dành cho tài khoản khách hàng.");
+        }
+        if (session != null && !session.getAccount().getId().equals(account.getId())) {
+            throw new IllegalArgumentException("Số điện thoại không khớp với người đang chơi tại máy " + pcCode + "!");
         }
 
         // 3. Sinh token với quyền ROLE_CUSTOMER

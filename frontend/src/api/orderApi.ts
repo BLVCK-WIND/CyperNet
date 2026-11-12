@@ -1,5 +1,5 @@
 import { axiosClient } from './axiosClient';
-import type { CreateOrderRequest, OrderResponse, VietQrResponse } from '@/types/order';
+import type { CreateOrderRequest, OrderResponse, OrderStatus, OrderSummary, PaymentMethod, VietQrResponse } from '@/types/order';
 import type { PageResponse } from '@/types/item';
 
 export interface GetOrdersParams {
@@ -8,7 +8,25 @@ export interface GetOrdersParams {
   sort?: string;
 }
 
+export interface SearchOrdersParams extends GetOrdersParams {
+  status?: OrderStatus;
+  paymentMethod?: PaymentMethod;
+  keyword?: string;
+  computerCode?: string;
+  customerPhone?: string;
+  fromDate?: string;
+  toDate?: string;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
 export const orderApi = {
+  getSummary(signal?: AbortSignal): Promise<OrderSummary> {
+    return axiosClient.get('/api/orders/summary', { signal });
+  },
+  searchOrders(params: SearchOrdersParams = {}, signal?: AbortSignal): Promise<PageResponse<OrderResponse>> {
+    return axiosClient.get('/api/orders/search', { params, signal });
+  },
   /**
    * Tạo đơn đặt món / dịch vụ mới
    * Endpoint: POST /api/orders

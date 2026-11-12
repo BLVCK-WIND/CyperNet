@@ -109,7 +109,7 @@ public class Phase3SecurityIntegrationTest {
             pc.setCode("SEC-PC-01");
             pc.setPricePerHour(BigDecimal.valueOf(10000));
             pc.setIpAddress("192.168.100.10");
-            pc.setZone(Computer.Zone.STANDARD);
+            pc.setZone("STANDARD");
             pc.setStatus(Computer.Status.AVAILABLE);
             return pc;
         });

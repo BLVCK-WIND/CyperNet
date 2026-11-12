@@ -110,7 +110,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             )}
             {order.status === 'CONFIRMED' && (
               <Tag color="#4CAF50" className="m-0 font-bold border-0">
-                ĐÃ HOÀN THÀNH
+                Đã thanh toán
               </Tag>
             )}
             {order.status === 'CANCELLED' && (

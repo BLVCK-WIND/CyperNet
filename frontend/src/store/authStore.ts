@@ -17,6 +17,7 @@ interface AuthState {
   setSessionId: (sessionId: number | null) => void;
   setComputerCode: (code: string | null) => void;
   updateUser: (user: Account) => void;
+  clearCustomerAuth: () => void;
   logout: () => Promise<void>;
 }
 
@@ -123,6 +124,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
     updateUser: (user: Account) => {
       storage.setUser(user);
       set({ user, role: user.role });
+    },
+
+    // Reset mobile ordering only. Never end the gaming session on the server.
+    clearCustomerAuth: () => {
+      if (get().role !== 'CUSTOMER') return;
+      storage.clearAuth();
+      set({ user: null, accessToken: null, refreshToken: null, sessionId: null,
+        computerCode: null, role: null, isAuthenticated: false });
     },
 
     logout: async () => {

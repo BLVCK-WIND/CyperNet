@@ -1,3 +1,4 @@
+import { invalidateAccountQueries } from '@/utils/accountQueries';
 import React, { useState } from 'react';
 import { Modal, Input, Button, Checkbox, App, Tag, Radio } from 'antd';
 import {
@@ -114,7 +115,7 @@ export const RegisterCustomerModal: React.FC<RegisterCustomerModalProps> = ({
 
       // Làm mới cache danh sách khách hàng
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
+        invalidateAccountQueries(queryClient),
         queryClient.invalidateQueries({ queryKey: ['staff-recent-time-purchases'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
         queryClient.invalidateQueries({ queryKey: ['admin-stats-summary'] }),
@@ -184,7 +185,7 @@ export const RegisterCustomerModal: React.FC<RegisterCustomerModalProps> = ({
       onCancel={handleClose}
       footer={null}
       centered
-      maskClosable={false}
+      mask={{ closable: false }}
       width={540}
       styles={{
         body: {

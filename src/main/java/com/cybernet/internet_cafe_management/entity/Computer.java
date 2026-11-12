@@ -41,9 +41,8 @@ public class Computer {
     // Khu vực: STANDARD (khu thông thường) hoặc VIP (khu cao cấp hơn) — nếu là khu
     // VIP thì giá tiền sẽ cao hơn - mặc định là STANDARD vì đa số các máy là
     // standard
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Zone zone = Zone.STANDARD;
+    @Column(nullable = false, length = 50)
+    private String zone = "STANDARD";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -53,8 +52,5 @@ public class Computer {
         AVAILABLE, IN_USE, MAINTENANCE
     }
 
-    public enum Zone {
-        STANDARD, VIP, STREAM, ARENA, COUPLE
-    }
 
 }

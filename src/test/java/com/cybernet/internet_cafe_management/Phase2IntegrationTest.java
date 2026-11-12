@@ -94,7 +94,7 @@ public class Phase2IntegrationTest {
             pc.setCode("TEST-PC-01");
             pc.setPricePerHour(BigDecimal.valueOf(10000));
             pc.setIpAddress("172.31.254.101");
-            pc.setZone(Computer.Zone.STANDARD);
+            pc.setZone("STANDARD");
             pc.setStatus(Computer.Status.AVAILABLE);
             return computerRepository.save(pc);
         });
@@ -107,7 +107,7 @@ public class Phase2IntegrationTest {
             pc.setCode("TEST-VIP-01");
             pc.setPricePerHour(BigDecimal.valueOf(20000));
             pc.setIpAddress("172.31.254.201");
-            pc.setZone(Computer.Zone.VIP);
+            pc.setZone("VIP");
             pc.setStatus(Computer.Status.AVAILABLE);
             return computerRepository.save(pc);
         });

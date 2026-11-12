@@ -22,7 +22,7 @@ public class OrderResponse {
     // Thông tin định danh phục vụ nhân viên bưng bê và giao hàng
     private Long sessionId;
     private String computerCode; // Mang ra bàn nào (VD: "PC-01", "VIP-02")
-    private Computer.Zone computerZone; // Khu vực phòng máy (VD: VIP, STANDARD, STREAM, ARENA, COUPLE)
+    private String computerZone; // Khu vực phòng máy (VD: VIP, STANDARD, STREAM, ARENA, COUPLE)
     private String customerName;
     private String customerPhone;
 
@@ -46,7 +46,7 @@ public class OrderResponse {
     public OrderResponse() {
     }
 
-    public OrderResponse(Long id, Long sessionId, String computerCode, Computer.Zone computerZone, String customerName, String customerPhone,
+    public OrderResponse(Long id, Long sessionId, String computerCode, String computerZone, String customerName, String customerPhone,
                          BigDecimal totalAmount, PaymentMethod paymentMethod, Status status,
                          Long confirmedByStaffId, String confirmedByStaffName,
                          LocalDateTime createdAt, LocalDateTime confirmedAt, LocalDateTime transferredAt,
@@ -93,7 +93,7 @@ public class OrderResponse {
                 : Collections.emptyList();
 
         String compCode = null;
-        Computer.Zone compZone = null;
+        String compZone = null;
         if (order.getComputer() != null) {
             compCode = order.getComputer().getCode();
             compZone = order.getComputer().getZone();
@@ -155,11 +155,11 @@ public class OrderResponse {
         this.computerCode = computerCode;
     }
 
-    public Computer.Zone getComputerZone() {
+    public String getComputerZone() {
         return computerZone;
     }
 
-    public void setComputerZone(Computer.Zone computerZone) {
+    public void setComputerZone(String computerZone) {
         this.computerZone = computerZone;
     }
 

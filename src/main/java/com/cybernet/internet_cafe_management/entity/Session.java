@@ -38,6 +38,18 @@ public class Session {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
+    @Column(precision = 10, scale = 2)
+    private java.math.BigDecimal pricePerHourSnapshot;
+
+    @PrePersist
+    public void captureTariff() {
+        if (pricePerHourSnapshot == null) pricePerHourSnapshot = computer.getPricePerHour();
+    }
+
+    public java.math.BigDecimal effectivePricePerHour() {
+        return pricePerHourSnapshot != null ? pricePerHourSnapshot : computer.getPricePerHour();
+    }
+
     // 3. Enum trạng thái phiên
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

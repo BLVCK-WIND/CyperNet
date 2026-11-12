@@ -53,7 +53,7 @@ public class Phase5FlywayIntegrationTest {
         // Phiên bản schema hiện tại phải từ version 2 trở lên
         MigrationInfo current = flyway.info().current();
         assertNotNull(current);
-        assertTrue(Integer.parseInt(current.getVersion().getVersion()) >= 2);
+        assertTrue(current.getVersion().compareTo(org.flywaydb.core.api.MigrationVersion.fromVersion("2")) >= 0);
     }
 
     @Test

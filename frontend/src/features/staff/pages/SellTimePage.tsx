@@ -1,6 +1,8 @@
+import { invalidateAccountQueries } from '@/utils/accountQueries';
+import { CustomerSelect } from '@/components/common/CustomerSelect';
+import { useCustomerAccount } from '@/hooks/useAccountDirectory';
 import React, { useState } from 'react';
 import {
-  Select,
   Button,
   Tag,
   Skeleton,
@@ -24,14 +26,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
-import { accountApi } from '@/api/accountApi';
+import { vietnamTimestamp } from '@/utils/vietnamTime';
 import { timePurchaseApi } from '@/api/timePurchaseApi';
 import { sessionApi } from '@/api/sessionApi';
 import { orderApi } from '@/api/orderApi';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { RegisterCustomerModal } from '../components/RegisterCustomerModal';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import type { Account } from '@/types/auth';
 import type { TimePurchaseResponse, PaymentMethod } from '@/types/timePurchase';
 import type { VietQrResponse } from '@/types/order';
 import type { SessionResponse } from '@/types/auth';
@@ -70,11 +71,7 @@ export const SellTimePage: React.FC = () => {
   const [confirmingQr, setConfirmingQr] = useState(false);
   const [actionInProgressId, setActionInProgressId] = useState<number | null>(null);
 
-  // 1. Lấy danh sách khách hàng (role: CUSTOMER)
-  const { data: accountsData, isLoading: isLoadingAccounts } = useQuery({
-    queryKey: ['staff-customer-accounts'],
-    queryFn: () => accountApi.getAccounts({ role: 'CUSTOMER', size: 100 }),
-  });
+  const { data: selectedAccount } = useCustomerAccount(selectedAccountId);
 
   // 2. Lấy danh sách các phiên chơi đang ACTIVE để phát hiện máy khách đang ngồi
   const { data: activeSessionsData } = useQuery({
@@ -95,11 +92,9 @@ export const SellTimePage: React.FC = () => {
     refetchInterval: 10000,
   });
 
-  const accounts: Account[] = accountsData?.content || [];
   const activeSessions: SessionResponse[] = activeSessionsData?.content || [];
   const recentPurchases: TimePurchaseResponse[] = timePurchasesData?.content || [];
 
-  const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
 
   // Kiểm tra xem khách hàng này có đang ngồi ở máy nào không
   const activeSessionOfCustomer = selectedAccount
@@ -147,7 +142,7 @@ export const SellTimePage: React.FC = () => {
 
   // Xử lý tạo và xác nhận nạp giờ
   const handleCreatePurchase = async () => {
-    if (!selectedAccountId) {
+    if (!selectedAccount) {
       message.error('Vui lòng chọn tài khoản khách hàng để nạp giờ!');
       return;
     }
@@ -160,7 +155,7 @@ export const SellTimePage: React.FC = () => {
     try {
       // 1. Tạo phiếu nạp giờ
       const newPurchase = await timePurchaseApi.createTimePurchase({
-        accountId: selectedAccountId,
+        accountId: selectedAccount.id,
         minutes: selectedMinutes,
         amount: selectedAmount,
         paymentMethod,
@@ -179,7 +174,7 @@ export const SellTimePage: React.FC = () => {
 
         // Làm mới cache tài khoản, sơ đồ máy và lịch sử nạp
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
+          invalidateAccountQueries(queryClient),
           queryClient.invalidateQueries({ queryKey: ['staff-recent-time-purchases'] }),
           queryClient.invalidateQueries({ queryKey: ['staff-floormap-data'] }),
           queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
@@ -220,7 +215,7 @@ export const SellTimePage: React.FC = () => {
       setVietQrData(null);
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
+        invalidateAccountQueries(queryClient),
         queryClient.invalidateQueries({ queryKey: ['staff-recent-time-purchases'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-floormap-data'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
@@ -240,7 +235,7 @@ export const SellTimePage: React.FC = () => {
       await timePurchaseApi.confirmTimePurchase(purchaseId);
       message.success(`Đã duyệt thành công giao dịch nạp giờ #${purchaseId}!`);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
+        invalidateAccountQueries(queryClient),
         queryClient.invalidateQueries({ queryKey: ['staff-recent-time-purchases'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-floormap-data'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
@@ -321,24 +316,7 @@ export const SellTimePage: React.FC = () => {
               <label className="text-xs font-semibold text-mist block">
                 Tìm kiếm theo Số điện thoại hoặc Tên khách hàng:
               </label>
-              <Select
-                showSearch
-                value={selectedAccountId}
-                placeholder="Nhập số điện thoại khách hàng (VD: 0912..., 0988...)"
-                loading={isLoadingAccounts}
-                onChange={(val) => setSelectedAccountId(val)}
-                filterOption={(input, option) =>
-                  String(option?.label || '')
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                options={accounts.map((acc) => ({
-                  value: acc.id,
-                  label: `${acc.phone} — ${acc.name} (${acc.remainingMinutes} phút)`,
-                }))}
-                className="w-full h-11"
-                popupClassName="bg-midnight border border-gold/30 rounded-xl"
-              />
+              <CustomerSelect value={selectedAccountId} onChange={setSelectedAccountId} />
 
               {/* Thông tin thẻ hội viên sau khi chọn */}
               {selectedAccount ? (
@@ -532,7 +510,7 @@ export const SellTimePage: React.FC = () => {
                 size="large"
                 loading={submitting}
                 onClick={handleCreatePurchase}
-                disabled={!selectedAccountId || selectedAmount <= 0}
+                disabled={!selectedAccount || selectedAmount <= 0}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold text-sm tracking-wide border-none shadow-[0_4px_20px_rgba(189,152,117,0.35)] cursor-pointer"
               >
                 {paymentMethod === 'CASH' ? 'THU TIỀN MẶT & NẠP GIỜ NGAY' : 'TẠO MÃ VIETQR THANH TOÁN'}
@@ -592,7 +570,7 @@ export const SellTimePage: React.FC = () => {
 
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] text-mist font-mono">
-                            {dayjs(purchase.createdAt).fromNow()}
+                            {dayjs(vietnamTimestamp(purchase.createdAt)).fromNow()}
                           </span>
                           {isConfirmed ? (
                             <Tag className="m-0 bg-success/15 text-success border-success/30 text-[10px] font-bold rounded-full px-2">

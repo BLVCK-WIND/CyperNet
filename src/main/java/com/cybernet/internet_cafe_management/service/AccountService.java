@@ -4,6 +4,8 @@ import com.cybernet.internet_cafe_management.dto.request.CreateAccountRequest;
 import com.cybernet.internet_cafe_management.dto.request.RegisterCustomerWithDepositRequest;
 import com.cybernet.internet_cafe_management.dto.request.UpdateAccountRequest;
 import com.cybernet.internet_cafe_management.dto.response.AccountResponse;
+import com.cybernet.internet_cafe_management.dto.response.AccountSummaryResponse;
+import com.cybernet.internet_cafe_management.repository.specification.AccountSpecification;
 import com.cybernet.internet_cafe_management.dto.response.PageResponse;
 import com.cybernet.internet_cafe_management.dto.response.RegisterCustomerResponse;
 import com.cybernet.internet_cafe_management.dto.response.TimePurchaseResponse;
@@ -15,8 +17,8 @@ import com.cybernet.internet_cafe_management.repository.AccountRepository;
 import com.cybernet.internet_cafe_management.repository.OrderRepository;
 import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.repository.TimePurchaseRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +52,13 @@ public class AccountService {
         this.sessionRepository = sessionRepository;
         this.orderRepository = orderRepository;
         this.auditLogService = auditLogService;
+    }
+
+    @Transactional(readOnly = true)
+    public AccountResponse getCurrentAccount(String phone) {
+        Account account = accountRepository.findByPhone(phone)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
+        return AccountResponse.fromEntity(account);
     }
 
     // 1. Tạo tài khoản mới
@@ -161,18 +170,60 @@ public class AccountService {
     }
 
     // 2b. Lấy danh sách tài khoản có phân trang & sắp xếp (hỗ trợ lọc theo Role)
-    public PageResponse<AccountResponse> getAllAccounts(Account.Role role, Pageable pageable) {
-        Page<Account> page = (role != null)
-                ? accountRepository.findByRole(role, pageable)
-                : accountRepository.findAll(pageable);
-        return PageResponse.fromPage(page, AccountResponse::fromEntity);
+    @Transactional(readOnly = true)
+    public PageResponse<AccountResponse> getAllAccounts(Account.Role role, String keyword, Pageable pageable, String callerPhone) {
+        role = visibleRole(role, callerPhone);
+        return PageResponse.fromPage(accountRepository.findAll(AccountSpecification.filter(role, keyword), pageable), AccountResponse::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public AccountSummaryResponse getAccountSummary(String callerPhone) {
+        Account.Role scope = visibleRole(null, callerPhone);
+        var counts = new java.util.EnumMap<Account.Role, Long>(Account.Role.class);
+        if (scope == null) for (Account.Role role : Account.Role.values()) counts.put(role, 0L);
+        else counts.put(scope, 0L);
+        var rows = scope == null ? accountRepository.summarizeRoles() : accountRepository.summarizeRole(scope);
+        long total = 0, minutes = 0;
+        for (var row : rows) {
+            counts.put(row.getRole(), row.getAccountCount());
+            total += row.getAccountCount();
+            if (row.getRole() == Account.Role.CUSTOMER) minutes += row.getRemainingMinutes();
+        }
+        return new AccountSummaryResponse(total, counts, minutes);
+    }
+
+    private Account.Role visibleRole(Account.Role role, String callerPhone) {
+        Account caller = getManagementCaller(callerPhone);
+        if (caller.getRole() == Account.Role.STAFF) {
+            if (role != null && role != Account.Role.CUSTOMER) {
+                throw new AccessDeniedException("Nhân viên chỉ có quyền xem danh sách Hội viên (CUSTOMER)!");
+            }
+            role = Account.Role.CUSTOMER;
+        }
+        return role;
     }
 
     // 3. Lấy chi tiết 1 tài khoản theo ID
-    public AccountResponse getAccountById(Long id) {
+    @Transactional(readOnly = true)
+    public AccountResponse getAccountById(Long id, String callerPhone) {
+        Account caller = getManagementCaller(callerPhone);
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Account với id = " + id));
+        if (caller.getRole() == Account.Role.STAFF
+                && account.getRole() != Account.Role.CUSTOMER
+                && !account.getId().equals(caller.getId())) {
+            throw new AccessDeniedException("Nhân viên chỉ có quyền xem Hội viên (CUSTOMER) hoặc hồ sơ của chính mình!");
+        }
         return AccountResponse.fromEntity(account);
+    }
+
+    private Account getManagementCaller(String phone) {
+        Account caller = accountRepository.findByPhone(phone)
+                .orElseThrow(() -> new AccessDeniedException("Không xác định được tài khoản đang đăng nhập!"));
+        if (caller.getRole() != Account.Role.ADMIN && caller.getRole() != Account.Role.STAFF) {
+            throw new AccessDeniedException("Bạn không có quyền quản lý tài khoản!");
+        }
+        return caller;
     }
 
     // 4. Xóa tài khoản theo ID (tương thích backward)

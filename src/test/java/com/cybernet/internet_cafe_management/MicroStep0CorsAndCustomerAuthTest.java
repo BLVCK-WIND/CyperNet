@@ -103,12 +103,12 @@ public class MicroStep0CorsAndCustomerAuthTest {
             pc.setCode("TEST-PC-01");
             pc.setPricePerHour(BigDecimal.valueOf(12000));
             pc.setIpAddress("192.168.1.55");
-            pc.setZone(Computer.Zone.VIP);
+            pc.setZone("VIP");
             pc.setStatus(Computer.Status.IN_USE);
             return pc;
         });
         testComputer.setStatus(Computer.Status.IN_USE);
-        testComputer.setZone(Computer.Zone.VIP);
+        testComputer.setZone("VIP");
         testComputer = computerRepository.save(testComputer);
 
         // 3. Tạo Session ACTIVE cho máy
@@ -213,6 +213,11 @@ public class MicroStep0CorsAndCustomerAuthTest {
     @Test
     @DisplayName("MS0-TC4: Khách quét QR nhập SĐT sai -> 400 Bad Request từ chối")
     void testCustomerSessionLogin_WrongPhone_ReturnsBadRequest() throws Exception {
+        accountRepository.findByPhone("0999999999").orElseGet(() -> {
+            Account other = new Account(); other.setPhone("0999999999"); other.setName("Other customer");
+            other.setRole(Account.Role.CUSTOMER); other.setPasswordHash(passwordEncoder.encode("other123"));
+            return accountRepository.save(other);
+        });
         CustomerSessionLoginRequest request = new CustomerSessionLoginRequest("TEST-PC-01", "0999999999");
 
         mockMvc.perform(post("/api/auth/customer-session-login")
@@ -220,6 +225,17 @@ public class MicroStep0CorsAndCustomerAuthTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Số điện thoại không khớp với người đang chơi tại máy TEST-PC-01!"));
+    }
+
+    @Test
+    void testCustomerSessionLogin_UnknownPhone_ReturnsNotFound() throws Exception {
+        CustomerSessionLoginRequest request = new CustomerSessionLoginRequest("TEST-PC-01", "0977777777");
+        mockMvc.perform(post("/api/auth/customer-session-login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"));
+        assertTrue(accountRepository.findByPhone("0977777777").isEmpty());
     }
 
     @Test
@@ -323,7 +339,7 @@ public class MicroStep0CorsAndCustomerAuthTest {
             pc.setIpAddress("192.168.1.52");
             pc.setPricePerHour(BigDecimal.valueOf(10000));
             pc.setStatus(Computer.Status.IN_USE);
-            pc.setZone(Computer.Zone.STANDARD);
+            pc.setZone("STANDARD");
             return computerRepository.save(pc);
         });
         pc2.setStatus(Computer.Status.IN_USE);

@@ -1,6 +1,5 @@
 package com.cybernet.internet_cafe_management.dto.response;
 
-import com.cybernet.internet_cafe_management.entity.Computer.Zone;
 import com.cybernet.internet_cafe_management.entity.Session;
 import com.cybernet.internet_cafe_management.entity.Session.Status;
 
@@ -19,7 +18,7 @@ public class SessionResponse {
     // Thông tin máy tính
     private Long computerId;
     private String computerCode;
-    private Zone computerZone;
+    private String computerZone;
     private BigDecimal pricePerHour;
 
     // Thông tin khách hàng
@@ -42,14 +41,14 @@ public class SessionResponse {
     public SessionResponse() {
     }
 
-    public SessionResponse(Long id, Long computerId, String computerCode, Zone computerZone, BigDecimal pricePerHour,
+    public SessionResponse(Long id, Long computerId, String computerCode, String computerZone, BigDecimal pricePerHour,
                            Long accountId, String accountName, String accountPhone, int accountRemainingMinutes,
                            LocalDateTime startedAt, LocalDateTime expiresAt, LocalDateTime endedAt, Status status,
                            long playedMinutes, long remainingMinutesUntilExpiry) {
         this(id, computerId, computerCode, computerZone, pricePerHour, accountId, accountName, accountPhone, accountRemainingMinutes, startedAt, expiresAt, endedAt, status, playedMinutes, remainingMinutesUntilExpiry, LocalDateTime.now());
     }
 
-    public SessionResponse(Long id, Long computerId, String computerCode, Zone computerZone, BigDecimal pricePerHour,
+    public SessionResponse(Long id, Long computerId, String computerCode, String computerZone, BigDecimal pricePerHour,
                            Long accountId, String accountName, String accountPhone, int accountRemainingMinutes,
                            LocalDateTime startedAt, LocalDateTime expiresAt, LocalDateTime endedAt, Status status,
                            long playedMinutes, long remainingMinutesUntilExpiry, LocalDateTime serverTime) {
@@ -97,7 +96,7 @@ public class SessionResponse {
                 session.getComputer().getId(),
                 session.getComputer().getCode(),
                 session.getComputer().getZone(),
-                session.getComputer().getPricePerHour(),
+                session.effectivePricePerHour(),
                 session.getAccount().getId(),
                 session.getAccount().getName(),
                 session.getAccount().getPhone(),
@@ -136,11 +135,11 @@ public class SessionResponse {
         this.computerCode = computerCode;
     }
 
-    public Zone getComputerZone() {
+    public String getComputerZone() {
         return computerZone;
     }
 
-    public void setComputerZone(Zone computerZone) {
+    public void setComputerZone(String computerZone) {
         this.computerZone = computerZone;
     }
 

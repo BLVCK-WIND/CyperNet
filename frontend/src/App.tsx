@@ -1,4 +1,5 @@
 import React from 'react';
+import { MotionConfig } from 'framer-motion';
 import { ConfigProvider, App as AntdApp } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
@@ -18,7 +19,7 @@ const queryClient = new QueryClient({
 
 export const App: React.FC = () => {
   return (
-    <ErrorBoundary>
+    <MotionConfig reducedMotion="user"><ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ConfigProvider theme={cyberLuxTheme}>
           <AntdApp>
@@ -27,7 +28,7 @@ export const App: React.FC = () => {
           </AntdApp>
         </ConfigProvider>
       </QueryClientProvider>
-    </ErrorBoundary>
+    </ErrorBoundary></MotionConfig>
   );
 };
 

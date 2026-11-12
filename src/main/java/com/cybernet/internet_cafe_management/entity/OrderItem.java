@@ -23,6 +23,19 @@ public class OrderItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
     private Item item;
+
+    private String itemNameSnapshot;
+    @Enumerated(EnumType.STRING)
+    private Item.Type itemTypeSnapshot;
+    private Integer packageMinutesSnapshot;
+
+    @PrePersist
+    public void captureSnapshot() {
+        if (itemNameSnapshot == null) itemNameSnapshot = item.getName();
+        if (itemTypeSnapshot == null) itemTypeSnapshot = item.getType();
+        if (packageMinutesSnapshot == null) packageMinutesSnapshot = PlaytimeMinutes.minutes(
+                itemNameSnapshot, itemTypeSnapshot.name(), unitPrice != null ? unitPrice : item.getPrice());
+    }
     
     @Column(nullable = false)
     private int quantity;

@@ -2,6 +2,12 @@ import type { ComputerZone } from '@/types/computer';
 
 export type Role = 'CUSTOMER' | 'STAFF' | 'ADMIN';
 
+export interface AccountSummary {
+  totalAccounts: number;
+  countsByRole: Partial<Record<Role, number>>;
+  totalRemainingMinutes: number;
+}
+
 export interface Account {
   id: number;
   phone: string;

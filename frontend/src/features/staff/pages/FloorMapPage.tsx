@@ -300,7 +300,7 @@ export const FloorMapPage: React.FC = () => {
               value={zoneFilter}
               onChange={(val) => setZoneFilter(val)}
               className="w-full h-10"
-              popupClassName="cyberlux-select-dropdown"
+              classNames={{ popup: { root: "cyberlux-select-dropdown" } }}
               suffixIcon={<ChevronDown className="w-4 h-4 text-mist" />}
               options={zoneSelectOptions}
               optionRender={(option) => (

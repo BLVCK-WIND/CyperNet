@@ -1,3 +1,5 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateAccountQueries } from '@/utils/accountQueries';
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, App, Tag } from 'antd';
 import {
@@ -54,6 +56,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
   onSuccess,
 }) => {
   const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -122,6 +125,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
         message.success(`Đã khởi tạo tài khoản ${payload.phone} (${payload.role}) thành công!`);
       }
 
+      await invalidateAccountQueries(queryClient);
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -138,7 +142,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       open={open}
       onCancel={onClose}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       width={520}
       centered
       className="twinkle-modal"

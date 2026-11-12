@@ -1,6 +1,9 @@
-import { useMemo } from 'react';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { orderApi } from '@/api/orderApi';
+import { useAuthStore } from '@/store/authStore';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useVietnamDate } from '@/hooks/useVietnamDate';
 import type { OrderResponse, OrderStatus } from '@/types/order';
 
 export type OrderQueueTab = OrderStatus | 'ALL';
@@ -17,6 +20,12 @@ export const useOrderQueue = ({
   paymentMethodFilter = 'ALL',
   searchKeyword = '',
 }: UseOrderQueueOptions) => {
+  const user = useAuthStore((state) => state.user);
+  const today = useVietnamDate();
+  const keyword = useDebouncedValue(searchKeyword.trim());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const pageScope = JSON.stringify([user?.id, user?.role, statusTab, paymentMethodFilter, keyword, page, pageSize]);
   // 1. Query danh sách đơn hàng theo Tab đang chọn
   const {
     data: ordersData,
@@ -25,116 +34,58 @@ export const useOrderQueue = ({
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['staff-order-queue', statusTab],
-    queryFn: () =>
-      orderApi.getOrders({
+    queryKey: ['staff-order-queue', user?.id, user?.role, statusTab, paymentMethodFilter, keyword, page, pageSize],
+    queryFn: ({ signal }) =>
+      orderApi.searchOrders({
         status: statusTab === 'ALL' ? undefined : statusTab,
-        page: 0,
-        size: 50,
+        paymentMethod: paymentMethodFilter === 'ALL' ? undefined : paymentMethodFilter,
+        keyword,
+        page: page - 1,
+        size: pageSize,
         // Hàng đợi Chờ xử lý: FIFO (createdAt,asc) để người chờ lâu nhất được ưu tiên làm trước.
         // Các tab hoàn thành/hủy/tất cả: LIFO (createdAt,desc) để xem đơn mới cập nhật gần nhất.
         sort: statusTab === 'PENDING_PAYMENT' ? 'createdAt,asc' : 'createdAt,desc',
-      }),
-    placeholderData: keepPreviousData,
+      }, signal),
+    enabled: Boolean(user && (user.role === 'STAFF' || user.role === 'ADMIN')),
     // 5s polling cho đơn chờ xử lý, 15s cho các tab đã hoàn thành
     refetchInterval: statusTab === 'PENDING_PAYMENT' || statusTab === 'ALL' ? 5000 : 15000,
   });
 
-  // 2. Query thống kê tổng hợp số lượng & doanh thu đơn
-  const { data: pendingSummaryData } = useQuery({
-    queryKey: ['staff-pending-orders-summary'],
-    queryFn: () => orderApi.getOrders({ status: 'PENDING_PAYMENT', page: 0, size: 100 }),
+  useEffect(() => {
+    if (ordersData && page > Math.max(1, ordersData.totalPages)) setPage(Math.max(1, ordersData.totalPages));
+  }, [ordersData, page]);
+
+  const summaryQuery = useQuery({
+    queryKey: ['staff-order-summary', user?.id, user?.role, today],
+    queryFn: ({ signal }) => orderApi.getSummary(signal),
+    enabled: Boolean(user && (user.role === 'STAFF' || user.role === 'ADMIN')),
     refetchInterval: 5000,
   });
-
-  const { data: confirmedSummaryData } = useQuery({
-    queryKey: ['staff-confirmed-orders-summary'],
-    queryFn: () => orderApi.getOrders({ status: 'CONFIRMED', page: 0, size: 100 }),
-    refetchInterval: 10000,
-  });
-
-  const { data: cancelledSummaryData } = useQuery({
-    queryKey: ['staff-cancelled-orders-summary'],
-    queryFn: () => orderApi.getOrders({ status: 'CANCELLED', page: 0, size: 100 }),
-    refetchInterval: 15000,
-  });
-
-  const { data: allSummaryData } = useQuery({
-    queryKey: ['staff-all-orders-summary'],
-    queryFn: () => orderApi.getOrders({ page: 0, size: 100 }),
-    refetchInterval: 10000,
-  });
-
+  // Failed/current-day-mismatched data is unavailable, never a synthetic zero.
+  const summary = !summaryQuery.isError && summaryQuery.data?.date === today ? summaryQuery.data : undefined;
   const rawOrders: OrderResponse[] = ordersData?.content || [];
-  const pendingCount = pendingSummaryData?.totalElements ?? 0;
-  const confirmedCount = confirmedSummaryData?.totalElements ?? 0;
-  const cancelledCount = cancelledSummaryData?.totalElements ?? 0;
-  const allCount = allSummaryData?.totalElements ?? 0;
-
-  // Tính tổng tiền đơn đã xác nhận và đơn đang chờ
-  const confirmedRevenue = useMemo(() => {
-    return (confirmedSummaryData?.content || []).reduce(
-      (sum, o) => sum + (Number(o.totalAmount) || 0),
-      0
-    );
-  }, [confirmedSummaryData]);
-
-  const pendingAmount = useMemo(() => {
-    return (pendingSummaryData?.content || []).reduce(
-      (sum, o) => sum + (Number(o.totalAmount) || 0),
-      0
-    );
-  }, [pendingSummaryData]);
-
-  // 3. Lọc đơn theo phương thức thanh toán và từ khóa tìm kiếm
-  const filteredOrders = useMemo(() => {
-    let result = rawOrders;
-
-    if (paymentMethodFilter !== 'ALL') {
-      result = result.filter((o) => o.paymentMethod === paymentMethodFilter);
-    }
-
-    if (!searchKeyword.trim()) {
-      return result;
-    }
-
-    const term = searchKeyword.trim().toLowerCase();
-    return result.filter((order) => {
-      const matchId = String(order.id).includes(term) || `ord-${order.id}`.toLowerCase().includes(term);
-      const matchComputer = order.computerCode?.toLowerCase().includes(term) || false;
-      const matchCustomerName = order.customerName?.toLowerCase().includes(term) || false;
-      const matchCustomerPhone = order.customerPhone?.toLowerCase().includes(term) || false;
-
-      return matchId || matchComputer || matchCustomerName || matchCustomerPhone;
-    });
-  }, [rawOrders, paymentMethodFilter, searchKeyword]);
-
-  // Phân tích thống kê luồng đơn chờ (Pending breakdown)
-  const pendingBreakdown = useMemo(() => {
-    const list = pendingSummaryData?.content || [];
-    const cashCount = list.filter((o) => o.paymentMethod === 'CASH').length;
-    const qrCount = list.filter((o) => o.paymentMethod === 'QR').length;
-    const foodOnlyCount = list.filter((o) => o.items.every((it) => it.itemType !== 'PLAYTIME')).length;
-    const playtimeCount = list.filter((o) => o.items.some((it) => it.itemType === 'PLAYTIME')).length;
-
-    return {
-      cashCount,
-      qrCount,
-      foodOnlyCount,
-      playtimeCount,
-    };
-  }, [pendingSummaryData]);
+  const pendingCount = summary?.pendingCount;
+  const confirmedCount = summary?.countsByStatus.CONFIRMED;
+  const cancelledCount = summary?.countsByStatus.CANCELLED;
+  const allCount = summary ? Object.values(summary.countsByStatus).reduce((sum, count) => sum + count, 0) : undefined;
 
   return {
-    orders: filteredOrders,
+    orders: rawOrders,
+    page,
+    pageSize,
+    totalElements: ordersData?.totalElements ?? 0,
+    pageScope,
+    resetPage: () => setPage(1),
+    changePage: (next: number, size: number) => { setPage(size === pageSize ? next : 1); setPageSize(size); },
     rawOrders,
     pendingCount,
     confirmedCount,
     cancelledCount,
     allCount,
-    confirmedRevenue,
-    pendingAmount,
-    pendingBreakdown,
+    summary,
+    summaryQuery,
+    confirmedRevenue: summary?.todayFoodAndDrinkRevenue,
+    pendingAmount: summary?.pendingAmount,
     isLoading,
     isFetching,
     isError,

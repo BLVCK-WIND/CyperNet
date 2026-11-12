@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useAccountDirectory, useAccountSummary } from '@/hooks/useAccountDirectory';
+import { invalidateAccountQueries } from '@/utils/accountQueries';
+import React, { useState } from 'react';
 import {
   Table,
+  Alert,
   Button,
   Tag,
   Input,
@@ -22,7 +25,7 @@ import {
   Shield,
   UserCheck,
 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { accountApi } from '@/api/accountApi';
 import { PageTransition } from '@/components/animations/PageTransition';
@@ -66,62 +69,24 @@ export const ManageAccountsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  // 1. Fetch danh sách tài khoản
-  const {
-    data: accountsData,
-    isLoading,
-    isFetching,
-    refetch,
-  } = useQuery({
-    queryKey: ['admin-accounts-list'],
-    queryFn: () => accountApi.getAccounts({ size: 200, sort: 'id,desc' }),
-    refetchInterval: 15000,
-  });
-
-  const allAccounts: Account[] = accountsData?.content || [];
-
-  // 2. Thống kê Telemetry Strip
-  const stats = useMemo(() => {
-    const total = allAccounts.length;
-    const adminCount = allAccounts.filter((a) => a.role === 'ADMIN').length;
-    const staffCount = allAccounts.filter((a) => a.role === 'STAFF').length;
-    const customerCount = allAccounts.filter((a) => a.role === 'CUSTOMER').length;
-    const totalPlaytimeMinutes = allAccounts.reduce((sum, a) => sum + (a.remainingMinutes || 0), 0);
-    return {
-      total,
-      adminCount,
-      staffCount,
-      customerCount,
-      totalHours: (totalPlaytimeMinutes / 60).toFixed(0),
-    };
-  }, [allAccounts]);
-
-  // 3. Lọc danh sách Client-side
-  const filteredAccounts = useMemo(() => {
-    return allAccounts.filter((acc) => {
-      // Keyword search
-      if (keyword.trim()) {
-        const kw = keyword.toLowerCase();
-        const matchPhone = acc.phone.toLowerCase().includes(kw);
-        const matchName = acc.name.toLowerCase().includes(kw);
-        const matchId = String(acc.id).includes(kw);
-        if (!matchPhone && !matchName && !matchId) return false;
-      }
-
-      // Filter by Role
-      if (selectedRole !== 'ALL' && acc.role !== selectedRole) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allAccounts, keyword, selectedRole]);
+  const directory = useAccountDirectory('admin-accounts-list', keyword, selectedRole === 'ALL' ? undefined : selectedRole);
+  const { data: accountsData, isLoading, isFetching, refetch } = directory;
+  const summaryQuery = useAccountSummary();
+  const summary = summaryQuery.isError ? undefined : summaryQuery.data;
+  const filteredAccounts: Account[] = accountsData?.content || [];
+  const stats = {
+    total: summary?.totalAccounts ?? '—',
+    adminCount: summary?.countsByRole.ADMIN ?? '—',
+    staffCount: summary?.countsByRole.STAFF ?? '—',
+    customerCount: summary?.countsByRole.CUSTOMER ?? '—',
+    totalHours: summary ? (summary.totalRemainingMinutes / 60).toFixed(0) : '—',
+  };
 
   // 4. Mutation Xóa tài khoản
   const deleteAccountMutation = useMutation({
     mutationFn: (id: number) => accountApi.deleteAccount(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-accounts-list'] });
+      void invalidateAccountQueries(queryClient);
       message.success('Đã xóa tài khoản thành công!');
     },
     onError: (err: any) => {
@@ -300,7 +265,9 @@ export const ManageAccountsPage: React.FC = () => {
   return (
     <PageTransition>
       <div className="space-y-6 max-w-7xl mx-auto">
-        {/* 1. Header Bar */}
+        {(directory.isError || summaryQuery.isError) && <Alert type="error" title="Không thể tải danh sách hoặc thống kê tài khoản"
+        action={<Button onClick={() => { void refetch(); void summaryQuery.refetch(); }}>Thử lại</Button>} />}
+      {/* 1. Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gold mb-1">
@@ -413,7 +380,7 @@ export const ManageAccountsPage: React.FC = () => {
               placeholder="Tìm theo số điện thoại, họ tên hoặc mã #ID..."
               prefix={<Search className="w-4 h-4 text-mist/60 mr-1" />}
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => { setKeyword(e.target.value); directory.resetPage(); }}
               allowClear
               className="h-10 rounded-xl bg-midnight/70 border-mist/30 text-sand placeholder:text-mist/50 sm:max-w-md"
             />
@@ -421,7 +388,7 @@ export const ManageAccountsPage: React.FC = () => {
             {/* Select Vai trò */}
             <Select
               value={selectedRole}
-              onChange={setSelectedRole}
+              onChange={(role) => { setSelectedRole(role); directory.resetPage(); }}
               className="h-10 sm:w-52"
               options={[
                 { value: 'ALL', label: 'Tất cả các vai trò' },
@@ -433,7 +400,7 @@ export const ManageAccountsPage: React.FC = () => {
           </div>
 
           <div className="text-xs text-mist/80 self-end md:self-center font-mono">
-            Hiển thị <span className="text-gold font-bold">{filteredAccounts.length}</span> / {stats.total} tài khoản
+            Hiển thị <span className="text-gold font-bold">{filteredAccounts.length}</span> / {accountsData?.totalElements ?? 0} tài khoản phù hợp
           </div>
         </div>
 
@@ -445,7 +412,10 @@ export const ManageAccountsPage: React.FC = () => {
             rowKey="id"
             loading={isLoading}
             pagination={{
-              pageSize: 10,
+              current: directory.page,
+              pageSize: directory.pageSize,
+              total: accountsData?.totalElements ?? 0,
+              onChange: directory.changePage,
               showSizeChanger: true,
               pageSizeOptions: ['10', '20', '50'],
               showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài khoản`,
@@ -460,8 +430,10 @@ export const ManageAccountsPage: React.FC = () => {
                   <Button
                     type="link"
                     onClick={() => {
+                      directory.resetPage();
                       setKeyword('');
                       setSelectedRole('ALL');
+                      directory.resetPage();
                     }}
                     className="text-gold text-xs mt-1"
                   >
@@ -481,7 +453,7 @@ export const ManageAccountsPage: React.FC = () => {
             setIsModalOpen(false);
             setSelectedAccount(null);
           }}
-          onSuccess={() => refetch()}
+          onSuccess={() => { void invalidateAccountQueries(queryClient); }}
         />
       </div>
     </PageTransition>

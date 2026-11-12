@@ -4,6 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:qr": "node --experimental-strip-types --experimental-vm-modules --test tests/customerRoute.test.mjs",
+    "test:accounts": "node --experimental-vm-modules --test tests/accountDirectory.test.mjs",
+    "test:orders": "node --experimental-vm-modules --test tests/orderQueue.test.mjs",
+    "test:stats": "node --experimental-vm-modules --test tests/statistics.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",

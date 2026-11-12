@@ -1,5 +1,17 @@
 # 📒 Nhật ký học tập & phát triển — Dự án CyberNet
 
+### 13/11/2026 — Sửa mất giờ khi duyệt đơn muộn
+
+- Tái hiện trên demo với đơn gắn lượt A, được duyệt sau khi khách đã mở lượt B. Số dư tăng 60 phút, hạn B giữ nguyên và số dư về 0 khi B tự đóng. Ca nạp giờ tại quầy cho kết quả đúng.
+- Hai test mới bắt được lỗi trên mã cũ. Sau đó gộp phần cộng giờ của duyệt đơn, bán trực tiếp và nạp tại quầy. Khóa tài khoản rồi đọc phiên đang chạy dưới khóa để đồng bộ với bộ quét hết giờ.
+- API và Chrome xác nhận hạn phiên tăng đúng 60 phút và bộ đếm cập nhật tự động. Toàn bộ 190 test backend đạt. Ghi nhận quyết định giữ cách chuyển máy và giao món hiện tại, đồng thời yêu cầu đăng nhập lại sau khi đổi quyền ở đợt triển khai tiếp theo.
+
+### 12/11/2026 — Báo cáo, múi giờ và truy vấn đơn
+
+- Báo cáo tính theo ngày Việt Nam, chia phút sử dụng của phiên qua nửa đêm và giữ lượt mở phiên ở ngày bắt đầu.
+- Đo trên MariaDB tạm: trang 5 và 15 đơn cùng dùng 3 truy vấn, tổng quan doanh thu dùng 3 truy vấn. V12 thêm index cho khoảng ngày xác nhận đơn và phiếu nạp.
+- Gộp logic mở phiên và tạo dòng đơn. Xử lý mất giờ, chuyển máy và đổi quyền thuộc đợt sau.
+
 > File này ghi lại toàn bộ quá trình luyện tập: **hôm nay học gì, dùng kỹ thuật gì, áp dụng ở đâu, gặp lỗi gì, giải quyết ra sao**.
 > Sau này đọc lại sẽ biết ngay: "À, chỗ này mình đã dùng kỹ thuật X vì lý do Y".
 

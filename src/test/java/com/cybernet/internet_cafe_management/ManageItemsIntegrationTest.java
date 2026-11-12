@@ -108,6 +108,12 @@ public class ManageItemsIntegrationTest {
             return accountRepository.save(newStaff);
         });
         staffToken = jwtService.generateAccessToken(staff);
+        accountRepository.findByPhone("0908888888").orElseGet(() -> {
+            Account customer = new Account(); customer.setPhone("0908888888");
+            customer.setName("Menu test customer"); customer.setRole(Account.Role.CUSTOMER);
+            customer.setPasswordHash(passwordEncoder.encode("customer123"));
+            return accountRepository.save(customer);
+        });
     }
 
     @Test
@@ -245,7 +251,7 @@ public class ManageItemsIntegrationTest {
         // Máy VIP có đơn giá 15.000 VNĐ / giờ
         Computer vipComp = computerRepository.findByCode("PC-02").orElseThrow();
         vipComp.setPricePerHour(BigDecimal.valueOf(15000));
-        vipComp.setZone(Computer.Zone.VIP);
+        vipComp.setZone("VIP");
         computerRepository.save(vipComp);
 
         Account customer = accountRepository.findByPhone("0908888888").orElseThrow();

@@ -136,19 +136,19 @@ public class GlobalExceptionHandler {
 
     private ErrorCode determineErrorCode(String message) {
         if (message == null) return ErrorCode.MALFORMED_REQUEST;
-        String lower = message.toLowerCase();
+        String lower = message.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("refresh token")) return ErrorCode.REFRESH_TOKEN_INVALID;
         if (lower.contains("chờ duyệt") || lower.contains("pending")) return ErrorCode.ORDER_NOT_PENDING;
         if (lower.contains("hết hàng") || lower.contains("out of stock")) return ErrorCode.ORDER_OUT_OF_STOCK;
         if (lower.contains("chính máy hiện tại") || lower.contains("cùng một máy")) return ErrorCode.TRANSFER_SAME_COMPUTER;
+        if (lower.contains("đang có phiên")) return ErrorCode.ACTIVE_SESSION_EXISTS;
         if (lower.contains("khả dụng") || lower.contains("available") || lower.contains("đang hoạt động") || lower.contains("đang được sử dụng") || lower.contains("đang sử dụng")) return ErrorCode.COMPUTER_NOT_AVAILABLE;
         if (lower.contains("không còn hoạt động") || lower.contains("không ở trạng thái active") || lower.contains("phiên")) return ErrorCode.SESSION_NOT_ACTIVE;
         if (lower.contains("không đủ") || lower.contains("số dư") || lower.contains("phút")) return ErrorCode.INSUFFICIENT_TIME;
         if (lower.contains("mật khẩu") || lower.contains("không chính xác") || lower.contains("tài khoản không tồn tại")) return ErrorCode.INVALID_CREDENTIALS;
-        if (lower.contains("đang có phiên") || lower.contains("active")) return ErrorCode.ACTIVE_SESSION_EXISTS;
         if (lower.contains("mã khu vực đã tồn tại") || lower.contains("zone already exists")) return ErrorCode.ZONE_ALREADY_EXISTS;
         if (lower.contains("đang có máy") || lower.contains("khu vực đang có máy trạm") || lower.contains("zone in use")) return ErrorCode.ZONE_IN_USE;
         if (lower.contains("khu vực") && lower.contains("không tồn tại")) return ErrorCode.ZONE_NOT_FOUND;
-        if (lower.contains("refresh token")) return ErrorCode.REFRESH_TOKEN_INVALID;
         return ErrorCode.MALFORMED_REQUEST;
     }
 }

@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.cybernet.internet_cafe_management.config.CafeTimeZoneInitializer.CAFE_ZONE;
 
 @Service
 @Transactional(readOnly = true)
@@ -42,31 +42,22 @@ public class ReportService {
      * Thống kê tổng thu, thu nạp quầy, thu gọi món, cơ cấu tiền mặt/QR và cơ cấu F&B/Playtime.
      */
     public RevenueSummaryResponse getRevenueSummary(LocalDate fromDate, LocalDate toDate) {
-        LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
-        LocalDate start = resolvedDates[0];
-        LocalDate end = resolvedDates[1];
+        DateRange range = resolveDateRange(fromDate, toDate);
+        LocalDateTime fromTime = range.fromTime();
+        LocalDateTime toTime = range.toTime();
 
-        LocalDateTime fromTime = start.atStartOfDay();
-        LocalDateTime toTime = end.atTime(23, 59, 59);
-
-        // 1. Doanh thu từ Order (đã thanh toán CONFIRMED)
-        BigDecimal totalOrderRevenue = orderRepository.sumRevenueByStatusAndDateRange(Order.Status.CONFIRMED, fromTime, toTime);
-        long totalOrders = orderRepository.countByStatusAndDateRange(Order.Status.CONFIRMED, fromTime, toTime);
-
-        // 2. Doanh thu từ TimePurchase (đã thanh toán CONFIRMED)
-        BigDecimal totalTimePurchaseRevenue = timePurchaseRepository.sumRevenueByStatusAndDateRange(TimePurchase.Status.CONFIRMED, fromTime, toTime);
-        long totalTimePurchases = timePurchaseRepository.countByStatusAndDateRange(TimePurchase.Status.CONFIRMED, fromTime, toTime);
-
-        // 3. Tổng doanh thu toàn quán
-        BigDecimal totalRevenue = totalOrderRevenue.add(totalTimePurchaseRevenue);
-
-        // 4. Doanh thu phân rã theo phương thức thanh toán (CASH vs QR)
+        BigDecimal totalOrderRevenue = BigDecimal.ZERO;
+        BigDecimal totalTimePurchaseRevenue = BigDecimal.ZERO;
+        long totalOrders = 0;
+        long totalTimePurchases = 0;
         BigDecimal cashRevenue = BigDecimal.ZERO;
         BigDecimal qrRevenue = BigDecimal.ZERO;
 
-        for (Object[] row : orderRepository.sumRevenueByPaymentMethod(Order.Status.CONFIRMED, fromTime, toTime)) {
+        for (Object[] row : orderRepository.findRevenueByPaymentMethod(Order.Status.CONFIRMED, fromTime, toTime)) {
             Order.PaymentMethod method = (Order.PaymentMethod) row[0];
             BigDecimal amount = (BigDecimal) row[1];
+            totalOrderRevenue = totalOrderRevenue.add(amount);
+            totalOrders += ((Number) row[2]).longValue();
             if (method == Order.PaymentMethod.CASH) {
                 cashRevenue = cashRevenue.add(amount);
             } else if (method == Order.PaymentMethod.QR) {
@@ -74,9 +65,11 @@ public class ReportService {
             }
         }
 
-        for (Object[] row : timePurchaseRepository.sumRevenueByPaymentMethod(TimePurchase.Status.CONFIRMED, fromTime, toTime)) {
+        for (Object[] row : timePurchaseRepository.findRevenueByPaymentMethod(TimePurchase.Status.CONFIRMED, fromTime, toTime)) {
             TimePurchase.PaymentMethod method = (TimePurchase.PaymentMethod) row[0];
             BigDecimal amount = (BigDecimal) row[1];
+            totalTimePurchaseRevenue = totalTimePurchaseRevenue.add(amount);
+            totalTimePurchases += ((Number) row[2]).longValue();
             if (method == TimePurchase.PaymentMethod.CASH) {
                 cashRevenue = cashRevenue.add(amount);
             } else if (method == TimePurchase.PaymentMethod.QR) {
@@ -84,7 +77,7 @@ public class ReportService {
             }
         }
 
-        // 5. Cơ cấu doanh thu theo loại hàng (F&B vs Playtime/Service)
+        // Cơ cấu doanh thu theo loại hàng (F&B vs Playtime/Service)
         BigDecimal totalFoodAndDrinkRevenue = BigDecimal.ZERO;
         BigDecimal playtimeInOrderRevenue = BigDecimal.ZERO;
 
@@ -102,7 +95,7 @@ public class ReportService {
         BigDecimal totalPlaytimeRevenue = totalTimePurchaseRevenue.add(playtimeInOrderRevenue);
 
         return RevenueSummaryResponse.builder()
-                .totalRevenue(totalRevenue)
+                .totalRevenue(totalOrderRevenue.add(totalTimePurchaseRevenue))
                 .totalOrderRevenue(totalOrderRevenue)
                 .totalTimePurchaseRevenue(totalTimePurchaseRevenue)
                 .totalFoodAndDrinkRevenue(totalFoodAndDrinkRevenue)
@@ -111,8 +104,8 @@ public class ReportService {
                 .qrRevenue(qrRevenue)
                 .totalOrders(totalOrders)
                 .totalTimePurchases(totalTimePurchases)
-                .fromDate(start)
-                .toDate(end)
+                .fromDate(range.start())
+                .toDate(range.end())
                 .build();
     }
 
@@ -121,12 +114,9 @@ public class ReportService {
      * Trả về danh sách doanh thu liên tục từ start đến end để vẽ biểu đồ tài chính.
      */
     public List<DailyRevenueResponse> getDailyRevenue(LocalDate fromDate, LocalDate toDate) {
-        LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
-        LocalDate start = resolvedDates[0];
-        LocalDate end = resolvedDates[1];
-
-        LocalDateTime fromTime = start.atStartOfDay();
-        LocalDateTime toTime = end.atTime(23, 59, 59);
+        DateRange range = resolveDateRange(fromDate, toDate);
+        LocalDateTime fromTime = range.fromTime();
+        LocalDateTime toTime = range.toTime();
 
         // Map tạm gom Order theo ngày
         Map<LocalDate, BigDecimal> orderRevMap = new HashMap<>();
@@ -154,8 +144,8 @@ public class ReportService {
 
         // Sinh danh sách liên tục các ngày từ start đến end
         List<DailyRevenueResponse> result = new ArrayList<>();
-        LocalDate current = start;
-        while (!current.isAfter(end)) {
+        LocalDate current = range.start();
+        while (!current.isAfter(range.end())) {
             BigDecimal orderRev = orderRevMap.getOrDefault(current, BigDecimal.ZERO);
             BigDecimal tpRev = tpRevMap.getOrDefault(current, BigDecimal.ZERO);
             long orderCnt = orderCountMap.getOrDefault(current, 0L);
@@ -180,13 +170,11 @@ public class ReportService {
      * 3. THỐNG KÊ MÓN BÁN CHẠY NHẤT (Top-selling Items)
      */
     public List<TopItemResponse> getTopSellingItems(LocalDate fromDate, LocalDate toDate, int limit) {
-        LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
-        LocalDateTime fromTime = resolvedDates[0].atStartOfDay();
-        LocalDateTime toTime = resolvedDates[1].atTime(23, 59, 59);
+        DateRange range = resolveDateRange(fromDate, toDate);
 
         int resolvedLimit = Math.max(1, Math.min(limit, 100)); // An toàn từ 1 đến 100 món
         List<Object[]> rawList = orderItemRepository.findTopSellingItems(
-                Order.Status.CONFIRMED, fromTime, toTime, PageRequest.of(0, resolvedLimit));
+                Order.Status.CONFIRMED, range.fromTime(), range.toTime(), PageRequest.of(0, resolvedLimit));
 
         List<TopItemResponse> result = new ArrayList<>();
         for (Object[] row : rawList) {
@@ -205,9 +193,9 @@ public class ReportService {
      * 4. THỐNG KÊ TOP KHÁCH HÀNG CHI TIÊU NHIỀU NHẤT (Top Spenders)
      */
     public List<TopCustomerResponse> getTopSpendingCustomers(LocalDate fromDate, LocalDate toDate, int limit) {
-        LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
-        LocalDateTime fromTime = resolvedDates[0].atStartOfDay();
-        LocalDateTime toTime = resolvedDates[1].atTime(23, 59, 59);
+        DateRange range = resolveDateRange(fromDate, toDate);
+        LocalDateTime fromTime = range.fromTime();
+        LocalDateTime toTime = range.toTime();
 
         int resolvedLimit = Math.max(1, Math.min(limit, 50));
 
@@ -247,12 +235,8 @@ public class ReportService {
 
         // 3. Tính tổng phút chơi thực tế của các tài khoản
         Map<Long, Long> gamingMinutesMap = new HashMap<>();
-        for (Object[] row : sessionRepository.findCustomerSessionDurations(fromTime, toTime)) {
-            Long accId = ((Number) row[0]).longValue();
-            LocalDateTime start = (LocalDateTime) row[3];
-            LocalDateTime end = (LocalDateTime) row[4];
-            long minutes = Duration.between(start, end != null ? end : LocalDateTime.now()).toMinutes();
-            gamingMinutesMap.put(accId, gamingMinutesMap.getOrDefault(accId, 0L) + Math.max(0, minutes));
+        for (var row : sessionRepository.findCustomerUsage(fromTime, range.usageEnd())) {
+            gamingMinutesMap.put(row.getAccountId(), row.getTotalMinutesPlayed());
         }
 
         // 4. Sắp xếp giảm dần theo tổng chi tiêu và lấy top N
@@ -282,39 +266,12 @@ public class ReportService {
      * 5. THỐNG KÊ CÔNG SUẤT VÀ HIỆU SUẤT MÁY TRẠM (Computer Usage)
      */
     public List<ComputerUsageResponse> getComputerUsageStats(LocalDate fromDate, LocalDate toDate) {
-        LocalDate[] resolvedDates = resolveDateRange(fromDate, toDate);
-        LocalDateTime fromTime = resolvedDates[0].atStartOfDay();
-        LocalDateTime toTime = resolvedDates[1].atTime(23, 59, 59);
-
-        // 1. Lấy tổng số phút sử dụng theo máy
-        Map<Long, Long> minutesMap = new HashMap<>();
-        for (Object[] row : sessionRepository.findComputerSessionDurations(fromTime, toTime)) {
-            Long compId = ((Number) row[0]).longValue();
-            LocalDateTime start = (LocalDateTime) row[1];
-            LocalDateTime end = (LocalDateTime) row[2];
-            long minutes = Duration.between(start, end != null ? end : LocalDateTime.now()).toMinutes();
-            minutesMap.put(compId, minutesMap.getOrDefault(compId, 0L) + Math.max(0, minutes));
-        }
-
-        // 2. Lấy số lượt phiên mở và ghép nối
-        List<ComputerUsageResponse> result = new ArrayList<>();
-        for (Object[] row : sessionRepository.findComputerUsageCount(fromTime, toTime)) {
-            Long compId = ((Number) row[0]).longValue();
-            String code = (String) row[1];
-            Computer.Zone zone = (Computer.Zone) row[2];
-            long sessionCount = ((Number) row[3]).longValue();
-            long totalMinutes = minutesMap.getOrDefault(compId, 0L);
-
-            result.add(ComputerUsageResponse.builder()
-                    .computerId(compId)
-                    .computerCode(code)
-                    .zone(zone)
-                    .totalSessions(sessionCount)
-                    .totalMinutesUsed(totalMinutes)
-                    .build());
-        }
-
-        return result;
+        DateRange range = resolveDateRange(fromDate, toDate);
+        return sessionRepository.findComputerUsage(range.fromTime(), range.toTime(), range.usageEnd())
+                .stream()
+                .map(row -> new ComputerUsageResponse(row.getComputerId(), row.getComputerCode(),
+                        row.getZone(), row.getTotalSessions(), row.getTotalMinutesUsed()))
+                .toList();
     }
 
     // === HELPER METHODS ===
@@ -324,16 +281,26 @@ public class ReportService {
      * - Mặc định 30 ngày gần nhất nếu để trống.
      * - Tự động đảo lại nếu fromDate > toDate.
      */
-    private LocalDate[] resolveDateRange(LocalDate fromDate, LocalDate toDate) {
-        LocalDate end = (toDate != null) ? toDate : LocalDate.now();
+    private DateRange resolveDateRange(LocalDate fromDate, LocalDate toDate) {
+        LocalDate end = (toDate != null) ? toDate : LocalDate.now(CAFE_ZONE);
         LocalDate start = (fromDate != null) ? fromDate : end.minusDays(30);
+        return start.isAfter(end) ? new DateRange(end, start) : new DateRange(start, end);
+    }
 
-        if (start.isAfter(end)) {
-            LocalDate temp = start;
-            start = end;
-            end = temp;
+    private record DateRange(LocalDate start, LocalDate end) {
+        LocalDateTime fromTime() {
+            return start.atStartOfDay();
         }
-        return new LocalDate[]{start, end};
+
+        LocalDateTime toTime() {
+            return end.plusDays(1).atStartOfDay();
+        }
+
+        LocalDateTime usageEnd() {
+            LocalDateTime now = LocalDateTime.now(CAFE_ZONE);
+            LocalDateTime toTime = toTime();
+            return now.isBefore(toTime) ? now : toTime;
+        }
     }
 
     /**

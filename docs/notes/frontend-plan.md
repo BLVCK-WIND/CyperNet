@@ -1,3 +1,89 @@
+# Checklist hoàn tất mục tiêu 1 — 11/11/2026
+
+Bảng này ghi trạng thái hiện hành. Các mốc phía dưới lưu kết quả tại thời điểm bàn giao từng phần.
+
+| Nhóm công việc | Trạng thái |
+|---|---|
+| Phân quyền đọc tài khoản | Đã triển khai, người dùng xác nhận đạt |
+| Routing QR và ngữ cảnh bàn | Đã triển khai, người dùng xác nhận đạt |
+| Hội viên: tìm kiếm/phân trang/summary/bộ chọn chung/máy trống | Đã triển khai, người dùng xác nhận đạt |
+| Lọc/tìm kiếm/phân trang đơn hàng | Người dùng báo hoàn tất ca 1 trên bản sao DB quán |
+| Lỗi duyệt/hủy đơn | Ca duyệt lại từ tab cũ đạt với đơn #688 |
+| Thống kê ngày và lỗi độc lập KPI Admin | Ca 3 đạt với số trong ngày và bộ lọc. Ca 4 đạt cả lỗi và phục hồi. Còn đối chiếu giao diện cho trường hợp qua ngày khi có mẫu |
+| Nhãn CONFIRMED = Đã thanh toán | Đã triển khai, người dùng xác nhận đạt ngày 11/11/2026 |
+| Đối chiếu tài liệu và nghiệm thu hồi quy mục tiêu 1 | Đã chạy kiểm thử và lưu kết quả bốn ca trên `tiemnet_qa_v11` |
+| QA thiết bị thật/gián đoạn | Chưa hoàn tất; responsive/emulator trước đây không thay thế bước này |
+| Hiệu năng/bundle, backup/khôi phục, rollout migration thật | Đã đo lại truy vấn backend. Còn rà bundle, kiểm tra backup/khôi phục và nghiệm thu V12 khi triển khai. [Tiến độ hiện tại](../context/STATUS.md) |
+
+- Kiểm thử hồi quy ngày 11/11/2026 đạt 48 test backend liên quan và 41 test frontend offline. Build và lint thành công, còn cảnh báo hooks và bundle.
+- Xem [kết quả nghiệm thu trên bản sao DB quán](frontend-handoff.md#7-kết-quả-nghiệm-thu-trên-bản-sao-db-quán).
+- Không tự triển khai thêm, không tự đoán nghiệp vụ, không reset thay đổi có sẵn, không dùng CSDL tiệm thật để demo.
+- Chi tiết quyết định đã chốt, tài khoản/số liệu demo, log và cách khởi động lại an toàn được lưu ở phần đầu handoff.
+
+---
+# Approved completion update — 2026-11-10: daily queue/Admin statistics
+
+- [x] SQL operational summary: all-history status/pending/backlog, created-today count, confirmed-today count and confirmed FOOD/DRINK revenue.
+- [x] Explicit Vietnam day and half-open boundaries; no 100-order cap, no duplicate order counts from multiple lines.
+- [x] Staff independent list/summary queries and failure/retry states; confirm/cancel summary refresh; day rollover/focus update.
+- [x] Admin independent revenue/computers/sessions queries; complete computer pagination and session totalElements.
+- [x] Source-specific unavailable/error/retry and last-success timestamps; distinguish actual zero from failed data.
+- [x] 26 backend and 41 offline frontend regressions; production build/lint (warnings remain); disposable demo API validation.
+- [ ] User browser acceptance on the new 245-order/125-computer demo, including one-source Admin failure/recovery.
+- [ ] Next: remaining CONFIRMED paid labels and documentation/combined acceptance; later device/interruption/performance/deployment gates.
+
+---
+
+# Approved completion update — 2026-11-10: order action errors
+
+- [x] Shared error-message reader for direct ErrorResponse, raw Axios errors and action-specific fallback.
+- [x] Staff confirm/cancel uses the reader; network/timeouts display Vietnamese recovery guidance.
+- [x] Failure keeps modal open, clears processing, avoids success feedback and automatic retry; success behavior retained.
+- [x] 14 offline order tests; frontend production build/lint (warnings remain). No backend/interceptor/payment changes.
+- [ ] User browser acceptance: same pending CASH order open in two tabs; first action succeeds, stale second action shows the backend error and keeps the modal open. Optional browser Offline test after the modal is open, then restore Online and reload the order.
+- [ ] Next: investigate/propose daily queue statistics and Admin failure states; then paid labels and remaining documentation reconciliation.
+
+---
+
+# Approved completion update — 2026-11-10: order queue
+
+- [x] Reuse /api/orders/search; add keyword, keep exact computer/phone and existing date/amount/status/payment filters.
+- [x] Include sessionless orders and session-only legacy links, matching the response identity.
+- [x] Exact #ID/ORD-ID; ordinary machine/phone/name substring, Vietnamese case/accent insensitive.
+- [x] Shared 20/50 server pagination for both lanes; filter/size reset; page-local lane counts; recover after an empty last page.
+- [x] FIFO for pending/waiting-confirmation including prior-day backlog; stable timestamp/ID ties; no page-switch new-order notification.
+- [x] Backend integration tests, offline UI/hook/API regressions, account/QR regressions, frontend build/lint.
+- [ ] User acceptance on separate 120-order demo database.
+- [ ] Following tasks: implement daily/global queue statistics and Admin failure states; rename CONFIRMED as paid; reconcile remaining documentation.
+
+---
+
+# Approved completion update — 2026-11-10: member directory
+
+- [x] Admin/Staff directory: server pagination/search/role filtering; return to first page on filter changes.
+- [x] Search phone/name without case/diacritics (including Vietnamese d-stroke); #ID exact, plain digits search phone/name.
+- [x] Global role-scoped account summary, independent of list filters; CUSTOMER standard-minute balance only.
+- [x] Shared customer selector for StartSessionModal, SellTimeModal and SellTimePage: server search after 300 ms, pages of 20/load more, selected detail by ID, account cache invalidation after mutation.
+- [x] Approved additional fix: StartSessionModal loads AVAILABLE computer pages when opened from member directory.
+- [x] Backend integration and offline frontend regression tests; production build/lint.
+- [x] User browser acceptance PASS on disposable demo data (>100 members), reported in this chat. No live database migration in this step.
+
+---
+
+# Implementation reconciliation ? 2026-11-09
+
+This section supersedes older snapshot claims below. Source manifests declare Java 17, Spring Boot 4.1.1, React 19, Ant Design 6, Tailwind 4, Zustand and TanStack Query.
+
+- Customer mobile ordering remains password-free. Existing CUSTOMER phone numbers only; unknown numbers return 404 NOT_FOUND with counter-registration guidance; STAFF/ADMIN return 403 FORBIDDEN before tokens are issued.
+- PC gaming login continues to require a password. Idle-PC QR login returns session=null and does not start play or deduct minutes.
+- Zone codes are catalog-backed strings, not a fixed enum. New assignments require an active zone; unchanged inactive assignments remain editable. Computer price remains authoritative.
+- Staff dashboard contains operational metrics and does not query Admin financial reports. Counts load all computer pages.
+- Admin CRUD, reports and dashboard already exist. Shared reduced-motion behavior and dashboard loading/retry states have been implemented; browser-wide visual QA remains pending.
+- Verification: Java/test compilation and 7 isolated customer/zone/error tests passed; frontend production build passed with a large-bundle warning. Lint exits successfully with warnings. Full database integration and browser verification have not been performed.
+- Migration rollout: see `docs/notes/migration-rollout.md`. Existing applied scripts were preserved; startup no longer repairs migration checksums automatically.
+
+---
+
 # 🎨 CyberNet Frontend — Kế hoạch thiết kế toàn diện
 
 > **Phiên bản:** v2.0 — Có bảng màu + UI reference  
@@ -269,13 +355,14 @@ flowchart TD
 - [x] **Layout:** Full-screen centered, nền gradient `midnight → obsidian`, hiệu ứng sparkle dots
 - [x] **Logo/Brand:** "CYBERNET" text lớn với font Space Grotesk, màu `gold`, subtle glow animation
 - [x] **Mã máy trạm:** Badge nổi bật hiển thị mã máy đọc từ URL query param `?code=PC-01`. Nếu URL không có mã máy, hiển thị cảnh báo yêu cầu quét lại QR tại bàn.
+- [x] **QR routing — chốt 10/11/2026, phương án A:** Giữ `code` qua chuyển hướng; không dùng mã máy lưu cũ hoặc mặc định PC-01 khi đăng nhập. Khách đang ở bàn A quét bàn B phải xác thực lại cho B; xóa trạng thái gọi món/cache cũ trên trình duyệt nhưng không kết thúc phiên chơi A. Chặn gửi khi mã máy chưa xác minh/sai; bỏ qua phản hồi đăng nhập cũ khi đã đổi mã hoặc rời trang.
 - [x] **Form Card:** GlassCard (glassmorphism), chứa:
   - Input SĐT — icon Phone, placeholder "Nhập số điện thoại của bạn", validation định dạng 10 số
   - *(Lưu ý: Không cần ô mật khẩu và không cần checkbox "Ghi nhớ đăng nhập" — Khách quét QR tại bàn chỉ cần nhập SĐT + mã máy trạm)*
   - Nút "VÀO PHIÊN CHƠI" — full-width, nền `gold`, text `midnight`, hover glow effect
 - [x] **API Endpoint:** Gọi `POST /api/auth/customer-session-login` với `{ computerCode, phone }`
-- [x] **Xử lý phản hồi:** Lưu `accessToken`, `refreshToken`, `sessionId` (`res.session.id`) vào Zustand `authStore` và chuyển hướng tới `/customer/dashboard`
-- [x] **Error handling:** Shake animation trên form khi sai thông tin hoặc máy chưa có phiên (`409 SESSION_NOT_ACTIVE`), toast notification
+- [x] **Xử lý phản hồi:** Lưu token và mã máy đã xác thực; `sessionId = res.session?.id ?? null`. Khi `session=null`, chỉ gọi món tại bàn, không tự mở máy.
+- [x] **Error handling:** Hiển thị thông báo backend khi xác thực thất bại; máy không có phiên vẫn được gọi món. Mã máy sai/thiếu chưa cho gửi form.
 - [x] **Loading:** Button chuyển loading spinner khi đang xác thực
 - [x] **Responsive:** Mobile-first — form full-width padding 16px, font-size tối ưu cho màn hình cảm ứng điện thoại
 
@@ -714,7 +801,7 @@ flowchart TD
 | # | Task | Chi tiết |
 |---|---|---|
 | **MS-4.1** | **Theme fine-tuning (DONE)** | ✅ Điều chỉnh colors, shadows, border-radius nhất quán. Đảm bảo contrast ratio WCAG AA (>4.5:1 text, >3:1 UI), bổ sung tokens Ant Design (DatePicker, Tabs, Drawer, Pagination, Tooltip, Switch), custom Twinkle scrollbar |
-| **MS-4.1b** | **Luồng đặt hàng QR 2 bước & Rào chắn An toàn Tài chính (DONE)** | ✅ Chuẩn hóa luồng thanh toán QR VietQR Napas247:<br>1. Khách đặt đơn QR: Đơn hiển thị "Chờ chuyển khoản" (`PENDING_PAYMENT`). Nút duyệt của Staff bị VÔ HIỆU HÓA kèm tooltip cảnh báo cấm duyệt; Backend chặn 400 Bad Request nếu cố duyệt.<br>2. Khách bấm "TÔI ĐÃ CHUYỂN KHOẢN": Chuyển trạng thái sang "Đã CK • Chờ quầy duyệt" (`WAITING_CONFIRMATION`), lưu `transferredAt`. Staff nhận thông báo realtime, nút Xác nhận đổi sang cyan/emerald bật sáng.<br>3. Staff xác nhận: Hiện Modal Popup đối soát bắt buộc (SĐT khách, tên khách, máy trạm, số tiền, cú pháp CK `ORDER-CYBERNET-{id}` và nhắc kiểm tra app ngân hàng) trước khi duyệt `CONFIRMED`.<br>4. Mở rộng MySQL `orders.status` lên `VARCHAR(50)` và bổ sung migration `V8__alter_orders_status_varchar.sql`. |
+| **MS-4.1b** | **Luồng đặt hàng QR 2 bước & Rào chắn An toàn Tài chính (DONE)** | ✅ Chuẩn hóa luồng thanh toán QR VietQR Napas247:<br>1. Khách đặt đơn QR: Đơn hiển thị "Chờ chuyển khoản" (`PENDING_PAYMENT`). Nút duyệt của Staff bị VÔ HIỆU HÓA kèm tooltip cảnh báo cấm duyệt; Backend chặn 400 Bad Request nếu cố duyệt.<br>2. Khách bấm "TÔI ĐÃ CHUYỂN KHOẢN": Chuyển trạng thái sang "Đã CK • Chờ quầy duyệt" (`WAITING_CONFIRMATION`), lưu `transferredAt`. Hàng đợi Staff nhận trạng thái qua polling, nút Xác nhận đổi sang cyan/emerald bật sáng.<br>3. Staff xác nhận: Hiện Modal Popup đối soát bắt buộc (SĐT khách, tên khách, máy trạm, số tiền, cú pháp CK `ORDER-CYBERNET-{id}` và nhắc kiểm tra app ngân hàng) trước khi duyệt `CONFIRMED`.<br>4. Mở rộng MySQL `orders.status` lên `VARCHAR(50)` và bổ sung migration `V8__alter_orders_status_varchar.sql`. |
 | **MS-4.2** | **Animation audit** | Kiểm tra mọi transition/animation nhất quán, không giật, respect `prefers-reduced-motion` |
 | **MS-4.3** | **Loading & Skeleton audit** | Mọi page có skeleton loading phù hợp, không flash of empty content |
 | **MS-4.4** | **Error & Empty state audit** | Mọi list có empty state đẹp, mọi API error có UX xử lý rõ ràng |

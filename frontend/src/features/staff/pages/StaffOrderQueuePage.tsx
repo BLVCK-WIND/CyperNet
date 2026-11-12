@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Input, Button, Skeleton, Segmented, Select, Badge, App } from 'antd';
+import { Input, Button, Skeleton, Segmented, Select, Badge, App, Pagination, Alert } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AxiosError } from 'axios';
+import { getApiErrorMessage } from '@/utils/apiError';
 import {
   ReceiptText,
   Search,
@@ -42,6 +42,7 @@ export const StaffOrderQueuePage: React.FC = () => {
   // Quản lý hiệu ứng Flash 3s cho đơn mới xuất hiện
   const [flashOrderIds, setFlashOrderIds] = useState<Set<number>>(new Set());
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
+  const notificationScopeRef = useRef<string | null>(null);
 
   const {
     orders,
@@ -51,17 +52,26 @@ export const StaffOrderQueuePage: React.FC = () => {
     allCount,
     confirmedRevenue,
     pendingAmount,
+    summary,
+    summaryQuery,
     isLoading,
     isFetching,
     isError,
     refetch,
+    page,
+    pageSize,
+    totalElements,
+    pageScope,
+    resetPage,
+    changePage,
   } = useOrderQueue({
     statusTab,
     paymentMethodFilter: paymentFilter,
     searchKeyword,
   });
 
-  const formatCurrency = (val: number) => {
+  const formatCurrency = (val: number | undefined) => {
+    if (val === undefined) return '—';
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
@@ -71,10 +81,11 @@ export const StaffOrderQueuePage: React.FC = () => {
 
   // Hiệu ứng thông báo nhanh 2-3s khi có đơn hàng mới xuất hiện
   useEffect(() => {
-    if (orders.length === 0) return;
-
-    // Lần đầu vào trang: chỉ ghi nhận ID các đơn hiện tại, không spam thông báo
-    if (knownOrderIdsRef.current.size === 0) {
+    if (isLoading || isError) return;
+    // A newly loaded page/filter is a baseline, not a batch of new arrivals.
+    if (notificationScopeRef.current !== pageScope) {
+      notificationScopeRef.current = pageScope;
+      setFlashOrderIds(new Set());
       orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
       return;
     }
@@ -96,7 +107,7 @@ export const StaffOrderQueuePage: React.FC = () => {
         // Toast thông báo góc phải trong đúng 3s rồi tự biến mất
         notification.open({
           key: `new-order-${newOrder.id}`,
-          message: (
+          title: (
             <div className="flex items-center gap-2 text-sand font-bold text-sm">
               <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
               <span>Đơn hàng mới #ORD-{newOrder.id}</span>
@@ -137,7 +148,7 @@ export const StaffOrderQueuePage: React.FC = () => {
 
     // Cập nhật danh sách ID đã biết
     orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
-  }, [orders, notification]);
+  }, [orders, notification, pageScope, isLoading, isError]);
 
   // Phân chia 2 luồng đơn hàng đồng bộ trên mọi Tab:
   // 1. Cột Bếp: Đơn thuần món ăn & đồ uống (F&B only)
@@ -162,10 +173,10 @@ export const StaffOrderQueuePage: React.FC = () => {
         };
       case 'CONFIRMED':
         return {
-          kitchenSubtitle: 'Đơn thuần món ăn, nước giải khát — Đã chế biến & hoàn tất giao bàn',
-          kitchenEmpty: 'Chưa có đơn đồ ăn/nước uống nào đã hoàn thành trong bộ lọc này.',
-          cashierSubtitle: 'Đơn kèm nạp giờ — Đã thu tiền & nạp thành công vào máy trạm',
-          cashierEmpty: 'Chưa có đơn nạp giờ chơi nào đã xác nhận trong bộ lọc này.',
+          kitchenSubtitle: 'Đơn đồ ăn, nước giải khát đã thanh toán',
+          kitchenEmpty: 'Chưa có đơn đồ ăn, nước giải khát đã thanh toán trong bộ lọc này.',
+          cashierSubtitle: 'Đơn kèm nạp giờ đã thanh toán',
+          cashierEmpty: 'Chưa có đơn kèm nạp giờ đã thanh toán trong bộ lọc này.',
         };
       case 'CANCELLED':
         return {
@@ -195,22 +206,20 @@ export const StaffOrderQueuePage: React.FC = () => {
       setProcessingOrderId(orderId);
       setProcessingAction('confirm');
       const updatedOrder = await orderApi.confirmOrder(orderId);
-      message.success(`Đơn #ORD-${orderId} ${computerCode ? `(Máy ${computerCode})` : ''} đã được xác nhận thành công!`);
+      notificationScopeRef.current = null;
+      message.success(`Đơn #ORD-${orderId} ${computerCode ? `(Máy ${computerCode})` : ''} đã thanh toán.`);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['staff-orders'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-order-queue'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-topbar-pending-orders'] }),
-        queryClient.invalidateQueries({ queryKey: ['staff-pending-orders-summary'] }),
-        queryClient.invalidateQueries({ queryKey: ['staff-confirmed-orders-summary'] }),
-        queryClient.invalidateQueries({ queryKey: ['staff-all-orders-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-order-summary'] }),
       ]);
       if (selectedOrder?.id === orderId) {
         setSelectedOrder(updatedOrder);
       }
       setActionModalOrder(null);
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{ message?: string }>;
-      message.error(axiosErr.response?.data?.message || 'Không thể xác nhận đơn hàng lúc này!');
+      message.error(getApiErrorMessage(err, 'Không thể xác nhận đơn hàng lúc này!'));
     } finally {
       setProcessingOrderId(null);
       setProcessingAction(null);
@@ -222,14 +231,13 @@ export const StaffOrderQueuePage: React.FC = () => {
       setProcessingOrderId(orderId);
       setProcessingAction('cancel');
       await orderApi.cancelOrder(orderId);
+      notificationScopeRef.current = null;
       message.success(`Đơn #ORD-${orderId} đã được hủy thành công.`);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['staff-orders'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-order-queue'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-topbar-pending-orders'] }),
-        queryClient.invalidateQueries({ queryKey: ['staff-pending-orders-summary'] }),
-        queryClient.invalidateQueries({ queryKey: ['staff-confirmed-orders-summary'] }),
-        queryClient.invalidateQueries({ queryKey: ['staff-all-orders-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['staff-order-summary'] }),
       ]);
       if (selectedOrder?.id === orderId) {
         setIsDetailOpen(false);
@@ -237,8 +245,7 @@ export const StaffOrderQueuePage: React.FC = () => {
       }
       setActionModalOrder(null);
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{ message?: string }>;
-      message.error(axiosErr.response?.data?.message || 'Không thể hủy đơn hàng lúc này!');
+      message.error(getApiErrorMessage(err, 'Không thể hủy đơn hàng lúc này!'));
     } finally {
       setProcessingOrderId(null);
       setProcessingAction(null);
@@ -266,7 +273,7 @@ export const StaffOrderQueuePage: React.FC = () => {
               Hàng đợi đơn hàng (Order Queue)
             </h1>
 
-            {pendingCount > 0 && (
+            {(pendingCount ?? 0) > 0 && (
               <Badge
                 count={pendingCount}
                 className="site-badge-count-4"
@@ -290,7 +297,7 @@ export const StaffOrderQueuePage: React.FC = () => {
           <Button
             type="text"
             icon={<RefreshCw className={`w-4 h-4 text-gold ${isFetching ? 'animate-spin' : ''}`} />}
-            onClick={() => refetch()}
+            onClick={() => { void refetch(); void summaryQuery.refetch(); }}
             className="flex items-center gap-1.5 h-10 px-3.5 rounded-xl twinkle-btn-secondary cursor-pointer"
           >
             <span className="text-xs font-medium">Làm mới</span>
@@ -299,6 +306,10 @@ export const StaffOrderQueuePage: React.FC = () => {
       </div>
 
       {/* 2. Dải Thống Kê Nhanh Đơn Hàng (Order Telemetry Strip - Liquid Glass 3D) */}
+      <p className="text-xs text-mist">Ngày thống kê: {summary?.date ?? '—'} • Giờ Việt Nam
+        {summaryQuery.isPending ? ' • Đang tải thống kê...' : ''}</p>
+      {summaryQuery.isError && <Alert type="error" title="Không thể tải thống kê đơn hàng"
+        action={<Button onClick={() => void summaryQuery.refetch()}>Thử lại thống kê</Button>} />}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Thẻ 1: Đơn chờ xác nhận (Cam cháy hoàng hôn) */}
         <div className="liquid-glass-sunset flex flex-col justify-between">
@@ -310,7 +321,7 @@ export const StaffOrderQueuePage: React.FC = () => {
               </span>
               <span
                 className={`w-2.5 h-2.5 rounded-full ${
-                  pendingCount > 0
+                  (pendingCount ?? 0) > 0
                     ? 'bg-[#f97316] shadow-[0_0_10px_rgba(249,115,22,0.9)] animate-pulse'
                     : 'bg-mist/40'
                 }`}
@@ -318,13 +329,13 @@ export const StaffOrderQueuePage: React.FC = () => {
             </div>
 
             <div className="text-2xl sm:text-3xl font-heading font-black text-[#fed7aa] drop-shadow-[0_2px_8px_rgba(234,88,12,0.5)] tracking-tight">
-              {pendingCount}{' '}
+              {pendingCount ?? '—'}{' '}
               <span className="text-xs font-normal text-mist font-sans">đơn món</span>
             </div>
           </div>
 
           <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-sand/80">
-            <span>Tạm tính:</span>
+            <span>Tồn trước hôm nay: {summary?.backlogCount ?? '—'} đơn • Tạm tính:</span>
             <strong className="text-[#fb923c] font-bold">{formatCurrency(pendingAmount)}</strong>
           </div>
         </div>
@@ -335,20 +346,20 @@ export const StaffOrderQueuePage: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-sand/90 uppercase tracking-wider flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-[#34d399]" />
-                Đã hoàn thành
+                Đã thanh toán hôm nay
               </span>
               <span className="w-2.5 h-2.5 rounded-full bg-[#4ADE80] shadow-[0_0_10px_rgba(74,222,128,0.9)]" />
             </div>
 
             <div className="text-2xl sm:text-3xl font-heading font-black text-[#4ADE80] drop-shadow-[0_2px_8px_rgba(16,185,129,0.5)] tracking-tight">
-              {confirmedCount}{' '}
-              <span className="text-xs font-normal text-mist font-sans">đơn giao</span>
+              {summary?.todayConfirmedCount ?? '—'}{' '}
+              <span className="text-xs font-normal text-mist font-sans">đơn</span>
             </div>
           </div>
 
           <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-mist">
             <span>Trạng thái:</span>
-            <span className="text-[#34d399] font-bold">Đã thu & giao món</span>
+            <span className="text-[#34d399] font-bold">Theo ngày xác nhận thanh toán</span>
           </div>
         </div>
 
@@ -358,20 +369,20 @@ export const StaffOrderQueuePage: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-sand/90 uppercase tracking-wider flex items-center gap-1.5">
                 <ShoppingBag className="w-3.5 h-3.5 text-[#38bdf8]" />
-                Tổng lượt gọi
+                Lượt gọi hôm nay
               </span>
               <span className="w-2.5 h-2.5 rounded-full bg-[#06b6d4] shadow-[0_0_10px_rgba(6,182,212,0.9)]" />
             </div>
 
             <div className="text-2xl sm:text-3xl font-heading font-black text-[#38bdf8] drop-shadow-[0_2px_8px_rgba(6,182,212,0.5)] tracking-tight">
-              {allCount}{' '}
-              <span className="text-xs font-normal text-mist font-sans">lượt hôm nay</span>
+              {summary?.todayCreatedCount ?? '—'}{' '}
+              <span className="text-xs font-normal text-mist font-sans">lượt</span>
             </div>
           </div>
 
           <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-mist">
-            <span>Toàn hệ thống:</span>
-            <span className="text-sand font-bold">{allCount} đơn hàng</span>
+            <span>Toàn bộ lịch sử:</span>
+            <span className="text-sand font-bold">{allCount ?? '—'} đơn hàng</span>
           </div>
         </div>
 
@@ -381,7 +392,7 @@ export const StaffOrderQueuePage: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-sand/90 uppercase tracking-wider flex items-center gap-1.5">
                 <Coins className="w-3.5 h-3.5 text-[#e0a96d]" />
-                Doanh thu F&B
+                Doanh thu F&B hôm nay
               </span>
               <span className="w-2.5 h-2.5 rounded-full bg-[#e0a96d] shadow-[0_0_10px_rgba(224,169,109,0.9)]" />
             </div>
@@ -393,7 +404,7 @@ export const StaffOrderQueuePage: React.FC = () => {
 
           <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono backdrop-blur-md bg-black/20 rounded-xl px-2.5 py-1 text-mist">
             <span>Nguồn thu:</span>
-            <span className="text-sand/90 font-bold">Bếp & Quầy Bar</span>
+            <span className="text-sand/90 font-bold">Theo thời điểm xác nhận thanh toán</span>
           </div>
         </div>
       </div>
@@ -408,13 +419,13 @@ export const StaffOrderQueuePage: React.FC = () => {
           </span>
           <Segmented
             value={statusTab}
-            onChange={(val) => setStatusTab(val as OrderQueueTab)}
+            onChange={(val) => { setStatusTab(val as OrderQueueTab); resetPage(); }}
             options={[
               {
                 label: (
                   <span className="flex items-center gap-1.5 px-1">
                     <Clock className="w-3.5 h-3.5 text-warning" />
-                    Chờ xử lý ({pendingCount})
+                    Chờ xử lý ({pendingCount ?? '—'})
                   </span>
                 ),
                 value: 'PENDING_PAYMENT',
@@ -423,7 +434,7 @@ export const StaffOrderQueuePage: React.FC = () => {
                 label: (
                   <span className="flex items-center gap-1.5 px-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                    Đã xác nhận ({confirmedCount})
+                    Đã thanh toán ({confirmedCount ?? '—'})
                   </span>
                 ),
                 value: 'CONFIRMED',
@@ -432,13 +443,13 @@ export const StaffOrderQueuePage: React.FC = () => {
                 label: (
                   <span className="flex items-center gap-1.5 px-1">
                     <XCircle className="w-3.5 h-3.5 text-danger" />
-                    Đã hủy ({cancelledCount})
+                    Đã hủy ({cancelledCount ?? '—'})
                   </span>
                 ),
                 value: 'CANCELLED',
               },
               {
-                label: `Tất cả (${allCount})`,
+                label: `Tất cả (${allCount ?? '—'})`,
                 value: 'ALL',
               },
             ]}
@@ -450,7 +461,7 @@ export const StaffOrderQueuePage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           <Select
             value={paymentFilter}
-            onChange={(val) => setPaymentFilter(val)}
+            onChange={(val) => { setPaymentFilter(val); resetPage(); }}
             className="h-10 w-44"
             options={[
               { value: 'ALL', label: 'Tất cả phương thức' },
@@ -461,10 +472,10 @@ export const StaffOrderQueuePage: React.FC = () => {
 
           <div className="w-full sm:w-72">
             <Input
-              placeholder="Tìm theo mã đơn #12, máy PC-01, SĐT..."
+              placeholder="Tìm #12 / ORD-12, máy, SĐT, tên không dấu..."
               prefix={<Search className="w-4 h-4 text-mist mr-1" />}
               value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
+              onChange={(e) => { setSearchKeyword(e.target.value); resetPage(); }}
               allowClear
               className="bg-midnight/80 border-mist/20 text-sand placeholder:text-mist/50 focus:border-gold hover:border-gold-light rounded-xl h-10 text-xs"
             />
@@ -522,7 +533,7 @@ export const StaffOrderQueuePage: React.FC = () => {
               </div>
 
               <div className="px-3.5 py-1.5 rounded-xl bg-midnight/80 border border-amber-500/30 text-xs font-mono font-bold text-sand shrink-0 shadow-inner">
-                <span className="text-amber-400 text-sm font-black">{foodOnlyOrders.length}</span> đơn
+                <span className="text-amber-400 text-sm font-black">{foodOnlyOrders.length}</span> đơn trên trang này
               </div>
             </div>
 
@@ -533,7 +544,7 @@ export const StaffOrderQueuePage: React.FC = () => {
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400/50 border border-amber-500/20 flex items-center justify-center mb-2.5">
                     <Utensils className="w-6 h-6" />
                   </div>
-                  <p className="text-xs text-mist font-medium">{columnDescriptions.kitchenEmpty}</p>
+                  <p className="text-xs text-mist font-medium">Trang này không có đơn phù hợp cho Bếp & Pha chế.</p>
                 </div>
               ) : (
                 foodOnlyOrders.map((order) => (
@@ -574,7 +585,7 @@ export const StaffOrderQueuePage: React.FC = () => {
               </div>
 
               <div className="px-3.5 py-1.5 rounded-xl bg-midnight/80 border border-cyan-500/30 text-xs font-mono font-bold text-sand shrink-0 shadow-inner">
-                <span className="text-cyan-400 text-sm font-black">{playtimeOrders.length}</span> đơn
+                <span className="text-cyan-400 text-sm font-black">{playtimeOrders.length}</span> đơn trên trang này
               </div>
             </div>
 
@@ -585,7 +596,7 @@ export const StaffOrderQueuePage: React.FC = () => {
                   <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400/50 border border-cyan-500/20 flex items-center justify-center mb-2.5">
                     <Zap className="w-6 h-6" />
                   </div>
-                  <p className="text-xs text-mist font-medium">{columnDescriptions.cashierEmpty}</p>
+                  <p className="text-xs text-mist font-medium">Trang này không có đơn phù hợp cho Thu ngân & Nạp giờ.</p>
                 </div>
               ) : (
                 playtimeOrders.map((order) => (
@@ -605,6 +616,13 @@ export const StaffOrderQueuePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {!isError && <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-mist/20 p-4">
+        <span className="text-xs text-mist">Hai cột dùng chung một trang dữ liệu • {totalElements} đơn phù hợp</span>
+        <Pagination current={page} pageSize={pageSize} total={totalElements} onChange={changePage}
+          showSizeChanger pageSizeOptions={[20, 50]} disabled={isLoading}
+          showTotal={(total, range) => `${range[0]}–${range[1]} / ${total} đơn`} />
+      </div>}
 
       {/* 5. Drawer Chi Tiết Đơn Hàng (Slide-in) */}
       <StaffOrderDetailDrawer

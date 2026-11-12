@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Progress, App } from 'antd';
+import { Button, Progress, App, Skeleton, Alert } from 'antd';
 import {
   Monitor,
   ReceiptText,
@@ -9,7 +9,6 @@ import {
   PlayCircle,
   AlertTriangle,
   ArrowRight,
-  DollarSign,
   Sparkles,
   ChevronRight,
   Flame,
@@ -17,14 +16,12 @@ import {
   Zap,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import dayjs from 'dayjs';
 import { PageTransition } from '@/components/animations/PageTransition';
 import { useAuthStore } from '@/store/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { orderApi } from '@/api/orderApi';
 import { computerApi } from '@/api/computerApi';
 import { sessionApi } from '@/api/sessionApi';
-import { reportApi } from '@/api/reportApi';
 import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { FloorMapComputerItem } from '@/types/computer';
 
@@ -45,12 +42,13 @@ export const StaffDashboardPage: React.FC = () => {
   const [sellTimeOpen, setSellTimeOpen] = useState(false);
   const [registerCustomerOpen, setRegisterCustomerOpen] = useState(false);
 
-  const todayStr = dayjs().format('YYYY-MM-DD');
 
   // 1. Fetch Đơn hàng đang chờ duyệt (Pending Orders - Khẩn cấp)
   const {
     data: pendingOrdersData,
     isFetching: isFetchingOrders,
+    isPending: pendingLoading,
+    isError: pendingError,
     refetch: refetchOrders,
   } = useQuery({
     queryKey: ['staff-dashboard-pending-orders'],
@@ -64,6 +62,8 @@ export const StaffDashboardPage: React.FC = () => {
   const {
     data: activeSessionsData,
     isFetching: isFetchingSessions,
+    isPending: sessionsLoading,
+    isError: sessionsError,
     refetch: refetchSessions,
   } = useQuery({
     queryKey: ['staff-dashboard-active-sessions'],
@@ -75,9 +75,9 @@ export const StaffDashboardPage: React.FC = () => {
   const activeCount = activeSessionsData?.totalElements || 0;
 
   // 3. Fetch Toàn bộ máy trạm để lấy tỷ lệ Online
-  const { data: computersData } = useQuery({
+  const { data: computersData, isPending: computersLoading, isError: computersError, refetch: refetchComputers } = useQuery({
     queryKey: ['staff-dashboard-computers'],
-    queryFn: () => computerApi.getComputers({ size: 100 }),
+    queryFn: () => computerApi.getAllComputers(),
     refetchInterval: 15000,
   });
 
@@ -94,11 +94,7 @@ export const StaffDashboardPage: React.FC = () => {
   }, [allComputers]);
 
   // 4. Fetch Doanh thu ca trực hôm nay
-  const { data: todaySummary } = useQuery({
-    queryKey: ['staff-dashboard-today-revenue', todayStr],
-    queryFn: () => reportApi.getRevenueSummary({ fromDate: todayStr, toDate: todayStr }),
-    refetchInterval: 15000,
-  });
+
 
   // Tìm các máy sắp hết giờ (< 15 phút)
   const expiringSessions = useMemo(() => {
@@ -111,7 +107,15 @@ export const StaffDashboardPage: React.FC = () => {
   const handleRefetchAll = () => {
     refetchOrders();
     refetchSessions();
+    refetchComputers();
   };
+
+  if ((pendingError && !pendingOrdersData) || (sessionsError && !activeSessionsData) || (computersError && !computersData)) {
+    return <Alert type="error" title="Không thể tải dữ liệu" action={<Button onClick={handleRefetchAll}>Thử lại</Button>} />;
+  }
+  if (pendingLoading || sessionsLoading || computersLoading) {
+    return <div className="space-y-6" aria-busy="true"><Skeleton active paragraph={{ rows: 2 }} /><div className="grid grid-cols-2 gap-4">{[0, 1, 2, 3].map((key) => <Skeleton key={key} active paragraph={{ rows: 2 }} />)}</div><Skeleton active paragraph={{ rows: 8 }} /></div>;
+  }
 
   return (
     <PageTransition>
@@ -229,17 +233,17 @@ export const StaffDashboardPage: React.FC = () => {
           {/* Doanh thu hôm nay */}
           <div className="liquid-glass-card liquid-glass-emerald cursor-default">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-sand/80">Doanh Thu Hôm Nay</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-sand/80">Máy sẵn sàng</span>
               <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300">
-                <DollarSign className="w-4 h-4" />
+                <Monitor className="w-4 h-4" />
               </div>
             </div>
             <div className="text-3xl font-heading font-bold text-sand mt-2">
-              {Number(todaySummary?.totalRevenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-sand/70">₫</span>
+              {availableComputers.length} <span className="text-xs">máy</span>
             </div>
             <div className="frosted-glass-pill mt-3 flex items-center justify-between text-xs">
-              <span>Tiền mặt & VietQR</span>
-              <span className="font-bold text-emerald-400">{(todaySummary?.totalOrders || 0) + (todaySummary?.totalTimePurchases || 0)} gd</span>
+              <span>Tổng máy trạm</span>
+              <span className="font-bold text-emerald-400">{totalComputers} máy</span>
             </div>
           </div>
         </div>
@@ -332,7 +336,7 @@ export const StaffDashboardPage: React.FC = () => {
                         percent={progressPct}
                         showInfo={false}
                         strokeColor={isLowTime ? '#ef4444' : '#bd9875'}
-                        trailColor="rgba(255,255,255,0.06)"
+                        railColor="rgba(255,255,255,0.06)"
                         size="small"
                       />
                     </div>

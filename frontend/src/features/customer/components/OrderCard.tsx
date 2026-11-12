@@ -43,7 +43,7 @@ const getStatusBadge = (status: OrderStatus, paymentMethod?: string) => {
           color="#4CAF50"
           className="m-0 font-semibold text-[11px] px-2.5 py-0.5 border-0"
         >
-          ĐÃ HOÀN THÀNH
+          Đã thanh toán
         </Tag>
       );
     case 'CANCELLED':

@@ -15,7 +15,7 @@ public class ComputerSpecification {
 
     public static Specification<Computer> filter(
             Computer.Status status,
-            Computer.Zone zone,
+            String zone,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             String keyword) {

@@ -195,7 +195,7 @@ public class ManageAccountsIntegrationTest {
             Computer c = new Computer();
             c.setCode("PC-TEST-ACC");
             c.setIpAddress("192.168.10.99");
-            c.setZone(Computer.Zone.STANDARD);
+            c.setZone("STANDARD");
             c.setPricePerHour(BigDecimal.valueOf(10000));
             c.setStatus(Computer.Status.AVAILABLE);
             return computerRepository.save(c);

@@ -1,3 +1,17 @@
+# Implementation reconciliation ? 2026-11-09
+
+This section supersedes older snapshot claims below. Source manifests declare Java 17, Spring Boot 4.1.1, React 19, Ant Design 6, Tailwind 4, Zustand and TanStack Query.
+
+- Customer mobile ordering remains password-free. Existing CUSTOMER phone numbers only; unknown numbers return 404 NOT_FOUND with counter-registration guidance; STAFF/ADMIN return 403 FORBIDDEN before tokens are issued.
+- PC gaming login continues to require a password. Idle-PC QR login returns session=null and does not start play or deduct minutes.
+- Zone codes are catalog-backed strings, not a fixed enum. New assignments require an active zone; unchanged inactive assignments remain editable. Computer price remains authoritative.
+- Staff dashboard contains operational metrics and does not query Admin financial reports. Counts load all computer pages.
+- Admin CRUD, reports and dashboard already exist. Shared reduced-motion behavior and dashboard loading/retry states have been implemented; browser-wide visual QA remains pending.
+- Verification: Java/test compilation and 7 isolated customer/zone/error tests passed; frontend production build passed with a large-bundle warning. Lint exits successfully with warnings. Full database integration and browser verification have not been performed.
+- Migration rollout: see `docs/notes/migration-rollout.md`. Existing applied scripts were preserved; startup no longer repairs migration checksums automatically.
+
+---
+
 # 🗄️ CyberNet Schema & Entity Skeleton
 
 > **Mục đích:** File tóm tắt cấu trúc 7 Entity cốt lõi của hệ thống CyberNet. AI chỉ cần đọc file này để biết chính xác field, type và quan hệ mà không cần đọc từng file Java Entity.

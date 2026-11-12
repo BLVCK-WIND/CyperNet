@@ -4,6 +4,19 @@ export type PaymentMethod = 'CASH' | 'QR';
 
 export type OrderStatus = 'PENDING_PAYMENT' | 'WAITING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED';
 
+export interface OrderSummary {
+  date: string;
+  timezone: string;
+  countsByStatus: Record<OrderStatus, number>;
+  pendingCount: number;
+  pendingAmount: number;
+  backlogCount: number;
+  backlogAmount: number;
+  todayCreatedCount: number;
+  todayConfirmedCount: number;
+  todayFoodAndDrinkRevenue: number;
+}
+
 export interface CreateOrderItemRequest {
   itemId: number;
   quantity: number;

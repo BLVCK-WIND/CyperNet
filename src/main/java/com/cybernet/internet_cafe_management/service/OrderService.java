@@ -17,6 +17,8 @@ import com.cybernet.internet_cafe_management.repository.SessionRepository;
 import com.cybernet.internet_cafe_management.repository.specification.OrderSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,6 +38,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final SessionRepository sessionRepository;
+    private final SessionService sessionService;
     private final ItemRepository itemRepository;
     private final AccountRepository accountRepository;
     private final ComputerRepository computerRepository;
@@ -42,6 +48,7 @@ public class OrderService {
     // Dependency Injection qua Constructor
     public OrderService(OrderRepository orderRepository,
                         SessionRepository sessionRepository,
+                        SessionService sessionService,
                         ItemRepository itemRepository,
                         AccountRepository accountRepository,
                         ComputerRepository computerRepository,
@@ -49,6 +56,7 @@ public class OrderService {
                         AuditLogService auditLogService) {
         this.orderRepository = orderRepository;
         this.sessionRepository = sessionRepository;
+        this.sessionService = sessionService;
         this.itemRepository = itemRepository;
         this.accountRepository = accountRepository;
         this.computerRepository = computerRepository;
@@ -92,15 +100,6 @@ public class OrderService {
             computer = session.getComputer();
             customer = session.getAccount();
 
-            // Kiểm tra quyền sở hữu phiên: Nếu là khách hàng, chỉ được đặt món cho chính phiên của mình (B4)
-            if (currentUserPhone != null && customer != null) {
-                Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
-                if (user != null && user.getRole() == Account.Role.CUSTOMER) {
-                    if (!customer.getPhone().equals(currentUserPhone)) {
-                        throw new org.springframework.security.access.AccessDeniedException("Bạn chỉ có thể đặt món cho chính phiên chơi của mình!");
-                    }
-                }
-            }
         } else if (request.getComputerCode() != null && !request.getComputerCode().isBlank()) {
             String pcCode = request.getComputerCode().trim();
             computer = computerRepository.findByCode(pcCode)
@@ -121,6 +120,10 @@ public class OrderService {
             throw new IllegalArgumentException("Vui lòng cung cấp mã phiên chơi (sessionId) hoặc mã máy trạm (computerCode)!");
         }
 
+        if (currentUserPhone != null) {
+            CustomerOwnership.requireOwner(accountRepository.findByPhone(currentUserPhone).orElse(null), customer);
+        }
+
         // Khởi tạo Order cha
         Order order = new Order();
         order.setSession(session);
@@ -129,40 +132,7 @@ public class OrderService {
         order.setPaymentMethod(request.getPaymentMethod());
         order.setStatus(Status.PENDING_PAYMENT);
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        List<OrderItem> orderItemList = new ArrayList<>();
-
-        // Xử lý từng món trong giỏ hàng
-        for (CreateOrderItemRequest itemReq : request.getItems()) {
-            if (itemReq.getQuantity() <= 0) {
-                throw new IllegalArgumentException("Số lượng món phải lớn hơn 0!");
-            }
-
-            Item item = itemRepository.findById(itemReq.getItemId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy món với ID = " + itemReq.getItemId()));
-
-            if (!item.isAvailable()) {
-                throw new IllegalStateException("Món [" + item.getName() + "] hiện đã hết hàng!");
-            }
-
-            // SNAPSHOT GIÁ: Lưu cứng giá tại thời điểm đặt để bảo vệ doanh thu lịch sử
-            BigDecimal unitPrice = item.getPrice();
-            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity()));
-            totalAmount = totalAmount.add(subtotal);
-
-            // Tạo OrderItem con
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order); // Gắn quan hệ với Order cha
-            orderItem.setItem(item);
-            orderItem.setQuantity(itemReq.getQuantity());
-            orderItem.setUnitPrice(unitPrice);
-            orderItem.setSubtotal(subtotal);
-
-            orderItemList.add(orderItem);
-        }
-
-        order.setTotalAmount(totalAmount);
-        order.setOrderItems(orderItemList);
+        populateOrderItems(order, request.getItems());
 
         // Do có cascade = ALL, hàm save dưới đây sẽ tự động INSERT cả bảng orders và order_items
         Order savedOrder = orderRepository.save(order);
@@ -179,32 +149,45 @@ public class OrderService {
      * Nếu không nhận diện được chữ số thì quy đổi theo giá chuẩn: 10.000 VNĐ = 60 phút
      */
     public static int extractPackageMinutes(Item item) {
-        if (item == null || item.getType() != Item.Type.PLAYTIME) {
-            return 0;
-        }
+        return item == null || item.getType() == null ? 0 : PlaytimeMinutes.minutes(item.getName(), item.getType().name(), item.getPrice());
+    }
 
-        String name = item.getName().toLowerCase();
-        // Regex tìm số giờ: "2 giờ", "2h", "2 hour", "2 tiếng"
-        java.util.regex.Pattern hourPattern = java.util.regex.Pattern.compile("(\\d+)\\s*(giờ|giờ|tiếng|tiếng|h|hour)");
-        java.util.regex.Matcher hourMatcher = hourPattern.matcher(name);
-        if (hourMatcher.find()) {
-            int hours = Integer.parseInt(hourMatcher.group(1));
-            return hours * 60;
-        }
+    private void populateOrderItems(Order order, List<CreateOrderItemRequest> requests) {
+        List<Long> itemIds = requests.stream().map(CreateOrderItemRequest::getItemId).distinct().toList();
+        Map<Long, Item> catalog = itemRepository.findAllById(itemIds).stream()
+                .collect(Collectors.toMap(Item::getId, Function.identity()));
 
-        // Regex tìm số phút: "30 phút", "30p", "30 min"
-        java.util.regex.Pattern minPattern = java.util.regex.Pattern.compile("(\\d+)\\s*(phút|phút|p|min)");
-        java.util.regex.Matcher minMatcher = minPattern.matcher(name);
-        if (minMatcher.find()) {
-            return Integer.parseInt(minMatcher.group(1));
-        }
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        List<OrderItem> lines = new ArrayList<>(requests.size());
+        for (CreateOrderItemRequest request : requests) {
+            if (request.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Số lượng món phải lớn hơn 0!");
+            }
+            Item item = catalog.get(request.getItemId());
+            if (item == null) {
+                throw new ResourceNotFoundException("Không tìm thấy món với ID = " + request.getItemId());
+            }
+            if (!item.isAvailable()) {
+                throw new IllegalStateException("Món [" + item.getName() + "] hiện đã hết hàng!");
+            }
 
-        // Fallback: Quy đổi theo đơn giá chuẩn 10.000đ = 60 phút chuẩn
-        if (item.getPrice() != null && item.getPrice().compareTo(BigDecimal.ZERO) > 0) {
-            return (int) Math.round(item.getPrice().doubleValue() / 10000.0 * 60.0);
-        }
+            BigDecimal unitPrice = item.getPrice();
+            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(request.getQuantity()));
 
-        return 60; // Mặc định an toàn
+            OrderItem line = new OrderItem();
+            line.setOrder(order);
+            line.setItem(item);
+            line.setItemNameSnapshot(item.getName());
+            line.setItemTypeSnapshot(item.getType());
+            line.setPackageMinutesSnapshot(extractPackageMinutes(item));
+            line.setQuantity(request.getQuantity());
+            line.setUnitPrice(unitPrice);
+            line.setSubtotal(subtotal);
+            lines.add(line);
+            totalAmount = totalAmount.add(subtotal);
+        }
+        order.setOrderItems(lines);
+        order.setTotalAmount(totalAmount);
     }
 
     /**
@@ -214,7 +197,7 @@ public class OrderService {
      */
     @Transactional
     public OrderResponse confirmOrder(Long orderId, Long staffId) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID = " + orderId));
 
         if (order.getStatus() != Status.PENDING_PAYMENT && order.getStatus() != Status.WAITING_CONFIRMATION) {
@@ -238,41 +221,18 @@ public class OrderService {
         order.setConfirmedByStaff(staff);
         order.setConfirmedAt(LocalDateTime.now());
 
-        // KIỂM TRA TỰ ĐỘNG CỘNG GIỜ NẾU ĐƠN CÓ MÓN PLAYTIME (DYNAMIC TARIFF ARCHITECTURE)
-        Session session = order.getSession();
-        int totalStandardMinutes = 0;
-
-        for (OrderItem orderItem : order.getOrderItems()) {
-            if (orderItem.getItem().getType() == Item.Type.PLAYTIME) {
-                int packageMinutes = extractPackageMinutes(orderItem.getItem());
-                totalStandardMinutes += (packageMinutes * orderItem.getQuantity());
-            }
-        }
-
+        int totalStandardMinutes = purchasedStandardMinutes(order);
         long extraMachineMinutes = 0;
         if (totalStandardMinutes > 0) {
-            // 1. Cộng thêm phút chuẩn vào tài khoản khách hàng
-            Account customer = (order.getAccount() != null)
-                    ? order.getAccount()
-                    : (session != null ? session.getAccount() : null);
-
-            if (customer != null) {
-                customer.setRemainingMinutes(customer.getRemainingMinutes() + totalStandardMinutes);
-                accountRepository.save(customer);
+            Long customerId = order.getAccount() == null ? null : order.getAccount().getId();
+            if (customerId == null && order.getSession() != null) {
+                // Resolve legacy ownership without loading a session before its locking read.
+                customerId = sessionRepository.findAccountId(order.getSession().getId()).orElse(null);
             }
-
-            // 2. Nếu phiên chơi đang ACTIVE, gia hạn thời điểm hết hạn theo đơn giá máy đang ngồi
-            if (session != null && session.getStatus() == Session.Status.ACTIVE && session.getComputer() != null) {
-                extraMachineMinutes = SessionService.calculatePlayableMinutes(
-                        totalStandardMinutes,
-                        session.getComputer().getPricePerHour()
-                );
-                session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMachineMinutes));
-                sessionRepository.save(session);
-                realtimeNotificationService.broadcastComputerStatus(session.getComputer());
+            if (customerId != null) {
+                extraMachineMinutes = sessionService.creditPurchasedMinutes(customerId, totalStandardMinutes)
+                        .machineMinutes();
             }
-            // Nếu session == null (máy trống): Theo đúng quy tắc Cách B:
-            // Giờ chơi được nạp vào tài khoản an toàn 100%, không tự mở máy và không trừ giờ của khách!
         }
 
         Order updatedOrder = orderRepository.save(order);
@@ -292,7 +252,7 @@ public class OrderService {
      */
     @Transactional
     public OrderResponse notifyTransferred(Long orderId, String currentUserPhone) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID = " + orderId));
 
         if (order.getStatus() != Status.PENDING_PAYMENT) {
@@ -303,17 +263,9 @@ public class OrderService {
             throw new IllegalArgumentException("Chỉ đơn hàng thanh toán qua chuyển khoản QR mới cần thao tác này!");
         }
 
-        // Bảo vệ B4: Nếu là khách hàng, chỉ được thao tác với chính đơn hàng của mình
         if (currentUserPhone != null) {
-            Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
-            if (user != null && user.getRole() == Account.Role.CUSTOMER) {
-                String orderPhone = (order.getAccount() != null)
-                        ? order.getAccount().getPhone()
-                        : (order.getSession() != null && order.getSession().getAccount() != null ? order.getSession().getAccount().getPhone() : null);
-                if (orderPhone != null && !orderPhone.equals(currentUserPhone)) {
-                    throw new org.springframework.security.access.AccessDeniedException("Bạn chỉ có thể thao tác với đơn hàng của chính mình!");
-                }
-            }
+            CustomerOwnership.requireOwner(accountRepository.findByPhone(currentUserPhone).orElse(null),
+                    order.getAccount() != null ? order.getAccount() : order.getSession() == null ? null : order.getSession().getAccount());
         }
 
         order.setStatus(Status.WAITING_CONFIRMATION);
@@ -337,8 +289,18 @@ public class OrderService {
      */
     @Transactional
     public OrderResponse cancelOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
+        return cancelOrder(orderId, null);
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId, String currentUserPhone) {
+        Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID = " + orderId));
+
+        if (currentUserPhone != null) {
+            CustomerOwnership.requireOwner(accountRepository.findByPhone(currentUserPhone).orElse(null),
+                    order.getAccount() != null ? order.getAccount() : order.getSession() == null ? null : order.getSession().getAccount());
+        }
 
         if (order.getStatus() != Status.PENDING_PAYMENT && order.getStatus() != Status.WAITING_CONFIRMATION) {
             throw new IllegalStateException("Chỉ có thể huỷ đơn hàng chưa hoàn tất thanh toán! Trạng thái: " + order.getStatus());
@@ -395,7 +357,7 @@ public class OrderService {
             orderPage = orderRepository.findAll(pageable);
         }
 
-        return PageResponse.fromPage(orderPage, OrderResponse::fromEntity);
+        return toDetailedPage(orderPage);
     }
 
     /**
@@ -411,13 +373,19 @@ public class OrderService {
             BigDecimal maxAmount,
             String computerCode,
             String customerPhone,
+            String keyword,
             Pageable pageable) {
 
         Specification<Order> spec = OrderSpecification.filter(
-                status, paymentMethod, fromDate, toDate, minAmount, maxAmount, computerCode, customerPhone);
+                status, paymentMethod, fromDate, toDate, minAmount, maxAmount, computerCode, customerPhone, keyword);
 
-        Page<Order> page = orderRepository.findAll(spec, pageable);
-        return PageResponse.fromPage(page, OrderResponse::fromEntity);
+        Sort sort = pageable.getSort().isSorted() ? pageable.getSort() : Sort.by(Sort.Direction.DESC, "createdAt");
+        if (sort.getOrderFor("id") == null) {
+            Sort.Order created = sort.getOrderFor("createdAt");
+            sort = sort.and(Sort.by(created != null ? created.getDirection() : Sort.Direction.DESC, "id"));
+        }
+        Page<Order> page = orderRepository.findAll(spec, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort));
+        return toDetailedPage(page);
     }
 
     /**
@@ -448,18 +416,12 @@ public class OrderService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + sessionId));
 
-        // Kiểm tra quyền sở hữu phiên: Nếu là khách hàng, chỉ được xem đơn hàng của chính phiên mình (B4)
-        if (currentUserPhone != null && session.getAccount() != null) {
-            Account user = accountRepository.findByPhone(currentUserPhone).orElse(null);
-            if (user != null && user.getRole() == Account.Role.CUSTOMER) {
-                if (!session.getAccount().getPhone().equals(currentUserPhone)) {
-                    throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem đơn hàng của phiên chơi khác!");
-                }
-            }
+        if (currentUserPhone != null) {
+            CustomerOwnership.requireOwner(accountRepository.findByPhone(currentUserPhone).orElse(null), session.getAccount());
         }
 
         Page<Order> orderPage = orderRepository.findBySessionId(sessionId, pageable);
-        return PageResponse.fromPage(orderPage, OrderResponse::fromEntity);
+        return toDetailedPage(orderPage);
     }
 
     /**
@@ -471,7 +433,15 @@ public class OrderService {
             throw new IllegalArgumentException("Không xác định được số điện thoại khách hàng!");
         }
         Page<Order> orderPage = orderRepository.findByAccountPhone(currentUserPhone, pageable);
-        return PageResponse.fromPage(orderPage, OrderResponse::fromEntity);
+        return toDetailedPage(orderPage);
+    }
+
+    private PageResponse<OrderResponse> toDetailedPage(Page<Order> page) {
+        if (page.hasContent()) {
+            // Initialize the managed page rows in one query and keep the original page order.
+            orderRepository.fetchDetailsByIds(page.getContent().stream().map(Order::getId).toList());
+        }
+        return PageResponse.fromPage(page, OrderResponse::fromEntity);
     }
 
     /**
@@ -500,7 +470,10 @@ public class OrderService {
         }
 
         // 2. Kiểm tra phiên chơi
-        Session session = sessionRepository.findById(request.getSessionId())
+        Long balanceAccountId = sessionRepository.findAccountId(request.getSessionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found: " + request.getSessionId()));
+        Account customer = accountRepository.findByIdWithLock(balanceAccountId).orElseThrow();
+        Session session = sessionRepository.findByIdWithLock(request.getSessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + request.getSessionId()));
 
         if (session.getStatus() != Session.Status.ACTIVE) {
@@ -512,73 +485,16 @@ public class OrderService {
         Order order = new Order();
         order.setSession(session);
         order.setComputer(session.getComputer());
-        order.setAccount(session.getAccount());
+        order.setAccount(customer);
         order.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : PaymentMethod.CASH);
         order.setStatus(Status.CONFIRMED);
         order.setConfirmedByStaff(staff);
         order.setConfirmedAt(now);
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        List<OrderItem> orderItemList = new ArrayList<>();
-        int totalStandardMinutes = 0;
-
-        // 4. Xử lý từng món trong đơn
-        for (CreateOrderItemRequest itemReq : request.getItems()) {
-            if (itemReq.getQuantity() <= 0) {
-                throw new IllegalArgumentException("Số lượng món phải lớn hơn 0!");
-            }
-
-            Item item = itemRepository.findById(itemReq.getItemId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy món với ID = " + itemReq.getItemId()));
-
-            if (!item.isAvailable()) {
-                throw new IllegalStateException("Món [" + item.getName() + "] hiện đã hết hàng!");
-            }
-
-            BigDecimal unitPrice = item.getPrice();
-            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity()));
-            totalAmount = totalAmount.add(subtotal);
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setItem(item);
-            orderItem.setQuantity(itemReq.getQuantity());
-            orderItem.setUnitPrice(unitPrice);
-            orderItem.setSubtotal(subtotal);
-
-            orderItemList.add(orderItem);
-
-            // Kiểm tra món loại PLAYTIME: Trích xuất số phút chuẩn của gói (Standard Minutes)
-            if (item.getType() == Item.Type.PLAYTIME) {
-                int packageMinutes = extractPackageMinutes(item);
-                totalStandardMinutes += (packageMinutes * itemReq.getQuantity());
-            }
-        }
-
-        order.setTotalAmount(totalAmount);
-        order.setOrderItems(orderItemList);
-
-        // 5. Nếu có món loại PLAYTIME: Áp dụng kiến trúc Dynamic Tariff chuẩn theo Zone của máy
-        long extraMachineMinutes = 0;
-        if (totalStandardMinutes > 0) {
-            // a. Cộng phút chuẩn vào tài khoản khách hàng
-            Account customer = session.getAccount();
-            if (customer != null) {
-                customer.setRemainingMinutes(customer.getRemainingMinutes() + totalStandardMinutes);
-                accountRepository.save(customer);
-            }
-
-            // b. Nếu phiên chơi đang ACTIVE, quy đổi phút máy thực tế theo đơn giá Zone máy đang ngồi
-            if (session.getStatus() == Session.Status.ACTIVE && session.getComputer() != null) {
-                extraMachineMinutes = SessionService.calculatePlayableMinutes(
-                        totalStandardMinutes,
-                        session.getComputer().getPricePerHour()
-                );
-                session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMachineMinutes));
-                sessionRepository.save(session);
-                realtimeNotificationService.broadcastComputerStatus(session.getComputer());
-            }
-        }
+        populateOrderItems(order, request.getItems());
+        int totalStandardMinutes = purchasedStandardMinutes(order);
+        long extraMachineMinutes = totalStandardMinutes > 0
+                ? sessionService.applyPurchasedMinutes(customer, session, totalStandardMinutes) : 0;
 
         Order savedOrder = orderRepository.save(order);
         realtimeNotificationService.broadcastOrderEvent(savedOrder, "CREATED_DIRECT", "Tạo và thanh toán đơn trực tiếp tại quầy #" + savedOrder.getId());
@@ -587,5 +503,13 @@ public class OrderService {
         log.info("UC-7 Direct Order: Nhân viên [ID={}] tạo đơn trực tiếp [ID={}] cho phiên [ID={}], tổng: {} VND, cộng phút chuẩn: {}, phút máy: {}",
                 staff.getId(), savedOrder.getId(), session.getId(), savedOrder.getTotalAmount(), totalStandardMinutes, extraMachineMinutes);
         return OrderResponse.fromEntity(savedOrder);
+    }
+
+    private static int purchasedStandardMinutes(Order order) {
+        return order.getOrderItems().stream()
+                .filter(line -> line.getItemTypeSnapshot() == Item.Type.PLAYTIME)
+                .filter(line -> line.getPackageMinutesSnapshot() != null)
+                .mapToInt(line -> line.getPackageMinutesSnapshot() * line.getQuantity())
+                .sum();
     }
 }

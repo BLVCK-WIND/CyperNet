@@ -19,6 +19,7 @@ import 'dayjs/locale/vi';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ZoneBadge } from '@/components/common/ZoneBadge';
 import type { OrderResponse } from '@/types/order';
+import { vietnamTimestamp } from '@/utils/vietnamTime';
 
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -43,11 +44,13 @@ export const StaffOrderCard: React.FC<StaffOrderCardProps> = ({
   isFlashNew = false,
 }) => {
   const { id, computerCode, computerZone, customerName, customerPhone, totalAmount, paymentMethod, status, createdAt, items } = order;
+  const created = dayjs(vietnamTimestamp(createdAt));
+  const minutesWaiting = dayjs().diff(created, 'minute');
 
   // Kiểm tra đơn mới đặt trong vòng 2 phút (chỉ áp dụng cho PENDING_PAYMENT)
-  const isNew = status === 'PENDING_PAYMENT' && dayjs().diff(dayjs(createdAt), 'minute') <= 2;
+  const isNew = status === 'PENDING_PAYMENT' && minutesWaiting <= 2;
   // Đơn chờ > 5 phút (Khẩn cấp cần duyệt ngay)
-  const isUrgent = status === 'PENDING_PAYMENT' && dayjs().diff(dayjs(createdAt), 'minute') >= 5;
+  const isUrgent = status === 'PENDING_PAYMENT' && minutesWaiting >= 5;
 
   // Phân loại đơn: Đồ ăn/uống vs Giờ chơi vs Combo
   const hasPlaytime = items.some((it) => it.itemType === 'PLAYTIME');
@@ -128,7 +131,7 @@ export const StaffOrderCard: React.FC<StaffOrderCardProps> = ({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
               </span>
-              <span>CHỜ {dayjs().diff(dayjs(createdAt), 'minute')}P</span>
+              <span>CHỜ {minutesWaiting}P</span>
             </span>
           ) : isNew ? (
             <span className="pill-badge text-[10px] font-extrabold bg-warning/20 text-warning border border-warning/40 shadow-sm inline-flex items-center gap-1">
@@ -161,7 +164,7 @@ export const StaffOrderCard: React.FC<StaffOrderCardProps> = ({
             </span>
           ) : status === 'CONFIRMED' ? (
             <span className="pill-badge text-[11px] font-bold bg-success/20 text-[#4ADE80] border border-success/40">
-              ĐÃ XÁC NHẬN
+              Đã thanh toán
             </span>
           ) : (
             <span className="pill-badge text-[11px] font-medium bg-danger/15 text-danger border border-danger/30 opacity-70">
@@ -243,7 +246,7 @@ export const StaffOrderCard: React.FC<StaffOrderCardProps> = ({
         {/* Thời gian đặt */}
         <div className="flex items-center justify-end gap-1 text-[11px] text-mist font-mono">
           <Clock className="w-3 h-3 shrink-0" />
-          <span>{dayjs(createdAt).fromNow()}</span>
+          <span>{created.fromNow()}</span>
         </div>
 
         {/* Tên khách */}

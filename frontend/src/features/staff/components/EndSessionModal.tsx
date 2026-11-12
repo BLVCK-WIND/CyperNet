@@ -64,7 +64,7 @@ export const EndSessionModal: React.FC<EndSessionModalProps> = ({
       onCancel={onClose}
       footer={null}
       centered
-      maskClosable={false}
+      mask={{ closable: false }}
       width={480}
       styles={{
         body: {
@@ -151,7 +151,7 @@ export const EndSessionModal: React.FC<EndSessionModalProps> = ({
               <RotateCcw className="w-3.5 h-3.5" />
               Hoàn trả tài khoản:
             </span>
-            <Tag bordered={false} className="m-0 font-mono font-bold text-xs bg-success/15 text-success border border-success/30 px-2 py-0.5 rounded-full">
+            <Tag variant="filled" className="m-0 font-mono font-bold text-xs bg-success/15 text-success border border-success/30 px-2 py-0.5 rounded-full">
               +{remainingMinutes} phút
             </Tag>
           </div>

@@ -3,20 +3,19 @@ package com.cybernet.internet_cafe_management.dto.response;
 import java.math.BigDecimal;
 import com.cybernet.internet_cafe_management.entity.Computer;
 import com.cybernet.internet_cafe_management.entity.Computer.Status;
-import com.cybernet.internet_cafe_management.entity.Computer.Zone;
 
 public class ComputerResponse {
     private Long id;
     private String code;
     private BigDecimal pricePerHour;
     private String ipAddress;
-    private Zone zone;
+    private String zone;
     private Status status;
 
     public ComputerResponse() {
     }
 
-    public ComputerResponse(Long id, String code, BigDecimal pricePerHour, String ipAddress, Zone zone, Status status) {
+    public ComputerResponse(Long id, String code, BigDecimal pricePerHour, String ipAddress, String zone, Status status) {
         this.id = id;
         this.code = code;
         this.pricePerHour = pricePerHour;
@@ -67,11 +66,11 @@ public class ComputerResponse {
         this.ipAddress = ipAddress;
     }
 
-    public Zone getZone() {
+    public String getZone() {
         return zone;
     }
 
-    public void setZone(Zone zone) {
+    public void setZone(String zone) {
         this.zone = zone;
     }
 

@@ -83,6 +83,7 @@ public class Phase6ValidationIntegrationTest {
                 {
                     "code": "PC-TEST-99",
                     "pricePerHour": -5000,
+                    "ipAddress": "192.168.10.99",
                     "zone": "STANDARD"
                 }
                 """;

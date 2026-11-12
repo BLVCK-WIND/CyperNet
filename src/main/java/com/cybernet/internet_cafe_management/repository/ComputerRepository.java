@@ -24,7 +24,7 @@ public interface ComputerRepository extends JpaRepository<Computer, Long>, JpaSp
 
     Page<Computer> findByStatus(Computer.Status status, Pageable pageable);
 
-    Page<Computer> findByZone(Computer.Zone zone, Pageable pageable);
+    Page<Computer> findByZone(String zone, Pageable pageable);
 
     // Đếm số lượng máy trạm thuộc một khu vực (theo chuỗi mã zone code)
     @Query(value = "SELECT COUNT(*) FROM computers WHERE UPPER(zone) = UPPER(:zoneCode)", nativeQuery = true)

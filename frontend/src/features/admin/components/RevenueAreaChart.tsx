@@ -66,7 +66,7 @@ export const RevenueAreaChart: React.FC<RevenueAreaChartProps> = ({
             <div className="flex items-center justify-between text-mist">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                <span>Món F&B:</span>
+                <span>Đơn hàng:</span>
               </span>
               <span className="font-mono text-cyan-300">
                 {Number(p.order).toLocaleString('vi-VN')} ₫
@@ -76,7 +76,7 @@ export const RevenueAreaChart: React.FC<RevenueAreaChartProps> = ({
             <div className="flex items-center justify-between text-mist">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span>Nạp giờ chơi:</span>
+                <span>Nạp giờ POS:</span>
               </span>
               <span className="font-mono text-emerald-300">
                 {Number(p.playtime).toLocaleString('vi-VN')} ₫
@@ -135,8 +135,8 @@ export const RevenueAreaChart: React.FC<RevenueAreaChartProps> = ({
             wrapperStyle={{ paddingBottom: 12, fontSize: 12 }}
             formatter={(val) => {
               if (val === 'total') return <span className="text-gold font-medium">Tổng thực thu</span>;
-              if (val === 'order') return <span className="text-cyan-300 font-medium">Doanh thu F&B</span>;
-              if (val === 'playtime') return <span className="text-emerald-300 font-medium">Doanh thu Giờ</span>;
+              if (val === 'order') return <span className="text-cyan-300 font-medium">Doanh thu đơn hàng</span>;
+              if (val === 'playtime') return <span className="text-emerald-300 font-medium">Nạp giờ POS</span>;
               return val;
             }}
           />

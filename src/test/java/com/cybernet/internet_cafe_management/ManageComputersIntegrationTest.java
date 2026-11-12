@@ -61,10 +61,16 @@ public class ManageComputersIntegrationTest {
     @Autowired
     private RateLimitingFilter rateLimitingFilter;
 
+    @Autowired
+    private com.cybernet.internet_cafe_management.repository.ZoneRepository zoneRepository;
+
     private String adminToken;
 
     @BeforeEach
     void setUp() {
+        zoneRepository.findByCodeIgnoreCase("STREAM").orElseGet(() -> zoneRepository.save(
+                com.cybernet.internet_cafe_management.entity.Zone.builder().code("STREAM")
+                        .name("Streaming").defaultPricePerHour(BigDecimal.valueOf(18000)).active(true).build()));
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .apply(springSecurity())
@@ -94,7 +100,7 @@ public class ManageComputersIntegrationTest {
         request.setCode("TEST-99");
         request.setPricePerHour(BigDecimal.valueOf(18000));
         request.setIpAddress("192.168.10.99");
-        request.setZone(Computer.Zone.STREAM);
+        request.setZone("STREAM");
         request.setStatus(Computer.Status.MAINTENANCE);
 
         mockMvc.perform(post("/api/computers")
@@ -122,7 +128,7 @@ public class ManageComputersIntegrationTest {
         duplicateCodeReq.setCode("PC-01");
         duplicateCodeReq.setPricePerHour(BigDecimal.valueOf(10000));
         duplicateCodeReq.setIpAddress("192.168.10.201");
-        duplicateCodeReq.setZone(Computer.Zone.STANDARD);
+        duplicateCodeReq.setZone("STANDARD");
         duplicateCodeReq.setStatus(Computer.Status.AVAILABLE);
 
         mockMvc.perform(post("/api/computers")
@@ -137,7 +143,7 @@ public class ManageComputersIntegrationTest {
         duplicateIpReq.setCode("TEST-UNIQUE");
         duplicateIpReq.setPricePerHour(BigDecimal.valueOf(10000));
         duplicateIpReq.setIpAddress(existing.getIpAddress());
-        duplicateIpReq.setZone(Computer.Zone.STANDARD);
+        duplicateIpReq.setZone("STANDARD");
         duplicateIpReq.setStatus(Computer.Status.AVAILABLE);
 
         mockMvc.perform(post("/api/computers")
@@ -247,7 +253,7 @@ public class ManageComputersIntegrationTest {
         cleanComp.setCode("CLEAN-99");
         cleanComp.setPricePerHour(BigDecimal.valueOf(12000));
         cleanComp.setIpAddress("192.168.99.99");
-        cleanComp.setZone(Computer.Zone.STANDARD);
+        cleanComp.setZone("STANDARD");
         cleanComp.setStatus(Computer.Status.AVAILABLE);
         cleanComp = computerRepository.save(cleanComp);
 

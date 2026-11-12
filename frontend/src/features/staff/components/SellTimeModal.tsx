@@ -1,5 +1,8 @@
+import { invalidateAccountQueries } from '@/utils/accountQueries';
+import { CustomerSelect } from '@/components/common/CustomerSelect';
+import { useCustomerAccount } from '@/hooks/useAccountDirectory';
 import React, { useState, useEffect } from 'react';
-import { Modal, Select, Button, Tag, Skeleton, InputNumber, App } from 'antd';
+import { Modal, Button, Tag, InputNumber, App } from 'antd';
 import {
   ClockPlus,
   Coins,
@@ -12,15 +15,13 @@ import {
   Monitor,
   UserPlus,
 } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { accountApi } from '@/api/accountApi';
 import { timePurchaseApi } from '@/api/timePurchaseApi';
 import { orderApi } from '@/api/orderApi';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ZoneBadge } from '@/components/common/ZoneBadge';
 import { RegisterCustomerModal } from './RegisterCustomerModal';
-import type { Account } from '@/types/auth';
 import type { FloorMapComputerItem } from '@/types/computer';
 import type { TimePurchaseResponse, PaymentMethod } from '@/types/timePurchase';
 import type { VietQrResponse } from '@/types/order';
@@ -91,15 +92,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
     }
   }, [open, initialAccountId, targetComputer]);
 
-  // Lấy danh sách khách hàng (role: CUSTOMER)
-  const { data: accountsData, isLoading: isLoadingAccounts } = useQuery({
-    queryKey: ['staff-customer-accounts'],
-    queryFn: () => accountApi.getAccounts({ role: 'CUSTOMER', size: 100 }),
-    enabled: open,
-  });
-
-  const accounts: Account[] = accountsData?.content || [];
-  const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
+  const { data: selectedAccount } = useCustomerAccount(selectedAccountId, open);
 
   // Số phút chuẩn Standard (cơ sở lưu vào bảng accounts trong DB)
   const standardMinutes = Math.round((selectedAmount / BASE_TARIFF) * 60);
@@ -132,7 +125,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
 
   // Bước 1: Tạo phiếu & Xử lý thanh toán
   const handleCreatePurchase = async () => {
-    if (!selectedAccountId) {
+    if (!selectedAccount) {
       message.error('Vui lòng chọn tài khoản khách hàng để nạp giờ!');
       return;
     }
@@ -145,7 +138,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
     try {
       // 1. Tạo phiếu nạp giờ (luôn gửi số phút chuẩn Standard để backend lưu DB đúng nghiệp vụ)
       const newPurchase = await timePurchaseApi.createTimePurchase({
-        accountId: selectedAccountId,
+        accountId: selectedAccount.id,
         minutes: standardMinutes,
         amount: selectedAmount,
         paymentMethod,
@@ -162,7 +155,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
 
         // Làm mới cache tài khoản & sơ đồ máy
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
+          invalidateAccountQueries(queryClient),
           queryClient.invalidateQueries({ queryKey: ['staff-floormap-data'] }),
           queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
         ]);
@@ -199,7 +192,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
       );
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['staff-customer-accounts'] }),
+        invalidateAccountQueries(queryClient),
         queryClient.invalidateQueries({ queryKey: ['staff-floormap-data'] }),
         queryClient.invalidateQueries({ queryKey: ['staff-quick-status-stats'] }),
       ]);
@@ -226,7 +219,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
       footer={null}
       width={560}
       centered
-      destroyOnClose
+      destroyOnHidden
       styles={{
         body: {
           backgroundColor: '#202332',
@@ -278,42 +271,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
               </button>
             </div>
 
-            {isLoadingAccounts ? (
-              <Skeleton.Input active block className="h-11 rounded-xl" />
-            ) : (
-              <Select
-                showSearch
-                value={selectedAccountId}
-                onChange={(val) => setSelectedAccountId(val)}
-                placeholder="Tìm theo SĐT hoặc tên khách..."
-                optionFilterProp="label"
-                className="w-full h-11 text-sand"
-                popupClassName="cyberlux-select-dropdown"
-                options={accounts.map((acc) => ({
-                  value: acc.id,
-                  label: `${acc.phone} • ${acc.name}`,
-                }))}
-                optionRender={(oriOption) => {
-                  const acc = accounts.find((a) => a.id === oriOption.value);
-                  if (!acc) return oriOption.label;
-                  return (
-                    <div className="flex items-center justify-between py-0.5 text-xs">
-                      <div className="flex items-center gap-2 min-w-0 pr-2">
-                        <span className="font-mono text-sand font-bold shrink-0">
-                          {acc.phone}
-                        </span>
-                        <span className="text-sand/90 truncate font-medium">
-                          {acc.name}
-                        </span>
-                      </div>
-                      <span className="shrink-0 text-gold font-mono font-bold text-[11px] bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
-                        {acc.remainingMinutes} phút
-                      </span>
-                    </div>
-                  );
-                }}
-              />
-            )}
+            <CustomerSelect value={selectedAccountId} onChange={setSelectedAccountId} enabled={open} pricePerHour={pricePerHour} />
 
             {/* Thẻ tóm tắt số dư hiện tại của khách */}
             {selectedAccount && (
@@ -545,7 +503,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
               type="primary"
               loading={submitting}
               onClick={handleCreatePurchase}
-              disabled={!selectedAccountId || selectedMinutes <= 0}
+              disabled={!selectedAccount || selectedMinutes <= 0}
               className="h-11 rounded-xl text-xs bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold text-midnight font-bold border-none shadow-[0_4px_16px_rgba(189,152,117,0.3)] cursor-pointer"
             >
               {paymentMethod === 'CASH' ? 'Thu tiền mặt & Nạp ngay' : 'Tạo mã VietQR'}
@@ -645,7 +603,7 @@ export const SellTimeModal: React.FC<SellTimeModalProps> = ({
                 PHIẾU NẠP: <strong className="text-sand">#TP-{createdPurchase.id}</strong>
               </span>
               <Tag
-                bordered={false}
+                variant="filled"
                 className="m-0 text-[11px] font-bold px-2 py-0.5 rounded bg-success/20 text-success border border-success/30 flex items-center gap-1"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />

@@ -26,6 +26,23 @@ public class FlywayConfig {
     @Value("${spring.flyway.locations:classpath:db/migration}")
     private String locations;
 
+    @Value("${spring.flyway.out-of-order:false}")
+    private boolean outOfOrder;
+
+    // This project declares Flyway directly; enforce migration before Hibernate validation.
+    @Bean
+    public static org.springframework.beans.factory.config.BeanFactoryPostProcessor migrateBeforeHibernate() {
+        return factory -> {
+            if (factory.containsBeanDefinition("entityManagerFactory")) {
+                var definition = factory.getBeanDefinition("entityManagerFactory");
+                var dependencies = new java.util.ArrayList<String>();
+                if (definition.getDependsOn() != null) dependencies.addAll(java.util.Arrays.asList(definition.getDependsOn()));
+                if (!dependencies.contains("flyway")) dependencies.add("flyway");
+                definition.setDependsOn(dependencies.toArray(String[]::new));
+            }
+        };
+    }
+
     @Bean
     public Flyway flyway(DataSource dataSource) {
         if (!enabled) {
@@ -39,11 +56,11 @@ public class FlywayConfig {
         Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
                 .locations(locations)
+                .outOfOrder(outOfOrder)
                 .baselineOnMigrate(baselineOnMigrate)
                 .baselineVersion(baselineVersion)
                 .load();
 
-        flyway.repair();
         flyway.migrate();
         log.info("Flyway migration completed successfully. Current schema version: {}",
                 flyway.info().current() != null ? flyway.info().current().getVersion().getVersion() : "none");

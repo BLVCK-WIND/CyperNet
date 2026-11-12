@@ -24,6 +24,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { reportApi } from '@/api/reportApi';
 import { PageTransition } from '@/components/animations/PageTransition';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { vietnamDate } from '@/utils/vietnamTime';
 import { RevenueAreaChart } from '../components/RevenueAreaChart';
 import type {
   DailyRevenueResponse,
@@ -37,10 +38,10 @@ export const RevenueReportsPage: React.FC = () => {
   useDocumentTitle('Báo cáo doanh thu & tài chính • CyberNet');
 
   // Filter Date range state (mặc định 7 ngày gần nhất)
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
-    dayjs().subtract(6, 'day'),
-    dayjs(),
-  ]);
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => {
+    const today = dayjs(vietnamDate());
+    return [today.subtract(6, 'day'), today];
+  });
 
   const [quickPreset, setQuickPreset] = useState<string>('7D');
 
@@ -96,7 +97,7 @@ export const RevenueReportsPage: React.FC = () => {
 
   const handlePresetChange = (val: string) => {
     setQuickPreset(val);
-    const today = dayjs();
+    const today = dayjs(vietnamDate());
     if (val === 'TODAY') {
       setDateRange([today, today]);
     } else if (val === '7D') {
@@ -122,7 +123,7 @@ export const RevenueReportsPage: React.FC = () => {
       ),
     },
     {
-      title: 'Doanh Thu F&B',
+      title: 'Doanh Thu Đơn Hàng',
       dataIndex: 'orderRevenue',
       key: 'orderRevenue',
       render: (val: number, record) => (
@@ -135,7 +136,7 @@ export const RevenueReportsPage: React.FC = () => {
       ),
     },
     {
-      title: 'Doanh Thu Nạp Giờ',
+      title: 'Doanh Thu Nạp Giờ POS',
       dataIndex: 'timePurchaseRevenue',
       key: 'timePurchaseRevenue',
       render: (val: number, record) => (
@@ -346,7 +347,7 @@ export const RevenueReportsPage: React.FC = () => {
           {/* Doanh thu Món F&B */}
           <div className="liquid-glass-card liquid-glass-cyan cursor-default">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-sand/80">Doanh Thu Dịch Vụ F&B</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-sand/80">Doanh Thu Đơn Hàng</span>
               <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300">
                 <Utensils className="w-4 h-4" />
               </div>
@@ -355,7 +356,7 @@ export const RevenueReportsPage: React.FC = () => {
               {Number(summary?.totalOrderRevenue || 0).toLocaleString('vi-VN')} <span className="text-sm font-normal text-sand/70">₫</span>
             </div>
             <div className="frosted-glass-pill mt-3 flex items-center justify-between text-xs">
-              <span>Đơn hàng món ăn</span>
+              <span>Gọi món, dịch vụ & gói giờ</span>
               <span className="font-bold text-cyan-300">{summary?.totalOrders || 0} đơn</span>
             </div>
           </div>
@@ -363,7 +364,7 @@ export const RevenueReportsPage: React.FC = () => {
           {/* Doanh thu Giờ chơi */}
           <div className="liquid-glass-card liquid-glass-emerald cursor-default">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-sand/80">Doanh Thu Nạp Giờ</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-sand/80">Doanh Thu Nạp Giờ POS</span>
               <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300">
                 <Gamepad2 className="w-4 h-4" />
               </div>
@@ -425,7 +426,7 @@ export const RevenueReportsPage: React.FC = () => {
                 Xu Hướng Doanh Thu Theo Ngày
               </h2>
               <p className="text-xs text-mist mt-0.5">
-                Biểu đồ đường diện tích phân rã doanh thu F&B và Nạp giờ chơi ({fromDateStr} đến {toDateStr})
+                Biểu đồ đường diện tích phân rã doanh thu đơn hàng và Nạp giờ POS ({fromDateStr} đến {toDateStr})
               </p>
             </div>
 

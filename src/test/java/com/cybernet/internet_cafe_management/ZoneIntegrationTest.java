@@ -242,7 +242,7 @@ public class ZoneIntegrationTest {
         Computer computer = new Computer();
         computer.setCode("PC-ZONE-TEST");
         computer.setPricePerHour(BigDecimal.valueOf(25000));
-        computer.setZone(Computer.Zone.STREAM);
+        computer.setZone("STREAM");
         computer.setStatus(Computer.Status.AVAILABLE);
         computer.setIpAddress("192.168.99.99");
         computerRepository.save(computer);

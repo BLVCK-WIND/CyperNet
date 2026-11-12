@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tag, Segmented, Progress } from 'antd';
+import { Button, Tag, Segmented, Progress, Skeleton, Alert } from 'antd';
 import {
   Monitor,
   Utensils,
@@ -22,6 +22,7 @@ import dayjs from 'dayjs';
 import { PageTransition } from '@/components/animations/PageTransition';
 import { useAuthStore } from '@/store/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useVietnamDate } from '@/hooks/useVietnamDate';
 import { AdminStatsCards } from '../components/AdminStatsCards';
 import { RevenueAreaChart } from '../components/RevenueAreaChart';
 import { reportApi } from '@/api/reportApi';
@@ -36,7 +37,7 @@ export const AdminDashboardPage: React.FC = () => {
   // Time preset cho Bento Chart
   const [timePreset, setTimePreset] = useState<string>('7D');
 
-  const today = dayjs();
+  const today = dayjs(useVietnamDate());
   const fromDateStr = timePreset === 'TODAY'
     ? today.format('YYYY-MM-DD')
     : timePreset === '30D'
@@ -45,28 +46,28 @@ export const AdminDashboardPage: React.FC = () => {
   const toDateStr = today.format('YYYY-MM-DD');
 
   // 1. Fetch Chuỗi Doanh Thu Cho Biểu Đồ Bento
-  const { data: dailyRevenue = [] } = useQuery({
+  const { data: dailyRevenue = [], isPending: revenueLoading, isError: revenueError, refetch: retryRevenue } = useQuery({
     queryKey: ['admin-dashboard-daily-revenue', fromDateStr, toDateStr],
     queryFn: () => reportApi.getDailyRevenue({ fromDate: fromDateStr, toDate: toDateStr }),
     refetchInterval: 15000,
   });
 
   // 2. Fetch Báo Cáo Tổng Quan (Nguồn Thu)
-  const { data: summary } = useQuery({
+  const { data: summary, isPending: summaryLoading, isError: summaryError, refetch: retrySummary } = useQuery({
     queryKey: ['admin-dashboard-summary', fromDateStr, toDateStr],
     queryFn: () => reportApi.getRevenueSummary({ fromDate: fromDateStr, toDate: toDateStr }),
     refetchInterval: 15000,
   });
 
   // 3. Fetch Hoạt Động Đơn Hàng Gần Đây (5 đơn mới nhất)
-  const { data: recentOrdersData } = useQuery({
+  const { data: recentOrdersData, isPending: ordersLoading, isError: ordersError, refetch: retryOrders } = useQuery({
     queryKey: ['admin-dashboard-recent-orders'],
     queryFn: () => orderApi.getOrders({ size: 5, sort: 'id,desc' }),
     refetchInterval: 10000,
   });
 
   // 4. Fetch Top Món Bán Chạy (Top 5)
-  const { data: topSellingItems = [] } = useQuery({
+  const { data: topSellingItems = [], isPending: itemsLoading, isError: itemsError, refetch: retryItems } = useQuery({
     queryKey: ['admin-dashboard-top-items', fromDateStr, toDateStr],
     queryFn: () => reportApi.getTopSellingItems(5, { fromDate: fromDateStr, toDate: toDateStr }),
     refetchInterval: 15000,
@@ -115,8 +116,8 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Tính tỷ trọng F&B vs Giờ chơi
   const totalRev = summary?.totalRevenue || 0;
-  const fnbRev = summary?.totalOrderRevenue || 0;
-  const playtimeRev = summary?.totalTimePurchaseRevenue || 0;
+  const fnbRev = summary?.totalFoodAndDrinkRevenue || 0;
+  const playtimeRev = summary?.totalPlaytimeRevenue || 0;
   const fnbPct = totalRev > 0 ? Math.round((fnbRev / totalRev) * 100) : 0;
   const playtimePct = totalRev > 0 ? Math.round((playtimeRev / totalRev) * 100) : 0;
 
@@ -131,13 +132,13 @@ export const AdminDashboardPage: React.FC = () => {
       case 'WAITING_CONFIRMATION':
         return (
           <Tag color="cyan" className="m-0 text-[10px] font-bold px-2 py-0.5 rounded-full border-0 bg-cyan-500/20 text-cyan-300 animate-pulse">
-            ĐÃ CK
+            Chờ xác nhận
           </Tag>
         );
       case 'CONFIRMED':
         return (
           <Tag color="success" className="m-0 text-[10px] font-bold px-2 py-0.5 rounded-full border-0 bg-emerald-500/20 text-emerald-400">
-            ĐÃ XONG
+            Đã thanh toán
           </Tag>
         );
       case 'CANCELLED':
@@ -150,6 +151,13 @@ export const AdminDashboardPage: React.FC = () => {
         return null;
     }
   };
+
+  if ((revenueError && !dailyRevenue.length) || (summaryError && !summary) || (ordersError && !recentOrdersData) || (itemsError && !topSellingItems.length)) {
+    return <Alert type="error" title="Không thể tải bảng tổng quan" action={<Button onClick={() => { void retryRevenue(); void retrySummary(); void retryOrders(); void retryItems(); }}>Thử lại</Button>} />;
+  }
+  if (revenueLoading || summaryLoading || ordersLoading || itemsLoading) {
+    return <div className="space-y-6" aria-busy="true"><Skeleton active /><div className="grid grid-cols-2 gap-4">{[0, 1, 2, 3].map((key) => <Skeleton key={key} active />)}</div><Skeleton active paragraph={{ rows: 8 }} /></div>;
+  }
 
   return (
     <PageTransition>
@@ -201,7 +209,7 @@ export const AdminDashboardPage: React.FC = () => {
                   Xu Hướng Doanh Thu Thực Tế
                 </h2>
                 <p className="text-xs text-mist">
-                  Dữ liệu phân rã Doanh thu F&B và Giờ chơi theo mốc thời gian ({fromDateStr} đến {toDateStr})
+                  Dữ liệu phân rã doanh thu đơn hàng và nạp giờ POS theo mốc thời gian ({fromDateStr} đến {toDateStr})
                 </p>
               </div>
 
@@ -262,7 +270,7 @@ export const AdminDashboardPage: React.FC = () => {
                 percent={fnbPct}
                 showInfo={false}
                 strokeColor="#06b6d4"
-                trailColor="rgba(255,255,255,0.06)"
+                railColor="rgba(255,255,255,0.06)"
                 size="small"
               />
 
@@ -277,7 +285,7 @@ export const AdminDashboardPage: React.FC = () => {
                 percent={playtimePct}
                 showInfo={false}
                 strokeColor="#10b981"
-                trailColor="rgba(255,255,255,0.06)"
+                railColor="rgba(255,255,255,0.06)"
                 size="small"
               />
             </div>
@@ -454,7 +462,7 @@ export const AdminDashboardPage: React.FC = () => {
                           '0%': '#f59e0b',
                           '100%': '#bd9875',
                         }}
-                        trailColor="rgba(255,255,255,0.06)"
+                        railColor="rgba(255,255,255,0.06)"
                         size="small"
                       />
                     </div>

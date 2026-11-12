@@ -85,10 +85,11 @@ public class SessionService {
     @Transactional
     public SessionResponse startSession(StartSessionRequest request) {
         // --- BƯỚC 1: VALIDATE KHÁCH HÀNG (ACCOUNT) ---
-        Account account = accountRepository.findById(request.getAccountId())
+        Account account = accountRepository.findByIdWithLock(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản khách hàng với ID = " + request.getAccountId()));
 
         // Kiểm tra số dư giờ chơi
+        if (account.getRole() != Account.Role.CUSTOMER) throw new IllegalArgumentException("Only customer accounts may start gaming sessions.");
         if (account.getRemainingMinutes() <= 0) {
             throw new IllegalArgumentException("Tài khoản đã hết thời gian chơi! Vui lòng nạp thêm giờ trước khi mở máy.");
         }
@@ -101,34 +102,8 @@ public class SessionService {
         // --- BƯỚC 2: VALIDATE MÁY TÍNH (COMPUTER) ---
         Computer computer = findComputerFromRequest(request);
 
-        // Kiểm tra trạng thái máy: Phải là AVAILABLE
-        if (computer.getStatus() != Computer.Status.AVAILABLE) {
-            throw new IllegalStateException("Máy tính [" + computer.getCode() + "] hiện không khả dụng! Trạng thái: " + computer.getStatus());
-        }
-
-        // Kiểm tra an toàn: Đảm bảo không có phiên ACTIVE nào sót lại trên máy này
-        if (sessionRepository.existsByComputerIdAndStatus(computer.getId(), Status.ACTIVE)) {
-            throw new IllegalStateException("Máy tính [" + computer.getCode() + "] đang có phiên chơi đang hoạt động!");
-        }
-
-        // --- BƯỚC 3: KHỞI TẠO VÀ LƯU PHIÊN CHƠI ---
-        LocalDateTime now = LocalDateTime.now();
-        Session session = new Session();
-        session.setAccount(account);
-        session.setComputer(computer);
-        session.setStartedAt(now);
-
-        // Quy đổi số phút chơi thực tế theo Dynamic Tariff dựa trên đơn giá máy
-        long playableMinutes = calculatePlayableMinutes(account.getRemainingMinutes(), computer.getPricePerHour());
-        session.setExpiresAt(now.plusMinutes(playableMinutes));
-        session.setStatus(Status.ACTIVE);
-
-        // Đổi trạng thái máy tính sang IN_USE để khoá máy
-        computer.setStatus(Computer.Status.IN_USE);
-        computerRepository.save(computer);
-
-        Session savedSession = sessionRepository.save(session);
-        realtimeNotificationService.broadcastComputerStatus(computer);
+        Session savedSession = activateSession(account, computer);
+        long playableMinutes = Duration.between(savedSession.getStartedAt(), savedSession.getExpiresAt()).toMinutes();
         auditLogService.log("START_SESSION", "Session", savedSession.getId(),
                 "Mở máy " + computer.getCode() + " cho khách " + account.getPhone() + " (" + playableMinutes + " phút chơi thực tế)");
         return SessionResponse.fromEntity(savedSession);
@@ -140,7 +115,7 @@ public class SessionService {
      */
     @Transactional
     public SessionResponse endSession(Long sessionId) {
-        Session session = sessionRepository.findById(sessionId)
+        Session session = lockSession(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + sessionId));
 
         if (session.getStatus() != Status.ACTIVE) {
@@ -163,7 +138,7 @@ public class SessionService {
         long remainingMinutesUntilExpiry = Math.max(0, Duration.between(now, session.getExpiresAt()).toMinutes());
 
         int refundStandardMinutes;
-        BigDecimal computerPrice = computer.getPricePerHour();
+        BigDecimal computerPrice = session.effectivePricePerHour();
         if (computerPrice == null || computerPrice.compareTo(BigDecimal.ZERO) <= 0 || computerPrice.compareTo(BASE_PRICE_PER_HOUR) == 0) {
             refundStandardMinutes = (int) remainingMinutesUntilExpiry;
         } else {
@@ -199,7 +174,7 @@ public class SessionService {
             throw new IllegalArgumentException("Số phút nạp thêm phải lớn hơn 0!");
         }
 
-        Session session = sessionRepository.findById(sessionId)
+        Session session = lockSession(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + sessionId));
 
         if (session.getStatus() != Status.ACTIVE) {
@@ -207,8 +182,8 @@ public class SessionService {
         }
 
         // Tịnh tiến thời điểm hết hạn của phiên quy đổi theo đơn giá máy đang ngồi
-        long extraMachineMinutes = calculatePlayableMinutes(request.getExtraMinutes(), session.getComputer().getPricePerHour());
-        session.setExpiresAt(session.getExpiresAt().plusMinutes(extraMachineMinutes));
+        long extraMachineMinutes = calculatePlayableMinutes(request.getExtraMinutes(), session.effectivePricePerHour());
+        session.setExpiresAt((session.getExpiresAt().isAfter(LocalDateTime.now()) ? session.getExpiresAt() : LocalDateTime.now()).plusMinutes(extraMachineMinutes));
 
         // Đồng thời cộng thêm phút chuẩn vào tài khoản khách
         Account account = session.getAccount();
@@ -219,13 +194,48 @@ public class SessionService {
         return SessionResponse.fromEntity(updated);
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public PlaytimeCredit creditPurchasedMinutes(Long accountId, int standardMinutes) {
+        Account account = accountRepository.findByIdWithLock(accountId).orElseThrow();
+        Session activeSession = sessionRepository.findActiveByAccountIdWithLock(accountId).orElse(null);
+        long machineMinutes = applyPurchasedMinutes(account, activeSession, standardMinutes);
+        return new PlaytimeCredit(account, machineMinutes);
+    }
+
+    // The account and any active session must already be locked by this transaction.
+    long applyPurchasedMinutes(Account account, Session activeSession, int standardMinutes) {
+        account.setRemainingMinutes(account.getRemainingMinutes() + standardMinutes);
+        accountRepository.save(account);
+        if (activeSession == null) {
+            return 0;
+        }
+
+        long machineMinutes = calculatePlayableMinutes(standardMinutes, activeSession.effectivePricePerHour());
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = activeSession.getExpiresAt();
+        activeSession.setExpiresAt((expiresAt.isAfter(now) ? expiresAt : now).plusMinutes(machineMinutes));
+        sessionRepository.save(activeSession);
+        realtimeNotificationService.broadcastComputerStatus(activeSession.getComputer());
+        return machineMinutes;
+    }
+
+    public record PlaytimeCredit(Account account, long machineMinutes) {}
+
     /**
      * 4. TRA CỨU PHIÊN ACTIVE BẰNG MÃ MÁY (Phục vụ tính năng quét mã QR)
      */
     @Transactional(readOnly = true)
     public SessionResponse getActiveSessionByComputerCode(String computerCode) {
+        return getActiveSessionByComputerCode(computerCode, null);
+    }
+
+    @Transactional(readOnly = true)
+    public SessionResponse getActiveSessionByComputerCode(String computerCode, String currentUserPhone) {
         Session session = sessionRepository.findByComputerCodeAndStatus(computerCode, Status.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Máy tính [" + computerCode + "] hiện không có phiên chơi nào đang hoạt động!"));
+        if (currentUserPhone != null) {
+            CustomerOwnership.requireOwner(accountRepository.findByPhone(currentUserPhone).orElse(null), session.getAccount());
+        }
         return SessionResponse.fromEntity(session);
     }
 
@@ -336,8 +346,8 @@ public class SessionService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void autoEndExpiredSession(Long sessionId) {
-        Session session = sessionRepository.findById(sessionId).orElse(null);
-        if (session == null || session.getStatus() != Status.ACTIVE) {
+        Session session = lockSession(sessionId).orElse(null);
+        if (session == null || session.getStatus() != Status.ACTIVE || session.getExpiresAt().isAfter(LocalDateTime.now())) {
             return; // Đã kết thúc hoặc không tồn tại
         }
 
@@ -388,7 +398,7 @@ public class SessionService {
         }
 
         // 2. Validate tài khoản khách hàng
-        Account account = accountRepository.findByPhone(request.getPhone().trim())
+        Account account = accountRepository.findByPhoneWithLock(request.getPhone().trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với số điện thoại: " + request.getPhone()));
 
         // Kiểm tra mật khẩu bằng BCrypt
@@ -415,6 +425,16 @@ public class SessionService {
         Computer computer = computerRepository.findByCodeWithLock(request.getComputerCode().trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy tính với mã: " + request.getComputerCode()));
 
+        Session savedSession = activateSession(account, computer);
+        auditLogService.log(account.getPhone(), account.getRole().name(), "LOGIN_START_SESSION", "Session", savedSession.getId(),
+                "Khách hàng tự đăng nhập tại máy " + computer.getCode(), null);
+        log.info("UC-2 Login: Khách hàng [{}] đăng nhập mở máy [{}] thành công. Phiên: [ID={}], hạn: {}",
+                account.getPhone(), computer.getCode(), savedSession.getId(), savedSession.getExpiresAt());
+        return SessionResponse.fromEntity(savedSession);
+    }
+
+    // Call after locking the account and computer in that order.
+    private Session activateSession(Account account, Computer computer) {
         if (computer.getStatus() != Computer.Status.AVAILABLE) {
             throw new IllegalStateException("Máy tính [" + computer.getCode() + "] hiện không khả dụng! Trạng thái: " + computer.getStatus());
         }
@@ -423,29 +443,27 @@ public class SessionService {
             throw new IllegalStateException("Máy tính [" + computer.getCode() + "] đang có phiên chơi đang hoạt động!");
         }
 
-        // 4. Khởi tạo và kích hoạt phiên chơi
         LocalDateTime now = LocalDateTime.now();
+        BigDecimal tariff = computer.getPricePerHour();
+        long playableMinutes = calculatePlayableMinutes(account.getRemainingMinutes(), tariff);
+        if (playableMinutes <= 0) {
+            throw new IllegalArgumentException("Insufficient playable time for this tariff.");
+        }
+
         Session session = new Session();
         session.setAccount(account);
         session.setComputer(computer);
+        session.setPricePerHourSnapshot(tariff);
         session.setStartedAt(now);
-
-        // Quy đổi số phút chơi thực tế theo Dynamic Tariff dựa trên đơn giá máy
-        long playableMinutes = calculatePlayableMinutes(account.getRemainingMinutes(), computer.getPricePerHour());
         session.setExpiresAt(now.plusMinutes(playableMinutes));
         session.setStatus(Status.ACTIVE);
 
-        // Khóa máy tính sang IN_USE
         computer.setStatus(Computer.Status.IN_USE);
         computerRepository.save(computer);
 
         Session savedSession = sessionRepository.save(session);
         realtimeNotificationService.broadcastComputerStatus(computer);
-        auditLogService.log(account.getPhone(), account.getRole().name(), "LOGIN_START_SESSION", "Session", savedSession.getId(),
-                "Khách hàng tự đăng nhập tại máy " + computer.getCode(), null);
-        log.info("UC-2 Login: Khách hàng [{}] đăng nhập mở máy [{}] thành công. Phiên: [ID={}], hạn: {}",
-                account.getPhone(), computer.getCode(), savedSession.getId(), savedSession.getExpiresAt());
-        return SessionResponse.fromEntity(savedSession);
+        return savedSession;
     }
 
     /**
@@ -456,7 +474,7 @@ public class SessionService {
     @Transactional
     public SessionResponse transferComputer(Long sessionId, TransferComputerRequest request) {
         // 1. Kiểm tra phiên chơi
-        Session session = sessionRepository.findById(sessionId)
+        Session session = lockSession(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chơi với ID = " + sessionId));
 
         if (session.getStatus() != Status.ACTIVE) {
@@ -489,7 +507,7 @@ public class SessionService {
         // Tính số phút còn lại thực tế của phiên máy cũ
         long remainingMinutes = Math.max(0, Duration.between(now, session.getExpiresAt()).toMinutes());
 
-        BigDecimal oldPrice = oldComputer.getPricePerHour();
+        BigDecimal oldPrice = session.effectivePricePerHour();
         BigDecimal newPrice = newComputer.getPricePerHour();
 
         long convertedMinutes = remainingMinutes;
@@ -516,6 +534,7 @@ public class SessionService {
 
         // 5. GẮN MÁY MỚI VÀO PHIÊN HIỆN TẠI (Đơn hàng PENDING tự động đi theo phiên)
         session.setComputer(newComputer);
+        session.setPricePerHourSnapshot(newPrice);
         Session savedSession = sessionRepository.save(session);
         realtimeNotificationService.broadcastComputerStatus(oldComputer);
         realtimeNotificationService.broadcastComputerStatus(newComputer);
@@ -551,5 +570,12 @@ public class SessionService {
         } else {
             throw new IllegalArgumentException("Vui lòng cung cấp computerId hoặc computerCode để mở máy!");
         }
+    }
+    // Lock order for every gaming-balance operation: account -> session -> computers.
+    private java.util.Optional<Session> lockSession(Long id) {
+        var accountId = sessionRepository.findAccountId(id);
+        if (accountId.isEmpty()) return java.util.Optional.empty();
+        accountRepository.findByIdWithLock(accountId.get()).orElseThrow();
+        return sessionRepository.findByIdWithLock(id);
     }
 }
