@@ -16,7 +16,7 @@
          │
 [BƯỚC 3: REVIEW & HỌC] ──> Bạn đọc code, hỏi AI giải thích chỗ chưa hiểu
          │
-[BƯỚC 4: TEST & ĐÓNG]  ──> Biên dịch (mvn compile), note LOG.md, ĐÓNG CHAT!
+[BƯỚC 4: TEST & ĐÓNG]  ──> Chọn ca theo CRITICAL_TESTS.md, ghi kết quả vào LOG.md
 ```
 
 ---
@@ -38,10 +38,7 @@
 * **Thử thách AI:** *"Trường hợp 2 khách cùng bấm mua món này cùng 1 mili-giây thì code này có bị lỗi không?"*
 
 ### Bước 4 — Kiểm thử & Kết thúc Task
-* Chạy biên dịch và kiểm tra:
-  ```powershell
-  ./mvnw compile
-  ```
+* Đọc [hướng dẫn chọn ca kiểm thử bắt buộc](CRITICAL_TESTS.md). Xem phần vừa thay đổi để chọn kiểm tra nhanh và các ca hồi quy liên quan. Áp dụng phần triển khai hoặc nghiệm thu khi task có phạm vi tương ứng.
 * Ghi 2–3 dòng vào [docs/notes/LOG.md](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/docs/notes/LOG.md) hoặc [docs/notes/LESSONS.md](file:///d:/Antigravity/Java_SpringBoot/internet-cafe-management/docs/notes/LESSONS.md) nếu học được kinh nghiệm hay.
 * **Commit Git:** `git commit -m "feat: complete UC-X ..."`
 * **ĐÓNG / XÓA PHIÊN CHAT ĐÓ.** Sẵn sàng cho Task tiếp theo.

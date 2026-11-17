@@ -1,4 +1,28 @@
-# Tiến độ hiện tại — 13/11/2026
+# Tiến độ hiện tại — 17/11/2026
+
+Ghi nhận từ bản CyberNet đang chạy thử và được rà soát trong workspace phát triển. [Hướng dẫn chọn ca kiểm thử bắt buộc](CRITICAL_TESTS.md)
+
+- **Chạy thử cục bộ.** Docker Compose chạy backend với profile `prod` và MySQL 8.0. Vite Preview đăng nhập qua API (`POST /api/auth/login` trả `200`) và tải sơ đồ sáu máy mẫu. Người dùng khởi động lại máy tính và mở lại hệ thống thành công.
+- **Đã nghiệm thu thủ công tại quầy trên dữ liệu thử.** Tạo hội viên có 120 phút, mở phiên trên PC-01, nạp tiền mặt 10.000 đồng để cộng 60 phút, kết thúc phiên và kiểm tra trạng thái máy cùng số dư còn lại.
+- **VietQR đạt phần dữ liệu của phiếu nạp mẫu.** API trả đúng 20.000 đồng và nội dung `NAP GIO 4`. Cấu hình người nhận giả khiến dịch vụ ảnh trả `404`. Ca hiển thị ảnh trong CyberNet, quét bằng ứng dụng ngân hàng và đối soát tiền thật còn chờ kiểm tra. Xác nhận tự động và thông báo ngân hàng được để sau. [Ghi chú triển khai và thanh toán](../notes/production-payment-and-assets.md)
+- **Rà soát độ ổn định.** Trên MySQL 8, 209 ca backend có sẵn đều đạt; tổng cộng 212/218 ca đạt khi tính thêm test mới. Frontend đạt 62/65 ca, gồm 56 ca có sẵn, và build thành công. HTTP đạt 9/9 ca có sẵn và 5/7 ca thử tình huống lỗi mới. [Kết quả và các lỗi đã tái hiện](../notes/backend-suite-verification.md)
+- **Còn mở trước khi dùng dữ liệu và tiền thật.** Đặt món trùng khi gửi lại, lỗi xác thực giả khi DB gián đoạn, sai mã HTTP và các ca biên VietQR, lịch sử máy, báo cáo món. Còn xác minh quyền hội viên qua QR, thiết bị thật, cấu hình quán và đối soát một ca chạy thử.
+
+---
+
+# Tiến độ — 16/11/2026
+
+- Phiếu nạp tại quầy có khóa gửi lại. POS dùng cùng phiếu khi mất phản hồi và hiển thị số phút máy đã cộng. Phần giá trị nạp chưa đủ một phút máy được tích lũy hoặc trả về số dư khi kết thúc phiên.
+- Cập nhật máy, chuyển máy và kết thúc phiên dùng chung thứ tự khóa. Khi đóng phiên cũ bị trùng, máy và số dư vẫn phục vụ phiên còn hoạt động. Audit đi cùng giao dịch. Báo cáo ghi lượt mở ở máy đầu và tính thời lượng theo từng đoạn từ V16.
+- VietQR lấy số tiền từ giao dịch đã lưu và người nhận từ cấu hình. Đăng xuất xử lý refresh token đã xoay vòng. Profile production kiểm tra cấu hình bí mật, thu hồi thông tin đăng nhập mẫu và lưu ảnh trên volume riêng. [Cấu hình triển khai](../notes/production-payment-and-assets.md)
+- Sơ đồ quầy đã kiểm thử với 125 máy và 105 phiên. JavaScript cần tải cho trang quét QR giảm từ khoảng 685 KB xuống 303 KB gzip. Trên dữ liệu mẫu, báo cáo top 50 giảm từ 53 xuống 2 câu SQL, p95 từ 199,65 ms xuống 94,78 ms.
+- Bản sao DB quán đã diễn tập nâng V9 → V16 và khôi phục V9 từ cùng bản sao lưu trên MySQL 8.0.46. Các dòng nghiệp vụ, số dư và tiền trên phiếu khớp trước khi khởi động. Backend profile production kiểm tra schema và trả health UP trên bản đã nâng cấp. [Hướng dẫn migration](../notes/migration-rollout.md)
+- Kiểm thử trên MySQL 8.0.46 đạt 208/208 ca toàn bộ và 40/40 ca chạy lại sau khi thêm xử lý phiên cũ bị trùng. HTTP E2E đạt 9/9, frontend đạt 56/56, build thành công và lint còn cảnh báo React hooks.
+- Các bước nghiệm thu còn lại gồm xác minh quyền hội viên khi quét QR, kiểm tra camera và gián đoạn mạng trên điện thoại thật, điền cấu hình quán và đối soát một ca chạy thử.
+
+---
+
+# Tiến độ — 13/11/2026
 
 | Hạng mục | Kết quả |
 |---|---|

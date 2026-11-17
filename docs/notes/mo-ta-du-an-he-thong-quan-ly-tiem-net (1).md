@@ -4,7 +4,7 @@
 
 Đây là một hệ thống phần mềm được thiết kế để thay thế cách vận hành thủ công truyền thống tại các tiệm net (quán game/internet). Điểm cốt lõi: khách hàng dùng **chính điện thoại của mình** để gọi món ăn, thức uống, hoặc mua thêm giờ chơi — không cần đứng dậy ra quầy, không cần thao tác gì trên máy tính đang chơi game (vì máy đó vẫn đang bận chơi, không thể dùng để đặt món).
 
-Mỗi máy tính trong quán có 1 mã QR riêng, dán cố định tại vị trí bàn của máy đó. Khách lấy điện thoại quét đúng mã QR ở bàn mình đang ngồi, hệ thống sẽ hiện ra 1 trang web (mở ngay trên trình duyệt điện thoại, không cần cài app) để khách gọi dịch vụ. Hệ thống biết chính xác đơn hàng này thuộc về máy nào và tài khoản khách nào, nhờ vào việc đối chiếu với phiên chơi đang mở tại đúng máy đó.
+Mỗi máy tính trong quán có một mã QR riêng, dán cố định tại bàn. Mã này mở trang dịch vụ trên điện thoại và xác định bàn nhận món. Đơn hàng ghi tài khoản đã đăng nhập, máy lúc đặt và phiên chơi nếu đang có phiên phù hợp.
 
 ## 2. Vấn đề thực tế mà hệ thống giải quyết
 
@@ -29,41 +29,41 @@ Hệ thống này được xây dựng để giải quyết đúng những vấn
 
 ### Bước 1 — Khách lần đầu tới quán: mở tài khoản tại quầy
 
-Khách mới, chưa từng có tài khoản, **bắt buộc phải tới quầy** để nhân viên mở tài khoản giúp — không có cách nào để khách tự đăng ký từ xa hay tự làm qua điện thoại ở lần đầu tiên này. Nhân viên chỉ cần hỏi số điện thoại và tên khách, nhập vào hệ thống là xong, không mất nhiều thời gian.
+Khách đăng ký lần đầu tại quầy. Nhân viên nhập tên và số điện thoại của khách, ghi khoản nạp ban đầu tối thiểu 10.000 đồng và chọn phương thức thanh toán.
 
 ### Bước 2 — Khách ngồi vào máy và mở phiên chơi
 
 Khách đã có tài khoản (hoặc vừa được nhân viên mở xong ở Bước 1) ngồi vào 1 máy đang trống, ví dụ máy "PC-01". Tại vị trí bàn của máy này có dán sẵn 1 mã QR cố định, chỉ đại diện riêng cho máy PC-01.
 
-Khách lấy điện thoại của mình quét mã QR đó. Hệ thống nhận diện ngay: "đây là máy PC-01, và tài khoản đang mở phiên tại đây là số điện thoại XXX". Từ lúc này, hệ thống bắt đầu tính giờ chơi cho khách, máy PC-01 chuyển trạng thái từ "đang trống" sang "đang có người dùng", đảm bảo không có khách khác bị gán nhầm vào cùng máy này.
+Để bắt đầu tính giờ, khách đăng nhập tại máy trạm hoặc nhờ nhân viên mở phiên tại quầy. Máy PC-01 chuyển trạng thái từ "đang trống" sang "đang có người dùng". Mã QR trên bàn mở trang dịch vụ trên điện thoại và nhận diện máy PC-01. Khách cũng có thể dùng trang dịch vụ ở máy trống.
 
 ### Bước 3 — Khách gọi thêm dịch vụ ngay trên điện thoại của mình
 
-Bất cứ lúc nào trong lúc chơi, nếu khách muốn ăn uống hoặc mua thêm giờ, khách chỉ cần quét lại đúng mã QR tại bàn của mình (hoặc mở lại trang web đã quét từ trước), hệ thống sẽ tự nhận ra ngay "máy PC-01, tài khoản XXX đang mở phiên" — khách **không cần đăng nhập lại hay nhập số điện thoại thêm lần nào nữa**. Khách chỉ việc xem danh sách món/dịch vụ và chọn, ví dụ:
+Khách quét mã tại bàn rồi nhập số điện thoại hội viên khi trang yêu cầu. Khách có thể mở lại trang dịch vụ tại cùng bàn khi còn đăng nhập. Khi đổi bàn, khách quét mã mới và xác thực lại tại bàn đó. Danh mục có thể gồm:
 
 - Mì tôm trứng — 25.000đ
 - Nước tăng lực — 15.000đ
 - Thêm 1 giờ chơi — 10.000đ
 
-Khách chọn xong, hệ thống tạo ra **1 đơn hàng**, tự động gắn liền với đúng phiên chơi đang mở tại máy PC-01 — không thể bị nhầm lẫn sang máy hay khách khác. Đơn hàng lúc này ở trạng thái "**đang chờ thanh toán**", chưa có gì được xử lý.
+Khi khách gửi giỏ hàng, hệ thống tạo đơn ở trạng thái **Chờ thanh toán**, ghi máy nhận món và gắn phiên chơi nếu có. Nếu khách chuyển máy trong lúc chờ món, đơn đã đặt vẫn ghi máy ban đầu để nhân viên biết chỗ giao. Khách báo cho quầy nếu cần đổi chỗ nhận.
 
 ### Bước 4 — Thanh toán và xác nhận
 
 Khách chọn 1 trong 2 cách trả tiền, thao tác ngay trên trang web đang mở ở điện thoại:
 
-**Cách 1 — Quét mã QR chuyển khoản**: hệ thống hiện thêm 1 mã QR khác chứa đúng số tiền của đơn hàng. Khách dùng app ngân hàng quét, chuyển khoản. Nhân viên tại quầy (đăng nhập vào hệ thống trên máy tính/thiết bị riêng của quán) kiểm tra thấy tiền đã về, bấm xác nhận.
+**Cách 1 — VietQR chuyển khoản.** CyberNet lấy số tiền và mã tham chiếu từ đơn đã lưu để hiển thị QR thanh toán. Khách quét bằng ứng dụng ngân hàng, chuyển khoản rồi bấm **Tôi đã chuyển khoản**. Đơn chuyển sang **Chờ xác nhận**. Nhân viên đối chiếu tài khoản nhận, số tiền và nội dung với giao dịch ngân hàng rồi xác nhận đơn trên CyberNet.
 
-**Cách 2 — Thanh toán tiền mặt**: hệ thống báo ngay cho nhân viên (trên màn hình quản lý của quầy) biết "có 1 đơn hàng tại máy PC-01 muốn trả tiền mặt". Nhân viên đi tới tận máy PC-01 nhận tiền trực tiếp từ khách, sau đó quay lại thiết bị của mình bấm xác nhận.
+**Cách 2 — Tiền mặt.** Đơn xuất hiện trong danh sách chờ xử lý của quầy. Nhân viên thu tiền và xác nhận đơn trên CyberNet.
 
-Dù chọn cách nào, đơn hàng chỉ thực sự được xử lý **sau khi có nhân viên xác nhận trên hệ thống** — đảm bảo không có sai sót hay gian lận.
+Dù chọn cách nào, đơn chỉ chuyển sang **Đã thanh toán** khi nhân viên xác nhận.
 
-Sau khi được xác nhận:
-- Nếu là đồ ăn/thức uống → nhân viên chuẩn bị và mang tới tận máy PC-01 cho khách.
-- Nếu là "thêm giờ chơi" → hệ thống tự động cộng thêm thời gian vào đồng hồ đếm giờ của phiên chơi đó, không cần ai thao tác tay thêm.
+Sau khi xác nhận, nhân viên chuẩn bị món và giao theo máy đã ghi trên đơn. Nếu đơn có mua giờ, hệ thống cộng giá trị vào tài khoản và gia hạn phiên khách đang chơi theo giá đã chốt của phiên đó. Khi khách đang nghỉ, giờ nằm trong số dư để dùng lần sau.
+
+Tại quầy, nhân viên có thể lập phiếu nạp giờ riêng cho hội viên. Tiền mặt được xác nhận tại quầy. Với VietQR, nhân viên đối soát khoản tiền nhận được rồi xác nhận phiếu.
 
 ### Bước 5 — Kết thúc phiên chơi
 
-Khi hết giờ chơi (khách không mua thêm giờ), hoặc khách chủ động đăng xuất, hệ thống đóng phiên chơi lại. Máy PC-01 chuyển trạng thái trở lại "đang trống" (hoặc "đang dọn dẹp/bảo trì" nếu cần kiểm tra trước khi đón khách mới).
+Khi hết giờ hoặc nhân viên kết thúc phiên, hệ thống đưa máy về trạng thái trống và bảo lưu giá trị giờ chưa dùng cho hội viên. Nhân viên có thể chuyển máy sang bảo trì nếu cần. Đăng xuất trên điện thoại kết thúc đăng nhập trang dịch vụ, còn phiên chơi tiếp tục theo đồng hồ tại máy.
 
 ## 5. Chức năng dành cho Nhân viên và Quản lý
 
@@ -71,7 +71,7 @@ Nhân viên và quản lý không thao tác qua mã QR như khách — họ đă
 
 ### 5.1. Chức năng dành cho Nhân viên
 
-- **Mở tài khoản cho khách hàng mới**: nhập số điện thoại và tên khi khách tới quầy lần đầu — bước bắt buộc, không có ngoại lệ như đã nói ở Bước 1.
+- **Mở tài khoản cho khách mới**: nhập thông tin hội viên và ghi khoản nạp ban đầu tại quầy.
 - **Xem bảng theo dõi toàn bộ máy trong quán**: 1 màn hình tổng quan hiển thị tất cả máy, trạng thái đang trống/đang dùng/đang bảo trì, giúp nhân viên biết ngay còn máy nào trống để xếp cho khách mới.
 - **Xem và xác nhận các đơn hàng đang chờ**: danh sách đơn khách gọi, phân loại theo thanh toán QR hay tiền mặt, nhân viên xác nhận sau khi kiểm tra tiền đã về/đã nhận đủ.
 - **Thêm giờ chơi hoặc tạo đơn thủ công cho khách**: dùng trong trường hợp khách muốn thanh toán trực tiếp với nhân viên hoặc quán có khuyến mãi tặng giờ.
@@ -93,33 +93,23 @@ Quản lý có toàn bộ quyền của nhân viên, cộng thêm:
 ## 6. Điểm nổi bật của hệ thống
 
 - **Khách tự phục vụ qua điện thoại riêng**: không cần đứng dậy, không cần chiếm dụng máy đang chơi game để đặt món.
-- **Không cần đăng nhập lại nhiều lần**: sau khi phiên chơi đã mở, mọi lần gọi thêm dịch vụ chỉ cần quét QR, hệ thống tự nhận diện đúng tài khoản và máy.
+- **Dùng lại trang dịch vụ tại cùng bàn**: khách đang đăng nhập có thể mở lại trang để đặt thêm món hoặc xem đơn của mình.
 - **Luôn có bước xác nhận của con người**: dù thanh toán bằng cách nào, luôn cần nhân viên xác nhận trước khi đơn được xử lý — tránh rủi ro gian lận hoặc nhầm lẫn.
-- **Theo dõi chính xác từng máy, từng khách, từng phiên chơi**: không nhầm lẫn dữ liệu dù khách quay lại quán nhiều lần trong ngày hoặc các ngày khác nhau.
+- **Theo dõi máy và phiên chơi**: sơ đồ quầy hiển thị trạng thái máy, phiên đang chạy và thời gian còn lại.
 - **Phân quyền rõ ràng giữa các vai trò**: khách hàng, nhân viên, quản lý mỗi bên chỉ thấy và thao tác đúng phần việc của mình.
 
 ## 7. Tình trạng hiện tại của dự án
 
-Đây là dự án đang trong giai đoạn xây dựng, được phát triển như một dự án học tập/thực hành để rèn kỹ năng lập trình thực tế, hướng tới việc có thể triển khai thành sản phẩm dùng thật trong tương lai.
+CyberNet đã có giao diện khách, nhân viên và quản lý. Bản chạy thử cục bộ dùng Docker Compose, MySQL 8 và bản build frontend. Người dùng đã thử tạo hội viên, mở máy, nạp thêm giờ bằng tiền mặt và đóng phiên. Phần VietQR đã đối chiếu dữ liệu trả về của phiếu mẫu. [Tiến độ hiện tại](../context/STATUS.md)
 
-Hiện tại đã hoàn thành:
-- Thiết kế toàn bộ luồng hoạt động nghiệp vụ (như mô tả ở trên).
-- Thiết kế cấu trúc dữ liệu nền tảng: thông tin máy, thông tin khách hàng, danh mục món/dịch vụ, phiên chơi, và đơn hàng.
-- Dựng khung kỹ thuật ban đầu (kết nối được với cơ sở dữ liệu, sẵn sàng để xây dựng các chức năng cụ thể).
-
-Đang tiếp tục phát triển:
-- Xây dựng các chức năng xử lý cụ thể (mở phiên chơi, tạo đơn hàng, xác nhận thanh toán).
-- Xây dựng giao diện web cho khách hàng (trên điện thoại) và giao diện cho nhân viên/quản lý.
-- Bổ sung các bước kiểm thử để đảm bảo hệ thống hoạt động đúng, đặc biệt ở các tình huống nhạy cảm như xử lý tiền bạc.
+Các ca còn mở trước khi chạy thử tại quán gồm gửi lại đơn khi mất mạng, hành vi khi DB gián đoạn, kiểm tra quyền truy cập qua QR và đối soát giao dịch trên thiết bị thật. [Kết quả rà soát](backend-suite-verification.md)
 
 ## 8. Định hướng phát triển tiếp theo
 
 Sau khi hoàn thiện các chức năng cốt lõi ở trên, một số hướng mở rộng có thể tính đến trong tương lai:
 
 - **Phần mềm cài trực tiếp trên máy tính chơi game**: mỗi khi khách bật máy lên, phần mềm này tự động hiện ra đầu tiên, cho phép khách gọi món ăn, thêm giờ, hoặc dịch vụ khác ngay trên chính máy đang dùng — như một lựa chọn thay thế/bổ sung cho việc dùng điện thoại riêng.
-- Báo cáo doanh thu theo ngày/tuần/tháng cho chủ quán.
-- Thống kê món ăn/dịch vụ bán chạy nhất.
-- Tích hợp trực tiếp với ngân hàng để tự động xác nhận thanh toán QR, không cần nhân viên kiểm tra tay.
+- Đối soát tự động từ thông báo giao dịch ngân hàng, cập nhật trạng thái thanh toán, báo cho nhân viên và cân nhắc tạo hóa đơn sau khi xác nhận tiền đã về. Nội dung này được để sau đợt hiện tại.
 - Ứng dụng riêng cho khách hàng thân thiết, tích điểm, ưu đãi.
 
 ---
