@@ -1,5 +1,12 @@
 # 📒 Nhật ký học tập & phát triển — Dự án CyberNet
 
+### 17/11/2026 — Chạy thử tại quầy và rà soát tình huống lỗi
+
+- Mở lại backend và MySQL qua Docker Compose sau khi khởi động lại Windows, chạy frontend Vite Preview và đăng nhập vào sơ đồ quầy. `.env` vẫn được dùng làm cấu hình, còn volume MySQL giữ dữ liệu giữa các lần chạy.
+- Người dùng xác nhận đạt luồng hội viên và tiền mặt trên dữ liệu thử, từ tạo hội viên, mở PC-01, nạp thêm giờ đến đóng phiên và kiểm tra trạng thái máy, số dư.
+- API VietQR trả đúng số tiền và nội dung chuyển khoản của phiếu thử. Dịch vụ ảnh trả `404` với định danh ngân hàng giả. Thống nhất giữ đối soát thủ công ở giai đoạn này và để sau phần tự động nhận giao dịch, cập nhật trạng thái và thông báo.
+- Thêm bốn file kiểm thử cho hợp đồng lỗi HTTP, nghiệp vụ tiền/báo cáo, phục hồi trên frontend và gián đoạn DB trên Docker. Test mới tái hiện đặt món trùng, lỗi đăng xuất và các ca biên API/báo cáo. Đợt rà soát chỉ thêm test, các lỗi phát hiện còn mở. [Kết quả rà soát](backend-suite-verification.md)
+
 ### 13/11/2026 — Yêu cầu đăng nhập lại sau khi đổi quyền
 
 - V13 gắn access token và refresh token với một mã xác thực riêng của tài khoản. Khi đổi vai trò, backend đổi mã này dưới khóa tài khoản để thu hồi các phiên trên mọi thiết bị.
